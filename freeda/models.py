@@ -16,6 +16,12 @@ class OutputFormat(str, Enum):
     PNG = "png"
 
 
+class CuttingGuide(str, Enum):
+    NONE = "none"
+    LINE = "line"
+    MARKS = "marks"
+
+
 @dataclass(frozen=True)
 class Crop:
     x: float = 0.0
@@ -60,6 +66,9 @@ class PrintRenderOptions:
     font_family: str = "Segoe UI"
     crop: Crop = Crop()
     manual_crop_each_image: bool = True
+    inner_radius_percent: float = 0.0
+    output_format: OutputFormat = OutputFormat.JPEG
+    cutting_guide: CuttingGuide = CuttingGuide.NONE
 
 
 @dataclass(frozen=True)
