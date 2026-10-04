@@ -181,7 +181,14 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
     return result
 
 
-def save_render(image: Image.Image, path: Path, output_format: OutputFormat, *, dpi: int | None = None) -> None:
+def save_render(
+    image: Image.Image,
+    path: Path,
+    output_format: OutputFormat,
+    *,
+    dpi: int | None = None,
+    background_color: str = "#111111",
+) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     kwargs = {}
@@ -193,7 +200,7 @@ def save_render(image: Image.Image, path: Path, output_format: OutputFormat, *, 
         # 4:4:4 = subsampling 0.  Alpha is flattened onto the frame colour by
         # the caller/rendering defaults; JPEG itself cannot carry transparency.
         if image.mode == "RGBA":
-            background = Image.new("RGB", image.size, "#111111")
+            background = Image.new("RGB", image.size, background_color)
             background.paste(image, mask=image.getchannel("A"))
             image = background
         image.convert("RGB").save(
