@@ -8,7 +8,7 @@ Freeda converts full side-by-side stereo images into Freeview graphics for web a
 - Proportional frames (default 4% of eye width, range 3–5%), colors, rounded corners and adjustable captions (default 3.5%). L–R–L captions shorten with an ellipsis when necessary.
 - Rule-of-thirds grid in the crop dialog, for each eye; never exported.
 - Fixed sidebar width with wrapped long filenames.
-- Single-image and batch export with preview navigation, optional subfolders and protected output filenames.
+- Single-image and batch export with preview navigation, optional subfolders and stable output filenames that overwrite earlier exports.
 - Portable presets and remembered DE/EN language in settings.json next to the program. Crop remembering is optional and uses freeda-crops.json in the image folders.
 
 Download the archive for your operating system and extract it completely. Windows requires Freeda.exe and _internal together. Linux launches the Freeda executable. macOS provides separate Apple Silicon and Intel apps; move the package to a writable folder before use. Presets on macOS are saved beside Freeda.app. QUICKSTART.md contains the German quick-start guide.

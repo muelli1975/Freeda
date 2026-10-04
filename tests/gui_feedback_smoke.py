@@ -133,7 +133,7 @@ try:
         app.start_batch()
         assert app.status.cget("text") == "Done – 1 file"
         outputs = sorted((root / "output/print").glob("*.jpg"))
-        assert len(outputs) == 2
+        assert len(outputs) == 1
         with Image.open(outputs[-1]) as printed:
             assert printed.size == print_canvas_px(150, 100, 300, 2.5)
         gui.CropDialog = real_dialog

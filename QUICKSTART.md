@@ -6,7 +6,7 @@
 4. Mit Vorheriges/Nächstes oder Bild↑/Bild↓ die Vorschau wechseln. Ein Einzelbildexport verarbeitet das angezeigte Bild; ein Batch die gesamte Auswahl.
 5. Ansicht, Rahmen, Farben und Untertitel einstellen. L–R–L bietet links Parallelblick und rechts Kreuzblick. Lange Untertitel werden dort einzeilig begrenzt und nötigenfalls mit … gekürzt.
 6. Für Web bei Bedarf das Seitenverhältnis eines Halbbilds wählen und „Ausschnitt anpassen …“ öffnen. Bei Print Druckformat, frei eingegebene dpi und Beschnittrand in mm einstellen. Beide Stereoansichten werden identisch zugeschnitten.
-7. Export starten. Standardziel ist `output/web` beziehungsweise `output/print` bei der Eingabe. Alternativ einen eigenen Ausgabeordner wählen. Bestehende Ausgabedateien werden durch neue Dateinamen geschützt.
+7. Export starten. Standardziel ist `output/web` beziehungsweise `output/print` bei der Eingabe. Alternativ einen eigenen Ausgabeordner wählen. Bestehende Ausgabedateien werden beim erneuten Export überschrieben. Originalbilder bleiben unverändert.
 
 ## Ausschnitte und Presets
 

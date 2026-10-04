@@ -10,7 +10,7 @@ The first launch uses German. Select English via Language; the last language is 
 
 ## Images and export
 
-Load one full-SBS image, several files or a folder. Subfolders are optional. Previous/Next and Page Up/Page Down change the preview. Single-image export processes the displayed image; batch export processes the entire selection. Output goes into `output/web` or `output/print` beside the inputs, or to a custom folder. Existing output files receive distinct filenames.
+Load one full-SBS image, several files or a folder. Subfolders are optional. Previous/Next and Page Up/Page Down change the preview. Single-image export processes the displayed image; batch export processes the entire selection. Output goes into `output/web` or `output/print` beside the inputs, or to a custom folder. Existing output files are overwritten at the same destination; source images remain unchanged.
 
 Choose parallel viewing, cross-eyed viewing, both in two rows, or L–R–L in one row. Web widths describe the complete finished graphic. Custom per-eye aspect ratios and linked crop editing apply the same crop to both views. In batches, inspect every image or reuse the relative crop.
 

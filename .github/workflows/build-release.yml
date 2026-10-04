@@ -53,7 +53,12 @@ jobs:
           cd artifacts
           sha256sum *.zip > SHA256SUMS.txt
           cd ..
-          gh release create v1.0 artifacts/* --verify-tag --title 'Freeda 1.0' --notes-file RELEASE_NOTES_1.0.md
+          if gh release view v1.0 >/dev/null 2>&1; then
+            gh release edit v1.0 --draft --title 'Freeda 1.0' --notes-file RELEASE_NOTES_1.0.md
+            gh release upload v1.0 artifacts/* --clobber
+          else
+            gh release create v1.0 artifacts/* --draft --verify-tag --title 'Freeda 1.0' --notes-file RELEASE_NOTES_1.0.md
+          fi
 
   unix:
     needs: windows
@@ -121,3 +126,5 @@ jobs:
           sha256sum *.zip *.tar.gz > SHA256SUMS.txt
           cd ..
           gh release upload v1.0 artifacts/Freeda_1.0_Linux_x64.tar.gz artifacts/Freeda_1.0_macOS_AppleSilicon.zip artifacts/Freeda_1.0_macOS_Intel.zip artifacts/SHA256SUMS.txt --clobber
+
+          gh release edit v1.0 --draft=false --latest

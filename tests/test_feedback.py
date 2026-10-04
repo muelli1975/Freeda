@@ -41,7 +41,7 @@ class FeedbackTests(unittest.TestCase):
         bleed = mm_to_px(3, 300)
         self.assertEqual(image.getpixel((bleed + frame + 10, bleed + frame)), (255, 0, 0, 255))
 
-    def test_output_tree_and_rerun_do_not_overwrite(self):
+    def test_output_tree_and_rerun_overwrites_output_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             source = root / "series" / "photo.png"
@@ -53,7 +53,12 @@ class FeedbackTests(unittest.TestCase):
             render_web_batch(items, root, WebRenderOptions(target_width=1280, output_format=OutputFormat.PNG), targets=targets)
             self.assertEqual(len(discover_files([root])), 1)
             second = export_targets(items, None, root, "web", OutputFormat.PNG)
-            self.assertNotEqual(second[0], targets[0])
+            self.assertEqual(second[0], targets[0])
+            original = source.read_bytes()
+            first_export = targets[0].read_bytes()
+            render_web_batch(items, root, WebRenderOptions(target_width=1600, output_format=OutputFormat.PNG), targets=second)
+            self.assertNotEqual(targets[0].read_bytes(), first_export)
+            self.assertEqual(source.read_bytes(), original)
             self.assertTrue(source.exists())
 
     def test_same_name_and_different_extensions_get_unique_targets(self):
