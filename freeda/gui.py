@@ -10,7 +10,10 @@ from PIL import Image, ImageTk
 
 from . import __version__
 from .batch import discover_files, render_web_batch
-from .config import APP_NAME, LAYOUTS, OUTPUT_FORMATS, WEB_WIDTH_PRESETS
+from .config import (
+    APP_NAME, LAYOUTS, OUTPUT_FORMATS, WEB_WIDTH_PRESETS,
+    COLOR_PRESETS, DEFAULT_COLOR_PRESET, DEFAULT_FRAME_COLOR, DEFAULT_ACCENT_COLOR,
+)
 from .fonts import available_fonts
 from .models import LayoutMode, OutputFormat, WebRenderOptions
 from .notifications import play_ready_sound
@@ -198,7 +201,7 @@ class FreedaApp(ctk.CTk):
         self.custom_width_var = tk.StringVar(value="1920")
         self.custom_width = ctk.CTkEntry(
             self.sidebar, textvariable=self.custom_width_var, fg_color=INPUT_BG,
-            border_color=BORDER, text_color=TEXT_PRIMARY, placeholder_text="Breite in Pixel"
+            border_color=BORDER, text_color=TEXT, placeholder_text="Breite in Pixel"
         )
         self.custom_width.grid(row=row, column=0, sticky="ew", padx=20, pady=(0,12)); row += 1
         self.custom_width.grid_remove()
@@ -225,15 +228,50 @@ class FreedaApp(ctk.CTk):
             block = ctk.CTkFrame(radius_frame, fg_color="transparent")
             block.grid(row=0, column=col, sticky="ew", padx=(0,4) if col==0 else (4,0))
             self._label(block, label).pack(fill="x")
-            entry = ctk.CTkEntry(block, textvariable=var, fg_color=SECONDARY_BG, border_color=BORDER)
+            entry = ctk.CTkEntry(block, textvariable=var, fg_color=BG_SOFT, border_color=BORDER)
             entry.pack(fill="x", pady=(3,0))
             entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+
+        self._label(self.sidebar, "Farben", section=True).grid(row=row, column=0, sticky="ew", padx=20); row += 1
+        self.color_preset_var = tk.StringVar(value=DEFAULT_COLOR_PRESET)
+        self._option(
+            self.sidebar,
+            self.color_preset_var,
+            tuple(COLOR_PRESETS.keys()),
+            self._color_preset_changed,
+        ).grid(row=row, column=0, sticky="ew", padx=20, pady=(6,6)); row += 1
+
+        self.custom_colors = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        self.custom_colors.grid(row=row, column=0, sticky="ew", padx=20, pady=(0,12)); row += 1
+        self.custom_colors.grid_columnconfigure(0, weight=1)
+        self.custom_colors.grid_columnconfigure(1, weight=1)
+
+        self.frame_color_var = tk.StringVar(value=DEFAULT_FRAME_COLOR)
+        self.accent_color_var = tk.StringVar(value=DEFAULT_ACCENT_COLOR)
+        for col, label, var in (
+            (0, "Rahmen", self.frame_color_var),
+            (1, "Schrift / II / X", self.accent_color_var),
+        ):
+            block = ctk.CTkFrame(self.custom_colors, fg_color="transparent")
+            block.grid(row=0, column=col, sticky="ew", padx=(0,4) if col == 0 else (4,0))
+            self._label(block, label).pack(fill="x")
+            entry = ctk.CTkEntry(
+                block,
+                textvariable=var,
+                fg_color=INPUT_BG,
+                border_color=BORDER,
+                text_color=TEXT,
+                placeholder_text="#rrggbb",
+            )
+            entry.pack(fill="x", pady=(3,0))
+            entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.custom_colors.grid_remove()
 
         self._label(self.sidebar, "Beschriftung", section=True).grid(row=row, column=0, sticky="ew", padx=20); row += 1
         self.caption_var = tk.StringVar(value="")
         caption = ctk.CTkEntry(
-            self.sidebar, textvariable=self.caption_var, fg_color=SECONDARY_BG,
-            border_color=BORDER, text_color=TEXT_PRIMARY, placeholder_text="Optionaler Untertitel"
+            self.sidebar, textvariable=self.caption_var, fg_color=BG_SOFT,
+            border_color=BORDER, text_color=TEXT, placeholder_text="Optionaler Untertitel"
         )
         caption.grid(row=row, column=0, sticky="ew", padx=20, pady=(6,6)); row += 1
         caption.bind("<KeyRelease>", lambda _e: self.schedule_preview())
@@ -288,6 +326,27 @@ class FreedaApp(ctk.CTk):
         self.frame_label.configure(text=f"Breite: {value:.2f} % je Halbbild".replace(".", ","))
         self.schedule_preview()
 
+    def _color_preset_changed(self, value: str) -> None:
+        preset = COLOR_PRESETS.get(value)
+        if preset is None:
+            self.custom_colors.grid()
+        else:
+            self.custom_colors.grid_remove()
+            self.frame_color_var.set(preset[0])
+            self.accent_color_var.set(preset[1])
+        self.schedule_preview()
+
+    @staticmethod
+    def _hex_color(value: str, fallback: str) -> str:
+        value = value.strip()
+        if len(value) == 7 and value.startswith("#"):
+            try:
+                int(value[1:], 16)
+                return value.lower()
+            except ValueError:
+                pass
+        return fallback
+
     def choose_files(self) -> None:
         names = filedialog.askopenfilenames(
             title="Full-SBS-Bilder wählen",
@@ -335,8 +394,8 @@ class FreedaApp(ctk.CTk):
             layout=_LAYOUT_TO_MODE[self.layout_var.get()],
             target_width=target_width,
             frame_percent=float(self.frame_var.get()),
-            frame_color="#111111",
-            accent_color="#c6a95e",
+            frame_color=self._hex_color(self.frame_color_var.get(), DEFAULT_FRAME_COLOR),
+            accent_color=self._hex_color(self.accent_color_var.get(), DEFAULT_ACCENT_COLOR),
             outer_radius_percent=max(0.0, self._float(self.outer_radius_var.get())),
             inner_radius_percent=max(0.0, self._float(self.inner_radius_var.get())),
             caption=self.caption_var.get(),
