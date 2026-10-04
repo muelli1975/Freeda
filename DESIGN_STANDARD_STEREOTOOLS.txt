@@ -1,0 +1,39 @@
+FREEDA / STEREO-TOOLS
+GESTALTUNGSSTANDARD
+===================
+
+Freeda follows the same visual family as StereoFine and SplatTricia.
+
+Palette
+-------
+Main background      #111111
+Soft background      #181818
+Panel                #202020
+Panel hover          #282828
+Border               #333333
+Primary text         #f2f2f2
+Secondary text       #b8b8b8
+Disabled             #727272
+Gold                 #9c7c38
+Light gold           #c6a95e
+Preview background   #000000
+
+Freeda output defaults
+----------------------
+Frame                #111111
+Symbols II / X       #c6a95e
+Captions             #c6a95e
+JPEG                 quality 90, 4:4:4 (no chroma subsampling)
+PNG                  RGBA; rounded outer corners may be transparent
+
+Geometry
+--------
+The web preset width is the exact width of ONE complete stereo row, including
+outer frame and central divider.
+
+Frame thickness is defined as a percentage of ONE rendered half image.  The
+outer left/right frame, central divider and horizontal divider all use the
+same resulting pixel thickness.
+
+Captions and II/X markers are rendered separately but identically for both
+half images so they fuse correctly in parallel or cross viewing.
