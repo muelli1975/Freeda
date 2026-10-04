@@ -16,9 +16,14 @@ DEFAULT_FONT_FAMILY = "Segoe UI"
 COLOR_PRESETS = {
     "Nachtgold": ("#111111", "#c6a95e"),
     "Schwarzweiß": ("#000000", "#f2f2f2"),
-    "Elfenbein": ("#eee9df", "#2a2520"),
-    "Bordeaux": ("#2b161a", "#e0c38c"),
-    "Petrol": ("#102629", "#d8c58d"),
+    "Beige": ("#d8cbb8", "#2b2520"),
+    "Bordeauxgold": ("#2b161a", "#d8b56a"),
+    "Petrolsand": ("#102629", "#d7c39a"),
+    "Nachtblau": ("#101826", "#d9e1eb"),
+    "Waldgrün": ("#16231b", "#ddd6c4"),
+    "Anthrazitkupfer": ("#1e1e1e", "#c9895b"),
+    "Pflaumencreme": ("#291d2a", "#e5d6c9"),
+    "Sepia": ("#2b2119", "#e0c7a0"),
     "Benutzerdefiniert": None,
 }
 DEFAULT_COLOR_PRESET = "Nachtgold"
