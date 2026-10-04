@@ -27,8 +27,10 @@ The first working foundation already includes:
 
 ## Print design
 
-The print path is being built around physical size, DPI and bleed. The intended
-first formats include postcard/A6 and custom sizes at 300 or 600 dpi.
+The print path is being built around physical size, DPI and bleed. Presets include
+DIN A6, common German photo-lab sizes (9 × 13, 10 × 15, 11 × 17, 13 × 18,
+15 × 20 and 20 × 30 cm), historical stereo-card sizes (7 × 3½ in, 18 × 9 cm,
+13 × 6 cm) and a custom size, at 300 or 600 dpi.
 
 Manual print cropping is explicitly batch-aware:
 
