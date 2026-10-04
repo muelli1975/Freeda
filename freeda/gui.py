@@ -311,8 +311,7 @@ class FreedaApp(ctk.CTk):
             self.preview_photo = ImageTk.PhotoImage(rendered)
             self.preview_label.configure(image=self.preview_photo, text="")
         except Exception as exc:
-            self.preview_label.configure(image="", text=f"Vorschaufehler:
-{exc}")
+            self.preview_label.configure(image="", text=f"Vorschaufehler:\\n{exc}")
 
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
