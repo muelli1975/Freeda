@@ -1,0 +1,36 @@
+name: Build Windows Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-windows-preview.yml"
+      - "Freeda.py"
+      - "Freeda.spec"
+      - "build_windows.ps1"
+      - "requirements-lock.txt"
+      - "requirements-build.txt"
+      - "freeda/**"
+      - "assets/**"
+      - "tests/**"
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.10"
+      - name: Build portable preview
+        shell: pwsh
+        run: .\build_windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Freeda_preview_Windows_x64
+          path: |
+            release/Freeda_preview_Windows_x64.zip
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
