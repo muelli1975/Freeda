@@ -29,7 +29,7 @@ if sys.platform == 'darwin':
     shutil.copytree(root / 'dist/Freeda.app', package / 'Freeda.app', dirs_exist_ok=True)
 else:
     package = root / 'dist/Freeda'
-for filename in ('README.md', 'QUICKSTART.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
+for filename in ('README.md', 'README_EN.md', 'QUICKSTART.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
     shutil.copy2(root / filename, package / filename)
 shutil.copytree(root / 'licenses', package / 'licenses', dirs_exist_ok=True)
 if sys.platform == 'darwin':
