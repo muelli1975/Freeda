@@ -17,9 +17,16 @@ from .notifications import play_ready_sound
 from .render import render_web
 from .resources import resource_path
 from .theme import (
-    APP_BG, BORDER, CONTROL_RADIUS, GOLD_DARK, GOLD_LIGHT, HOVER_BG, PANEL_BG,
-    PANEL_RADIUS, PREVIEW_BG, SECONDARY_BG, TEXT_DISABLED, TEXT_PRIMARY,
-    TEXT_SECONDARY,
+    BG_MAIN, BG_SOFT, PANEL, PANEL_HOVER, BORDER,
+    TEXT, TEXT_MUTED, TEXT_DISABLED,
+    GOLD, GOLD_LIGHT,
+    INPUT_BG, BUTTON_BG, BUTTON_HOVER,
+    SLIDER_TRACK, SLIDER_PROGRESS, SLIDER_BUTTON, SLIDER_BUTTON_HOVER,
+    PROGRESS_TRACK,
+    START_BG, START_HOVER_BG, START_TEXT, START_HOVER_TEXT,
+    START_BORDER, START_HOVER_BORDER,
+    START_DISABLED_BG, START_DISABLED_TEXT, START_DISABLED_BORDER,
+    PREVIEW_BG, FONT_FAMILY, RADIUS_CONTROL, RADIUS_PANEL, BORDER_WIDTH,
 )
 
 ctk.set_appearance_mode("dark")
@@ -37,7 +44,7 @@ _LAYOUT_TO_MODE = {
 
 class FreedaApp(ctk.CTk):
     def __init__(self) -> None:
-        super().__init__(fg_color=APP_BG)
+        super().__init__(fg_color=BG_MAIN)
         self.title(f"{APP_NAME} {__version__}")
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.minsize(1120, 720)
@@ -52,20 +59,20 @@ class FreedaApp(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
 
         self.sidebar = ctk.CTkScrollableFrame(
-            self, width=SIDEBAR_WIDTH, fg_color=PANEL_BG, corner_radius=0
+            self, width=SIDEBAR_WIDTH, fg_color=PANEL, corner_radius=0
         )
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         self.sidebar.grid_columnconfigure(0, weight=1)
 
         self.preview_panel = ctk.CTkFrame(
-            self, fg_color=PREVIEW_BG, corner_radius=PANEL_RADIUS,
-            border_width=1, border_color=BORDER
+            self, fg_color=PREVIEW_BG, corner_radius=RADIUS_PANEL,
+            border_width=BORDER_WIDTH, border_color=BORDER
         )
         self.preview_panel.grid(row=0, column=1, sticky="nsew", padx=16, pady=16)
         self.preview_panel.grid_rowconfigure(0, weight=1)
         self.preview_panel.grid_columnconfigure(0, weight=1)
 
-        self.preview_label = tk.Label(self.preview_panel, bg=PREVIEW_BG, fg=TEXT_SECONDARY)
+        self.preview_label = tk.Label(self.preview_panel, bg=PREVIEW_BG, fg=TEXT_MUTED)
         self.preview_label.grid(row=0, column=0, sticky="nsew", padx=18, pady=18)
         self.preview_label.bind("<Configure>", lambda _e: self.schedule_preview())
 
@@ -74,38 +81,87 @@ class FreedaApp(ctk.CTk):
     def _label(self, parent, text, *, section=False):
         return ctk.CTkLabel(
             parent, text=text, anchor="w",
-            text_color=TEXT_PRIMARY if section else TEXT_SECONDARY,
-            font=("Segoe UI", 15 if section else 13, "bold" if section else "normal"),
+            text_color=TEXT if section else TEXT_MUTED,
+            font=(FONT_FAMILY, 15 if section else 13, "bold" if section else "normal"),
         )
 
     def _button(self, parent, text, command, *, primary=False):
-        return ctk.CTkButton(
-            parent, text=text, command=command, corner_radius=CONTROL_RADIUS,
-            fg_color=SECONDARY_BG,
-            hover_color=GOLD_LIGHT if primary else HOVER_BG,
-            border_width=1,
-            border_color=GOLD_DARK if primary else BORDER,
-            text_color=GOLD_LIGHT if primary else TEXT_PRIMARY,
+        button = ctk.CTkButton(
+            parent,
+            text=text,
+            command=command,
+            corner_radius=RADIUS_CONTROL,
+            fg_color=START_BG if primary else BUTTON_BG,
+            hover_color=START_HOVER_BG if primary else BUTTON_HOVER,
+            border_width=BORDER_WIDTH,
+            border_color=START_BORDER if primary else BORDER,
+            text_color=START_TEXT if primary else TEXT,
+            text_color_disabled=TEXT_DISABLED,
         )
+        if primary:
+            button.bind("<Enter>", lambda _e: self._set_start_button_hover(), add="+")
+            button.bind("<Leave>", lambda _e: self._set_start_button_normal(), add="+")
+        return button
 
     def _option(self, parent, variable, values, command=None):
         return ctk.CTkOptionMenu(
-            parent, variable=variable, values=list(values), command=command,
-            fg_color=PANEL_BG, button_color=HOVER_BG, button_hover_color=BORDER,
-            dropdown_fg_color=SECONDARY_BG, dropdown_hover_color=HOVER_BG,
-            text_color=TEXT_PRIMARY,
+            parent,
+            variable=variable,
+            values=list(values),
+            command=command,
+            fg_color=PANEL,
+            button_color=PANEL_HOVER,
+            button_hover_color=BORDER,
+            dropdown_fg_color=BG_SOFT,
+            dropdown_hover_color=PANEL_HOVER,
+            dropdown_text_color=TEXT,
+            text_color=TEXT,
+            corner_radius=RADIUS_CONTROL,
+        )
+
+    def _set_start_button_normal(self) -> None:
+        if not hasattr(self, "start_button"):
+            return
+        if self.start_button.cget("state") == "disabled":
+            self._set_start_button_disabled()
+            return
+        self.start_button.configure(
+            fg_color=START_BG,
+            hover_color=START_HOVER_BG,
+            text_color=START_TEXT,
+            border_color=START_BORDER,
+        )
+
+    def _set_start_button_hover(self) -> None:
+        if not hasattr(self, "start_button") or self.start_button.cget("state") == "disabled":
+            return
+        self.start_button.configure(
+            fg_color=START_HOVER_BG,
+            hover_color=START_HOVER_BG,
+            text_color=START_HOVER_TEXT,
+            border_color=START_HOVER_BORDER,
+        )
+
+    def _set_start_button_disabled(self) -> None:
+        if not hasattr(self, "start_button"):
+            return
+        self.start_button.configure(
+            fg_color=START_DISABLED_BG,
+            hover_color=START_DISABLED_BG,
+            text_color=START_DISABLED_TEXT,
+            border_color=START_DISABLED_BORDER,
         )
 
     def _build_sidebar(self) -> None:
         row = 0
         title = ctk.CTkLabel(
             self.sidebar, text="Freeda", anchor="w",
-            text_color=GOLD_LIGHT, font=("Segoe UI", 27, "bold")
+            text_color=GOLD_LIGHT, font=(FONT_FAMILY, 27, "bold")
         )
         title.grid(row=row, column=0, sticky="ew", padx=20, pady=(20, 0)); row += 1
         ctk.CTkLabel(
             self.sidebar, text="Free-view Stereo für Web und Print",
-            anchor="w", text_color=TEXT_SECONDARY, font=("Segoe UI", 12)
+            anchor="w", text_color=TEXT_MUTED, font=(FONT_FAMILY, 12)
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 18)); row += 1
 
         self._label(self.sidebar, "Eingabe", section=True).grid(row=row, column=0, sticky="ew", padx=20); row += 1
@@ -123,9 +179,9 @@ class FreedaApp(ctk.CTk):
         self.mode_selector = ctk.CTkSegmentedButton(
             self.sidebar, values=["Web", "Print"], variable=self.mode_var,
             command=self._mode_changed,
-            selected_color=GOLD_DARK, selected_hover_color=GOLD_LIGHT,
-            unselected_color=SECONDARY_BG, unselected_hover_color=HOVER_BG,
-            text_color=TEXT_PRIMARY,
+            selected_color=GOLD, selected_hover_color=GOLD_LIGHT,
+            unselected_color=BG_SOFT, unselected_hover_color=PANEL_HOVER,
+            text_color=TEXT,
         )
         self.mode_selector.grid(row=row, column=0, sticky="ew", padx=20, pady=(6,10)); row += 1
 
@@ -141,7 +197,7 @@ class FreedaApp(ctk.CTk):
         self.size_menu.grid(row=row, column=0, sticky="ew", padx=20, pady=(4,6)); row += 1
         self.custom_width_var = tk.StringVar(value="1920")
         self.custom_width = ctk.CTkEntry(
-            self.sidebar, textvariable=self.custom_width_var, fg_color=SECONDARY_BG,
+            self.sidebar, textvariable=self.custom_width_var, fg_color=INPUT_BG,
             border_color=BORDER, text_color=TEXT_PRIMARY, placeholder_text="Breite in Pixel"
         )
         self.custom_width.grid(row=row, column=0, sticky="ew", padx=20, pady=(0,12)); row += 1
@@ -155,8 +211,8 @@ class FreedaApp(ctk.CTk):
         ctk.CTkSlider(
             self.sidebar, from_=0.0, to=5.0, number_of_steps=100,
             variable=self.frame_var, command=self._frame_changed,
-            progress_color=GOLD_DARK, button_color=GOLD_LIGHT,
-            button_hover_color=GOLD_LIGHT, fg_color=BORDER
+            progress_color=SLIDER_PROGRESS, button_color=SLIDER_BUTTON,
+            button_hover_color=SLIDER_BUTTON_HOVER, fg_color=SLIDER_TRACK
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(2,10)); row += 1
 
         radius_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -199,7 +255,7 @@ class FreedaApp(ctk.CTk):
         self.start_button = self._button(self.sidebar, "Batch starten", self.start_batch, primary=True)
         self.start_button.grid(row=row, column=0, sticky="ew", padx=20, pady=(0,8)); row += 1
         self.progress = ctk.CTkProgressBar(
-            self.sidebar, progress_color=GOLD_DARK, fg_color=BORDER
+            self.sidebar, progress_color=GOLD, fg_color=PROGRESS_TRACK
         )
         self.progress.set(0)
         self.progress.grid(row=row, column=0, sticky="ew", padx=20, pady=(0,5)); row += 1
@@ -213,8 +269,12 @@ class FreedaApp(ctk.CTk):
         self.size_label.configure(text="Web-Breite" if is_web else "Print (in Aufbau)")
         self.start_button.configure(
             state="normal" if is_web else "disabled",
-            text="Batch starten" if is_web else "Print-Batch folgt"
+            text="Batch starten" if is_web else "Print-Batch folgt",
         )
+        if is_web:
+            self._set_start_button_normal()
+        else:
+            self._set_start_button_disabled()
         self.schedule_preview()
 
     def _size_changed(self, value: str) -> None:
@@ -316,6 +376,10 @@ class FreedaApp(ctk.CTk):
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
         self.start_button.configure(state="disabled" if busy else "normal")
+        if busy:
+            self._set_start_button_disabled()
+        else:
+            self._set_start_button_normal()
 
     def start_batch(self) -> None:
         if self._busy:
