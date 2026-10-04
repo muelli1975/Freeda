@@ -30,7 +30,10 @@ class PrintBatchSession:
 
     @property
     def needs_manual_crop(self) -> bool:
-        return not self.finished and self.mode == CropBatchMode.MANUAL_EACH
+        return not self.finished and (
+            self.mode == CropBatchMode.MANUAL_EACH
+            or (self.mode == CropBatchMode.REUSE and self.index == 0)
+        )
 
     def suggested_crop(self) -> Crop:
         return self.last_crop if self.mode == CropBatchMode.REUSE else Crop()
