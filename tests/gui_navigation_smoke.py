@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory() as tmp:
         app.choose_files()
     assert app.source_index == 1 and len(app.sources) == 3 and len(app.items) == 1
     app.navigate(1)
-    assert app.items[0].source == paths[2] and app.next_button.cget("state") == "disabled"
+    assert app.items[0].source.resolve() == paths[2].resolve() and app.next_button.cget("state") == "disabled"
     app.navigate(1)
     assert app.source_index == 2
     with patch("freeda.gui.filedialog.askopenfilenames", return_value=[str(p) for p in paths]):
