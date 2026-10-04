@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .fonts import resolve_font
+from .fonts import resolve_font, available_fonts
 from .cropping import fit_linked_crop
 from .geometry import frame_geometry_for_total_width
 from .models import Crop, LayoutMode, OutputFormat, WebRenderOptions
@@ -48,7 +48,8 @@ def _text_height(font: ImageFont.ImageFont, text: str) -> int:
     return max(1, box[3] - box[1])
 
 
-def _symbol_style(family: str, frame: int, symbol: str):
+def _symbol_style(frame: int, symbol: str):
+    family = available_fonts()[0]
     font = _font(family, max(8, frame))
     while _text_height(font, symbol) > max(1, frame - 2) and getattr(font, "size", 8) > 8:
         font = _font(family, font.size - 1)
@@ -130,12 +131,12 @@ def _rounded_eye(image: Image.Image, radius: int) -> Image.Image:
     return image
 
 
-def _draw_symbols(draw, positions, eye_w, frame, family, symbol, accent_color):
+def _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color):
     markers = [(x + eye_w // 2, symbol) for x in positions]
     if len(positions) == 3:
         markers = [(positions[1] - frame // 2, "II"), (positions[2] - frame // 2, "X")]
     for center, marker in markers:
-        font, y = _symbol_style(family, frame, marker)
+        font, y = _symbol_style(frame, marker)
         if frame >= _text_height(font, marker):
             _draw_centered(draw, marker, center, y, font, accent_color)
 
@@ -164,7 +165,6 @@ def _row(
     left = left.resize((eye_w, eye_h), Image.Resampling.LANCZOS)
     right = right.resize((eye_w, eye_h), Image.Resampling.LANCZOS)
 
-    symbol_font, symbol_y = _symbol_style(font_family, frame, symbol)
     caption_font = _font(font_family, max(9, round(eye_w * caption_size_percent / 100)))
     if eye_count == 3:
         caption, caption_font = _fit_lrl_caption(caption, caption_font, font_family, eye_w)
@@ -184,7 +184,7 @@ def _row(
     eyes = (left, right, left) if eye_count == 3 else (left, right)
     for x, eye in zip(positions, eyes):
         row.alpha_composite(_rounded_eye(eye, radius), (x, image_y))
-    _draw_symbols(draw, positions, eye_w, frame, font_family, symbol, accent_color)
+    _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color)
 
     if caption:
         caption_y = image_y + eye_h + caption_gap

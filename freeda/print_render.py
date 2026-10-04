@@ -5,8 +5,7 @@ from dataclasses import replace
 from PIL import Image, ImageDraw
 
 from .geometry import frame_geometry_for_total_width, mm_to_px, print_canvas_px
-from .models import Crop, CuttingGuide, LayoutMode, PrintRenderOptions, WebRenderOptions
-from .cropping import fit_linked_crop
+from .models import Crop, CuttingGuide, LayoutMode, PrintRenderOptions
 from .render import (
     _draw_centered,
     _draw_caption,
@@ -19,7 +18,6 @@ from .render import (
     _symbol_style,
     crop_eye,
     split_full_sbs,
-    render_web,
 )
 
 
@@ -55,7 +53,7 @@ def crop_for_aspect(
 
 
 def _bands(eye_width: int, frame: int, caption: str, family: str, symbol: str, caption_size_percent: float, eye_count: int = 2):
-    symbol_font, symbol_gap = _symbol_style(family, frame, symbol)
+    symbol_font, symbol_gap = _symbol_style(frame, symbol)
     caption_font = _font(family, max(9, round(eye_width * caption_size_percent / 100)))
     if eye_count == 3:
         caption, caption_font = _fit_lrl_caption(caption, caption_font, family, eye_width)
@@ -66,15 +64,8 @@ def _bands(eye_width: int, frame: int, caption: str, family: str, symbol: str, c
     return symbol_font, caption_font, symbol_gap, caption_gap, symbol_band, caption_band
 
 
-def print_eye_aspect(options: PrintRenderOptions, image_size=None) -> float:
+def print_eye_aspect(options: PrintRenderOptions) -> float:
     """Return the aspect ratio of the printed image area of one stereo half."""
-    if (not options.fit_to_paper or options.eye_aspect is not None):
-        if options.eye_aspect is not None:
-            return options.eye_aspect
-        if image_size is None:
-            raise ValueError("Original aspect ratio requires the eye image size.")
-        crop = options.crop.clamped()
-        return image_size[0] * crop.width / (image_size[1] * crop.height)
     trim_w = mm_to_px(options.width_mm, options.dpi)
     trim_h = mm_to_px(options.height_mm, options.dpi)
     geom = frame_geometry_for_total_width(trim_w, options.frame_percent, 3 if options.layout == LayoutMode.LRL else 2)
@@ -86,44 +77,6 @@ def print_eye_aspect(options: PrintRenderOptions, image_size=None) -> float:
         caption_band -= geom.frame_px
     eye_h = max(1, row_h - 2 * geom.frame_px - symbol_band - caption_band)
     return geom.eye_width / eye_h
-
-
-def print_content(source, options):
-    """Fit a Web-equivalent stereo graphic on fixed paper without stretching."""
-    left, _ = split_full_sbs(source)
-    crop = fit_linked_crop(left.size, options.crop, options.eye_aspect)
-    eye = crop_eye(left, crop)
-    trim_w = mm_to_px(options.width_mm, options.dpi)
-    trim_h = mm_to_px(options.height_mm, options.dpi)
-    count = 3 if options.layout == LayoutMode.LRL else 2
-    rows = 2 if options.layout == LayoutMode.BOTH else 1
-
-    def height(width):
-        geom = frame_geometry_for_total_width(width, options.frame_percent, count)
-        _, _, _, _, _, band = _bands(geom.eye_width, geom.frame_px,
-            options.caption, options.font_family, "II", options.caption_size_percent, count)
-        eye_h = max(1, round(geom.eye_width * eye.height / eye.width))
-        return rows * (2 * geom.frame_px + eye_h + band) - geom.frame_px * (rows - 1 + bool(options.caption))
-
-    low, high, width = 16, trim_w, 0
-    while low <= high:
-        middle = (low + high) // 2
-        if height(middle) <= trim_h:
-            width = middle
-            low = middle + 1
-        else:
-            high = middle - 1
-    if not width:
-        raise ValueError("Das gewählte Druckformat ist für Rahmen und Beschriftung zu niedrig.")
-    web = WebRenderOptions(layout=options.layout, target_width=width,
-        eye_aspect=options.eye_aspect, crop=options.crop,
-        frame_percent=options.frame_percent, frame_color=options.frame_color,
-        accent_color=options.accent_color, caption=options.caption,
-        font_family=options.font_family, caption_size_percent=options.caption_size_percent,
-        inner_radius_percent=options.inner_radius_percent, output_format=options.output_format)
-    content = render_web(source, web)
-    offset = ((trim_w - content.width) // 2, (trim_h - content.height) // 2)
-    return content, web, offset
 
 
 def _fit_crop_to_aspect(image: Image.Image, crop: Crop, target_aspect: float) -> Image.Image:
@@ -179,7 +132,7 @@ def _fixed_row(
     eyes = (left, right, left) if eye_count == 3 else (left, right)
     for x, eye in zip(positions, eyes):
         row.alpha_composite(_rounded_eye(eye, radius), (x, image_y))
-    _draw_symbols(draw, positions, eye_w, frame, options.font_family, symbol, options.accent_color)
+    _draw_symbols(draw, positions, eye_w, frame, symbol, options.accent_color)
     if options.caption:
         caption = options.caption
         if eye_count == 3:
@@ -235,13 +188,6 @@ def render_print(source: Image.Image, options: PrintRenderOptions) -> Image.Imag
         options.width_mm, options.height_mm, options.dpi, options.bleed_mm
     )
     bleed = mm_to_px(options.bleed_mm, options.dpi)
-
-    if (not options.fit_to_paper or options.eye_aspect is not None):
-        content, _, offset = print_content(source, options)
-        canvas = Image.new("RGBA", (canvas_w, canvas_h), "white")
-        canvas.alpha_composite(content, (bleed + offset[0], bleed + offset[1]))
-        _draw_cutting_guides(canvas, trim_box=(bleed, bleed, bleed + trim_w, bleed + trim_h), options=options)
-        return canvas
 
     geom = frame_geometry_for_total_width(trim_w, options.frame_percent)
     rows: list[Image.Image] = []

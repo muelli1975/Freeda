@@ -29,7 +29,7 @@ Alle vier Varianten entstehen aus demselben markierten Quellstand. Automatische 
 1. Ein Full-SBS-Bild, mehrere Dateien oder einen Bilderordner öffnen.
 2. **Web** oder **Print** und die gewünschte Ansicht wählen.
 3. Ausgabebreite beziehungsweise Druckformat, Rahmenfarben und Untertitel einstellen.
-4. Bei Bedarf das Seitenverhältnis der Halbbilder wählen und mit **Ausschnitt anpassen** den Ausschnitt positionieren.
+4. Mit **Ausschnitt anpassen** den Bildausschnitt positionieren. Bei Web lässt sich zusätzlich das Seitenverhältnis der Halbbilder wählen.
 5. Die Vorschau prüfen. Mit Vorheriges/Nächstes weitere Bilder ansehen.
 6. Export starten. Der Einzelbildexport verarbeitet das angezeigte Bild, der Batch die gesamte Auswahl.
 
@@ -52,11 +52,9 @@ Die II/X-Symbole belegen einen Streifen in Rahmenbreite. Bei L–R–L stehen si
 
 Webbreiten beziehen sich auf die gesamte fertige Grafik einschließlich Rahmen. Zur Auswahl stehen Presets, eine frei eingegebene Breite und die Originalbreite. Das Seitenverhältnis der Halbbilder kann unverändert bleiben oder über ein Preset beziehungsweise ein eigenes Verhältnis angepasst werden.
 
-Print trennt das Papierformat vom Seitenverhältnis der Halbbilder. **Druckformat ausfüllen** erhält die bisherige flächige Darstellung. **Original**, Verhältnis-Presets und eigene Verhältnisse passen die gesamte Freeview-Grafik mittig auf weißem Papier ein, ohne die Bilder zu verzerren. Beim Wechsel von Papiergröße oder dpi bleibt das gewählte Bildverhältnis erhalten.
+Print bietet vorgegebene und eigene Druckformate, frei eingegebene positive ganzzahlige dpi und einen frei einstellbaren **Beschnittrand in mm** mit Nachkommastellen. Der Beschnittrand startet bei 0 mm; seine Vorschau ist eingeschaltet, damit ein hinzugefügter Rand sofort sichtbar wird. Das Druckformat wird vollständig ausgefüllt; das Seitenverhältnis der Halbbilder ergibt sich aus Papierformat, Ansicht, Rahmen und Untertiteln. Der Ausschnittdialog legt den passenden Bildausschnitt fest. Der Beschnittrand hat dieselbe Farbe wie der Rahmen. Optionale Schneidelinien und Schnittmarken sind grau. Die Vorschau passt sich dem verfügbaren Platz an; ihre Anzeigeskalierung ist unabhängig von den Export-dpi.
 
-Print bietet vorgegebene und eigene Druckformate, frei eingegebene positive ganzzahlige dpi und einen frei einstellbaren **Beschnittrand in mm** mit Nachkommastellen. Der Beschnittrand startet bei 0 mm; seine Vorschau ist eingeschaltet, damit ein hinzugefügter Rand sofort sichtbar wird. Optionale Schneidelinien und Schnittmarken sind grau. Die Vorschau passt sich dem verfügbaren Platz an; ihre Anzeigeskalierung ist unabhängig von den Export-dpi.
-
-Die Rahmenbreite ist von 3 bis 5 % einstellbar, mit 4 % als Standard. Schrift und Untertitelgröße lassen sich anpassen; die Standardgröße beträgt 3,5 %. Beide Prozentwerte beziehen sich auf die Breite eines Halbbilds und werden in Web und Print gleich berechnet.
+Die Rahmenbreite ist von 3 bis 5 % einstellbar, mit 4 % als Standard. Untertitelschrift und Untertitelgröße lassen sich anpassen; die Standardgröße beträgt 3,5 %. Die Schriftwahl betrifft ausschließlich Untertitel; die II/X-Symbole behalten ihre Standardschrift. Beide Prozentwerte beziehen sich auf die Breite eines Halbbilds und werden in Web und Print gleich berechnet.
 
 ## Bildausschnitte
 

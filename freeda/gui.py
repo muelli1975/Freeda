@@ -104,7 +104,6 @@ _PRESET_VARIABLES = (
     "color_preset_var", "frame_color_var", "accent_color_var", "font_var",
     "caption_size_var", "format_var", "aspect_var", "custom_aspect_var",
     "web_crop_mode_var", "web_review_var",
-    "print_aspect_var", "custom_print_aspect_var",
 )
 
 
@@ -369,7 +368,7 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
                 return self.options.eye_aspect
             crop = self.options.crop.clamped()
             return left.width * crop.width / (left.height * crop.height)
-        return print_eye_aspect(self.options, (self.source.width // 2, self.source.height))
+        return print_eye_aspect(self.options)
 
     def current_crop(self) -> Crop:
         left, _ = split_full_sbs(self.source)
@@ -554,7 +553,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
     def _open_fonts(self):
         dialog = ctk.CTkToplevel(self, fg_color=BG_MAIN)
-        dialog.title(self.tr("Schriftart"))
+        dialog.title(self.tr("Untertitelschrift"))
         dialog.geometry("420x520")
         dialog.transient(self)
         dialog.grab_set()
@@ -752,7 +751,6 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._frame_changed(self.frame_var.get())
         self._caption_size_changed(self.caption_size_var.get())
         self._aspect_changed(self.aspect_var.get(), clear=False)
-        self._print_aspect_changed(self.print_aspect_var.get(), clear=False)
         self._set_text(self.status, "Preset geladen")
 
     def _set_start_button_normal(self) -> None:
@@ -984,19 +982,6 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             tuple(_CUTTING_GUIDES.keys()),
             lambda _v: self.schedule_preview(),
         ).grid(row=8, column=0, sticky="ew", pady=(3, 12))
-        self.print_aspect_var = tk.StringVar(value="Druckformat ausfüllen")
-        self.custom_print_aspect_var = tk.StringVar(value="4:3")
-        self._label(self.print_controls, "Seitenverhältnis der Halbbilder").grid(row=9, column=0, sticky="ew")
-        self._option(self.print_controls, self.print_aspect_var,
-            ("Druckformat ausfüllen", "Original", "1:1", "4:3", "3:2", "16:9", "3:4", "2:3", "Benutzerdefiniert"),
-            self._print_aspect_changed).grid(row=10, column=0, sticky="ew", pady=(4, 6))
-        self.custom_print_aspect_entry = self._entry(self.print_controls, self.custom_print_aspect_var, "Breite:Höhe, z. B. 4:3")
-        self.custom_print_aspect_entry.grid(row=11, column=0, sticky="ew", pady=(0, 6))
-        self.custom_print_aspect_entry.grid_remove()
-        self.custom_print_aspect_entry.bind("<KeyRelease>", lambda e: self._print_aspect_changed(self.print_aspect_var.get()))
-        print_aspect_hint = self._label(self.print_controls, "Freie Bildformate werden zentriert auf weißem Papier eingepasst.")
-        print_aspect_hint.configure(wraplength=350)
-        print_aspect_hint.grid(row=12, column=0, sticky="ew", pady=(0, 12))
         self.print_controls.grid_remove()
 
         crop_buttons = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -1090,6 +1075,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         row += 1
         caption.bind("<KeyRelease>", lambda _e: self.schedule_preview())
 
+        self._label(self.sidebar, "Untertitelschrift").grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
         self.font_var = tk.StringVar(value=available_fonts()[0])
         self._font_picker(self.sidebar).grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
         row += 1
@@ -1297,15 +1284,6 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def _current_item(self):
         return self.sources[self.source_index] if self.sources else (self.items[0] if self.items else None)
 
-    def _print_aspect_changed(self, value, clear=True):
-        if value == "Benutzerdefiniert":
-            self.custom_print_aspect_entry.grid()
-        else:
-            self.custom_print_aspect_entry.grid_remove()
-        if clear:
-            self.image_crops["Print"].clear()
-        self.schedule_preview()
-
     def _current_crop(self, mode):
         item = self._current_item()
         return self.image_crops[mode].get(item.source.resolve(), Crop()) if item else Crop()
@@ -1467,11 +1445,6 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             output_format=self._output_format(),
             cutting_guide=_CUTTING_GUIDES[self.cutting_var.get()],
             crop=self._current_crop("Print"),
-            fit_to_paper=self.print_aspect_var.get() == "Druckformat ausfüllen",
-            eye_aspect=parse_aspect(self.custom_print_aspect_var.get()
-                if self.print_aspect_var.get() == "Benutzerdefiniert"
-                else "Original" if self.print_aspect_var.get() == "Druckformat ausfüllen"
-                else self.print_aspect_var.get()),
         )
 
     def schedule_preview(self) -> None:

@@ -29,7 +29,7 @@ All four variants are built from the same tagged source. Automated tests and pac
 1. Open one full-SBS image, several files or an image folder.
 2. Choose **Web** or **Print** and the viewing layout.
 3. Set the output width or print dimensions, frame colours and captions.
-4. If needed, choose a per-eye aspect ratio and use **Adjust crop** to position the crop.
+4. Use **Adjust crop** to position the crop. In Web mode you can also choose a per-eye aspect ratio.
 5. Check the preview. Use Previous/Next to inspect other images.
 6. Start the export. Single-image export processes the displayed image; batch export processes the entire selection.
 
@@ -52,11 +52,9 @@ The II/X viewing symbols occupy a frame-width strip. In L–R–L they sit above
 
 Web widths describe the complete finished graphic, including the frame. Use a preset, a custom width or the original width. Per-eye aspect ratios can remain original or use a preset or a custom ratio.
 
-Print separates paper dimensions from the aspect ratio of each eye image. **Fill paper format** keeps the previous edge-to-edge layout; **Original**, aspect presets and custom ratios fit the complete Freeview graphic centrally on white paper without stretching. Changing paper size or dpi preserves the selected image ratio.
+Print offers preset and custom dimensions, freely entered positive integer dpi and a freely entered decimal **Bleed margin in mm**. Bleed starts at 0 mm; its preview is enabled so an added margin is immediately visible. The print format is filled completely; each eye image’s aspect ratio follows from paper size, layout, frame and captions. The crop dialog positions the image crop. Bleed uses the frame colour. Optional cutting lines and crop marks are grey. The preview fits the available space; its display scale is independent of export dpi.
 
-Print offers preset and custom dimensions, freely entered positive integer dpi and a freely entered decimal **Bleed margin in mm**. Bleed starts at 0 mm; its preview is enabled so an added margin is immediately visible. Optional cutting lines and crop marks are grey. The preview fits the available space; its display scale is independent of export dpi.
-
-Frame width is adjustable from 3 to 5%, with 4% as the default. Caption font and size are adjustable, with 3.5% as the default. Both percentages refer to the width of one eye image and work the same way in Web and Print.
+Frame width is adjustable from 3 to 5%, with 4% as the default. Caption font and size are adjustable, with 3.5% as the default. The caption font selection applies only to captions; II/X symbols retain the standard font. Both percentages refer to the width of one eye image and work the same way in Web and Print.
 
 ## Image crops
 

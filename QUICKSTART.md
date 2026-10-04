@@ -28,4 +28,6 @@ Standard-Rahmenbreite: 4 % je Halbbild, einstellbar von 3 bis 5 %. Für die mobi
 
 Im Ausschnittdialog lässt sich das Drittelraster ein- und ausschalten. Es erscheint nur über den Bildflächen und wird nicht exportiert.
 
-Bei Print ist das Seitenverhältnis der Halbbilder unabhängig vom Papierformat wählbar. „Druckformat ausfüllen“ verwendet das bisherige Verhalten. „Original“, Presets und freie Verhältnisse passen die fertige Grafik mittig auf weißem Papier ein. Freie Papierflächen bleiben in der Vorschau sichtbar.
+Bei Print wird das Druckformat vollständig ausgefüllt. Die Halbbildformate ergeben sich aus Druckformat, Ansicht, Rahmen und Beschriftung. Den Bildausschnitt im Ausschnittdialog wählen. Der Beschnittrand hat dieselbe Farbe wie der Rahmen. Freie Halbbildverhältnisse stehen weiterhin bei Web zur Verfügung.
+
+„Untertitelschrift“ ändert nur die Untertitel. Die II/X-Symbole behalten unabhängig davon ihre Standardschrift. Die gewählte Untertitelschrift gehört zu den gespeicherten Presets.
