@@ -22,7 +22,7 @@ COLOR_PRESETS = {
     "Nachtblau": ("#101826", "#d9e1eb"),
     "Waldgrün": ("#16231b", "#ddd6c4"),
     "Anthrazitkupfer": ("#1e1e1e", "#c9895b"),
-    "Pflaumencreme": ("#291d2a", "#e5d6c9"),
+    "Rosé": ("#3a2328", "#e8c9cc"),
     "Sepia": ("#2b2119", "#e0c7a0"),
     "Benutzerdefiniert": None,
 }
