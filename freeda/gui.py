@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import threading
+import json
+import math
 import tkinter as tk
 from dataclasses import replace
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 
 from . import __version__
 from .batch import discover_files, render_web_batch
+from .cropping import parse_aspect, fit_linked_crop
+from .crop_storage import load_crops, save_crop
+from .crop_grid import crop_grid
 from .config import (
     APP_NAME,
     COLOR_PRESETS,
@@ -23,12 +28,16 @@ from .config import (
     WEB_WIDTH_PRESETS,
 )
 from .fonts import available_fonts
+from .i18n import translate
 from .models import Crop, CuttingGuide, LayoutMode, OutputFormat, PrintRenderOptions, WebRenderOptions
 from .notifications import play_ready_sound
+from .output import export_targets
 from .print_flow import CropBatchMode, PrintBatchSession
 from .print_render import crop_for_aspect, print_eye_aspect, render_print
-from .render import render_web, save_render, split_full_sbs
-from .resources import resource_path
+from .preview import fit_preview, parse_bleed, parse_dpi, print_preview_options, print_preview_image
+from .render import render_web, save_render, split_full_sbs, _font
+from .resources import resource_path, portable_settings_path
+from .window import fit_window
 from .theme import (
     BG_MAIN,
     BG_SOFT,
@@ -71,9 +80,10 @@ WINDOW_HEIGHT = 860
 SIDEBAR_WIDTH = 390
 
 _LAYOUT_TO_MODE = {
-    "Parallel + Kreuz": LayoutMode.BOTH,
-    "Parallel": LayoutMode.PARALLEL,
-    "Kreuz": LayoutMode.CROSS,
+    "Parallelblick + Kreuzblick": LayoutMode.BOTH,
+    "Parallelblick": LayoutMode.PARALLEL,
+    "Kreuzblick": LayoutMode.CROSS,
+    "L–R–L": LayoutMode.LRL,
 }
 
 _CUTTING_GUIDES = {
@@ -87,8 +97,44 @@ _CROP_MODES = {
     "Gleichen Ausschnitt verwenden": CropBatchMode.REUSE,
 }
 
+_PRESET_VARIABLES = (
+    "mode_var", "layout_var", "size_var", "custom_width_var", "print_format_var",
+    "print_width_var", "print_height_var", "dpi_var", "bleed_var", "show_bleed_var",
+    "crop_mode_var", "cutting_var", "frame_var", "outer_radius_var", "inner_radius_var",
+    "color_preset_var", "frame_color_var", "accent_color_var", "font_var",
+    "caption_size_var", "format_var", "aspect_var", "custom_aspect_var",
+    "web_crop_mode_var", "web_review_var",
+)
 
-class CropDialog(ctk.CTkToplevel):
+
+class LocalisedUI:
+    def tr(self, text):
+        return translate(text, self.language)
+
+    def _set_text(self, widget, text):
+        self._texts[widget] = text
+        widget.configure(text=self.tr(text))
+
+    def _remember_texts(self, root):
+        for widget in root.winfo_children():
+            if isinstance(widget, (ctk.CTkLabel, ctk.CTkButton, ctk.CTkCheckBox)):
+                self._texts.setdefault(widget, widget.cget("text"))
+            elif isinstance(widget, ctk.CTkEntry):
+                self._placeholders.setdefault(widget, widget.cget("placeholder_text"))
+            self._remember_texts(widget)
+
+    def _apply_language(self):
+        for widget, text in self._texts.items():
+            if widget.winfo_exists():
+                widget.configure(text=self.tr(text))
+        for widget, text in self._placeholders.items():
+            widget.configure(placeholder_text=self.tr(text))
+        for menu, variable, display, values in getattr(self, "_localized_options", []):
+            menu.configure(values=[self.tr(v) for v in values])
+            display.set(self.tr(variable.get()))
+
+
+class CropDialog(LocalisedUI, ctk.CTkToplevel):
     def __init__(
         self,
         parent,
@@ -98,24 +144,35 @@ class CropDialog(ctk.CTkToplevel):
         index: int,
         total: int,
         filename: str,
+        editing: bool = False,
     ) -> None:
         super().__init__(parent, fg_color=BG_MAIN)
-        self.title(f"Freeda – Ausschnitt {index}/{total}")
-        self.geometry("1080x760")
-        self.minsize(900, 650)
+        self.language = parent.language
+        self._texts, self._placeholders = {}, {}
+        self.title(self.tr(f"Freeda – Ausschnitt {index}/{total}"))
+        fit_window(self, (1080, 760), (900, 650))
         self.transient(parent)
         self.grab_set()
 
         self.source = source.copy()
         self.options = options
+        self.editing = editing
         self.result: Crop | None = None
         self.action = "cancel"
         self.preview_photo = None
         self._preview_job = None
 
+        self.grid_var = tk.BooleanVar(value=True)
         self.zoom_var = tk.DoubleVar(value=1.0)
         self.x_var = tk.DoubleVar(value=0.5)
         self.y_var = tk.DoubleVar(value=0.5)
+        if options.crop != Crop():
+            left, _ = split_full_sbs(source)
+            base = crop_for_aspect(left.size, self._target_aspect())
+            crop = options.crop.clamped()
+            self.zoom_var.set(max(1.0, min(3.0, min(base.width/crop.width, base.height/crop.height))))
+            self.x_var.set(crop.x / max(1e-9, 1-crop.width))
+            self.y_var.set(crop.y / max(1e-9, 1-crop.height))
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -158,8 +215,11 @@ class CropDialog(ctk.CTkToplevel):
         self.preview_label.grid(row=0, column=0, sticky="nsew", padx=16, pady=16)
         self.preview_label.bind("<Configure>", lambda _e: self.schedule_preview())
 
-        controls = ctk.CTkFrame(
+        controls = ctk.CTkScrollableFrame(
             body,
+            width=280,
+            scrollbar_button_color=BORDER,
+            scrollbar_button_hover_color=PANEL_HOVER,
             fg_color=PANEL,
             border_width=BORDER_WIDTH,
             border_color=BORDER,
@@ -188,7 +248,7 @@ class CropDialog(ctk.CTkToplevel):
 
         ctk.CTkButton(
             controls,
-            text="Zentrieren",
+            text="Zurücksetzen",
             command=self._reset,
             fg_color=BUTTON_BG,
             hover_color=BUTTON_HOVER,
@@ -204,7 +264,7 @@ class CropDialog(ctk.CTkToplevel):
 
         accept = ctk.CTkButton(
             buttons,
-            text="Übernehmen & weiter",
+            text="Übernehmen" if editing else ("Übernehmen & exportieren" if total == 1 else "Übernehmen & weiter"),
             command=self._accept,
             fg_color=START_BG,
             hover_color=START_HOVER_BG,
@@ -233,9 +293,9 @@ class CropDialog(ctk.CTkToplevel):
             add="+",
         )
 
-        for row, text, command in (
+        for row, text, command in ((2, "Abbrechen", self._cancel),) if editing else (
             (1, "Überspringen", self._skip),
-            (2, "Batch abbrechen", self._cancel),
+            (2, "Export abbrechen", self._cancel),
         ):
             ctk.CTkButton(
                 buttons,
@@ -249,8 +309,15 @@ class CropDialog(ctk.CTkToplevel):
                 corner_radius=RADIUS_CONTROL,
             ).grid(row=row, column=0, sticky="ew", pady=(0, 8) if row == 1 else 0)
 
+        ctk.CTkCheckBox(controls, text="Drittelraster", variable=self.grid_var,
+            command=self.schedule_preview, fg_color=GOLD, hover_color=GOLD_LIGHT,
+            border_color=BORDER, checkmark_color=TEXT, text_color=TEXT).grid(
+                row=6,column=0,sticky="ew",padx=18,pady=(0,18))
+
         self.protocol("WM_DELETE_WINDOW", self._cancel)
         self._refresh_labels()
+        self._remember_texts(self)
+        self._apply_language()
         self.after(50, self.schedule_preview)
 
     def _slider_block(self, parent, row, text, variable, from_, to, command):
@@ -283,9 +350,10 @@ class CropDialog(ctk.CTkToplevel):
         self.schedule_preview()
 
     def _refresh_labels(self) -> None:
-        self.zoom_label.configure(text=f"Zoom: {self.zoom_var.get():.2f}×".replace(".", ","))
-        self.x_label.configure(text=f"Horizontal: {self.x_var.get() * 100:.0f} %")
-        self.y_label.configure(text=f"Vertikal: {self.y_var.get() * 100:.0f} %")
+        decimal = "." if self.language == "en" else ","
+        self._set_text(self.zoom_label, f"Zoom: {self.zoom_var.get():.2f}×".replace(".", decimal))
+        self._set_text(self.x_label, f"Horizontal: {self.x_var.get() * 100:.0f} %")
+        self._set_text(self.y_label, f"Vertikal: {self.y_var.get() * 100:.0f} %")
 
     def _reset(self) -> None:
         self.zoom_var.set(1.0)
@@ -293,11 +361,20 @@ class CropDialog(ctk.CTkToplevel):
         self.y_var.set(0.5)
         self._controls_changed()
 
+    def _target_aspect(self):
+        if isinstance(self.options, WebRenderOptions):
+            left, _ = split_full_sbs(self.source)
+            if self.options.eye_aspect is not None:
+                return self.options.eye_aspect
+            crop = self.options.crop.clamped()
+            return left.width * crop.width / (left.height * crop.height)
+        return print_eye_aspect(self.options)
+
     def current_crop(self) -> Crop:
         left, _ = split_full_sbs(self.source)
         return crop_for_aspect(
             left.size,
-            print_eye_aspect(self.options),
+            self._target_aspect(),
             zoom=self.zoom_var.get(),
             position_x=self.x_var.get(),
             position_y=self.y_var.get(),
@@ -314,19 +391,27 @@ class CropDialog(ctk.CTkToplevel):
     def update_preview(self) -> None:
         self._preview_job = None
         try:
-            preview_options = replace(
-                self.options,
-                dpi=96,
-                crop=self.current_crop(),
-            )
-            rendered = render_print(self.source, preview_options)
-            max_w = max(500, self.preview_label.winfo_width() - 10)
-            max_h = max(400, self.preview_label.winfo_height() - 10)
-            rendered.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+            max_w = max(1, self.preview_label.winfo_width() - 10)
+            max_h = max(1, self.preview_label.winfo_height() - 10)
+            if isinstance(self.options, WebRenderOptions):
+                preview_options = replace(self.options, crop=self.current_crop(), target_width=min(max_w, self.options.target_width or self.source.width))
+                rendered = render_web(self.source, preview_options)
+                if self.grid_var.get():
+                    rendered = crop_grid(rendered, self.source, preview_options)
+                rendered = fit_preview(rendered, max_w, max_h)
+            else:
+                preview_options = print_preview_options(replace(self.options, crop=self.current_crop()), max_w, max_h)
+                rendered = render_print(self.source, preview_options)
+                if self.grid_var.get():
+                    rendered = crop_grid(rendered, self.source, preview_options)
+                bleed = round(preview_options.bleed_mm * preview_options.dpi / 25.4)
+                trim_w = round(preview_options.width_mm * preview_options.dpi / 25.4)
+                trim_h = round(preview_options.height_mm * preview_options.dpi / 25.4)
+                rendered = fit_preview(rendered.crop((bleed,bleed,bleed+trim_w,bleed+trim_h)), max_w, max_h)
             self.preview_photo = ImageTk.PhotoImage(rendered)
             self.preview_label.configure(image=self.preview_photo, text="")
         except Exception as exc:
-            self.preview_label.configure(image="", text=f"Vorschaufehler:\n{exc}")
+            self.preview_label.configure(image="", text=self.tr(f"Vorschaufehler:\n{exc}"))
 
     def _accept(self) -> None:
         self.result = self.current_crop()
@@ -342,12 +427,25 @@ class CropDialog(ctk.CTkToplevel):
         self.destroy()
 
 
-class FreedaApp(ctk.CTk):
-    def __init__(self) -> None:
+class FreedaApp(LocalisedUI, ctk.CTk):
+    def __init__(self, *, language=None, settings_path=None) -> None:
         super().__init__(fg_color=BG_MAIN)
+        self._texts, self._placeholders = {}, {}
+        self._localized_options = []
+        self.settings_path = Path(settings_path) if settings_path is not None else portable_settings_path()
+        try:
+            self._settings = json.loads(self.settings_path.read_text(encoding="utf-8"))
+            if not isinstance(self._settings, dict):
+                self._settings = {}
+        except (OSError, ValueError, AttributeError):
+            self._settings = {}
+        raw_presets = self._settings.get("presets", {})
+        self.presets = {name: values for name, values in raw_presets.items()
+                        if isinstance(name, str) and isinstance(values, dict)} if isinstance(raw_presets, dict) else {}
+        saved_language = self._settings.get("language", "de")
+        self.language = language or (saved_language if saved_language in ("de", "en") else "de")
         self.title(f"{APP_NAME} {__version__}")
-        self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
-        self.minsize(1120, 720)
+        fit_window(self, (WINDOW_WIDTH, WINDOW_HEIGHT), (1120, 720))
 
         icon = resource_path("assets/Freeda.ico")
         if icon.is_file():
@@ -356,8 +454,14 @@ class FreedaApp(ctk.CTk):
             except Exception:
                 pass
 
+        self.image_crops = {"Web": {}, "Print": {}}
+        self.crop_storage_errors = []
         self.items = []
+        self.sources = []
+        self.source_index = 0
+        self.batch_mode = False
         self.output_dir: Path | None = None
+        self.input_root: Path | None = None
         self.preview_photo = None
         self._preview_job = None
         self._busy = False
@@ -365,8 +469,17 @@ class FreedaApp(ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
+        self.sidebar_container = ctk.CTkFrame(self, width=SIDEBAR_WIDTH + 24, fg_color=PANEL, corner_radius=0)
+        self.sidebar_container.grid_propagate(False)
+        self.sidebar_container.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_container.grid_rowconfigure(0, weight=1)
+        self.sidebar_container.grid_columnconfigure(0, weight=1)
+        self.footer = ctk.CTkFrame(self.sidebar_container, fg_color=PANEL, corner_radius=0)
+        self.footer.grid(row=1, column=0, sticky="ew")
+        self.footer.grid_columnconfigure(0, weight=1)
         self.sidebar = ctk.CTkScrollableFrame(
-            self, width=SIDEBAR_WIDTH, fg_color=PANEL, corner_radius=0
+            self.sidebar_container, width=SIDEBAR_WIDTH, fg_color=PANEL, corner_radius=0,
+            scrollbar_button_color=BORDER, scrollbar_button_hover_color=PANEL_HOVER,
         )
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         self.sidebar.grid_columnconfigure(0, weight=1)
@@ -385,8 +498,14 @@ class FreedaApp(ctk.CTk):
         self.preview_label = tk.Label(self.preview_panel, bg=PREVIEW_BG, fg=TEXT_MUTED)
         self.preview_label.grid(row=0, column=0, sticky="nsew", padx=18, pady=18)
         self.preview_label.bind("<Configure>", lambda _e: self.schedule_preview())
+        self.preview_note = ctk.CTkLabel(self.preview_panel, text="", text_color=TEXT_MUTED)
+        self.preview_note.grid(row=1, column=0, sticky="ew", padx=18, pady=(0, 10))
 
         self._build_sidebar()
+        self.bind("<Prior>", lambda e: self.navigate(-1))
+        self.bind("<Next>", lambda e: self.navigate(1))
+        self._remember_texts(self)
+        self._apply_language()
 
     def _label(self, parent, text, *, section=False):
         return ctk.CTkLabel(
@@ -427,12 +546,87 @@ class FreedaApp(ctk.CTk):
             corner_radius=RADIUS_CONTROL,
         )
 
+    def _font_picker(self, parent):
+        button = self._button(parent, self.font_var.get(), self._open_fonts)
+        self.font_var.trace_add("write", lambda *_: button.configure(text=self.font_var.get()))
+        return button
+
+    def _open_fonts(self):
+        dialog = ctk.CTkToplevel(self, fg_color=BG_MAIN)
+        dialog.title(self.tr("Schriftart"))
+        dialog.geometry("420x520")
+        dialog.transient(self)
+        dialog.grab_set()
+        search = tk.StringVar()
+        entry = self._entry(dialog, search)
+        entry.pack(fill="x", padx=14, pady=14)
+        sample = tk.Label(dialog, bg=BG_MAIN, fg=TEXT)
+        sample.pack(fill="x", padx=14, pady=(0, 10))
+        def show_sample(name):
+            image = Image.new("RGB", (380, 70), BG_MAIN)
+            ImageDraw.Draw(image).text((8, 8), "Aa – Freeda 123", font=_font(name, 24), fill=TEXT)
+            sample.photo = ImageTk.PhotoImage(image)
+            sample.configure(image=sample.photo)
+        show_sample(self.font_var.get())
+        listing = ctk.CTkScrollableFrame(dialog, fg_color=PANEL,
+            scrollbar_button_color=BORDER, scrollbar_button_hover_color=PANEL_HOVER)
+        listing.pack(fill="both", expand=True, padx=14, pady=(0, 14))
+        names = available_fonts()
+        def choose(name):
+            self.font_var.set(name)
+            dialog.destroy()
+            self.schedule_preview()
+        def populate(*_):
+            for widget in listing.winfo_children():
+                widget.destroy()
+            listing._parent_canvas.yview_moveto(0)
+            for name in names:
+                if search.get().casefold() in name.casefold():
+                    button = self._button(listing, name, lambda n=name: choose(n))
+                    button.pack(fill="x", pady=2)
+                    button.bind("<Enter>", lambda e, n=name: show_sample(n), add="+")
+        search.trace_add("write", populate)
+        populate()
+        entry.focus_set()
+
+    def _refresh_navigation(self):
+        if not hasattr(self, "previous_button"):
+            return
+        count = len(self.sources)
+        self.previous_button.configure(state="normal" if not self._busy and self.source_index > 0 else "disabled")
+        self.next_button.configure(state="normal" if not self._busy and self.source_index + 1 < count else "disabled")
+        if count:
+            prefix = self.tr("Batch-Vorschau") if self.batch_mode else self.tr("Einzelbild-Vorschau")
+            self.navigation_status.configure(text=f"{prefix}: {self.source_index + 1}/{count} · {self.sources[self.source_index].source.name}")
+        else:
+            self.navigation_status.configure(text="")
+
+    def navigate(self, offset):
+        target = self.source_index + offset
+        if self._busy or not 0 <= target < len(self.sources):
+            return "break"
+        self.source_index = target
+        if not self.batch_mode:
+            self.items = [self.sources[target]]
+        self._refresh_navigation()
+        self._refresh_output()
+        self.schedule_preview()
+        return "break"
+
     def _option(self, parent, variable, values, command=None):
-        return ctk.CTkOptionMenu(
+        values = tuple(values)
+        display = tk.StringVar(value=self.tr(variable.get()))
+        def selected(value):
+            canonical = next(v for v in values if self.tr(v) == value)
+            variable.set(canonical)
+            if command:
+                command(canonical)
+        variable.trace_add("write", lambda *_: display.set(self.tr(variable.get())))
+        menu = ctk.CTkOptionMenu(
             parent,
-            variable=variable,
-            values=list(values),
-            command=command,
+            variable=display,
+            values=[self.tr(v) for v in values],
+            command=selected,
             fg_color=PANEL,
             button_color=PANEL_HOVER,
             button_hover_color=BORDER,
@@ -442,6 +636,122 @@ class FreedaApp(ctk.CTk):
             text_color=TEXT,
             corner_radius=RADIUS_CONTROL,
         )
+        self._localized_options.append((menu, variable, display, values))
+        return menu
+
+    def _checkbox(self, parent, text, variable, command=None):
+        return ctk.CTkCheckBox(parent, text=text, variable=variable, command=command,
+                              fg_color=GOLD, hover_color=GOLD_LIGHT, border_color=BORDER,
+                              checkmark_color=TEXT, text_color=TEXT, text_color_disabled=TEXT_DISABLED,
+                              corner_radius=4)
+
+    def _language_changed(self, value):
+        self.language = "en" if value == "English" else "de"
+        self.language_var.set("English" if self.language == "en" else "Deutsch")
+        self._apply_language()
+        self._refresh_output()
+        self._refresh_start()
+        self.schedule_preview()
+        self._settings["language"] = self.language
+        try:
+            self._persist_settings()
+        except OSError:
+            self._set_text(self.status, "Einstellungen konnten nicht gespeichert werden.")
+
+    def _persist_settings(self):
+        self.settings_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.settings_path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(self._settings, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary.replace(self.settings_path)
+
+    def save_preset(self, name):
+        name = name.strip()
+        if not name:
+            raise ValueError(self.tr("Bitte einen Preset-Namen eingeben."))
+        if self.mode_var.get() == "Print":
+            self._print_options()
+        else:
+            self._web_options()
+        values = {key: getattr(self, key).get() for key in _PRESET_VARIABLES}
+        previous = dict(self.presets)
+        self.presets[name] = values
+        self._settings["presets"] = self.presets
+        try:
+            self._persist_settings()
+        except OSError:
+            self.presets = previous
+            self._settings["presets"] = previous
+            raise
+        self.preset_menu.configure(values=sorted(self.presets, key=str.casefold), state="normal")
+        self.preset_var.set(name)
+        self._set_text(self.status, "Preset gespeichert")
+
+    def choose_preset_name(self):
+        if self._busy:
+            return
+        dialog = ctk.CTkToplevel(self, fg_color=BG_MAIN)
+        dialog.title(self.tr("Preset speichern"))
+        fit_window(dialog, (440, 210), (380, 180))
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.grid_columnconfigure(0, weight=1)
+        self._label(dialog, self.tr("Name des Presets")).grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 8))
+        name_var = tk.StringVar(value="")
+        entry = self._entry(dialog, name_var)
+        entry.grid(row=1, column=0, sticky="ew", padx=20)
+        def save():
+            try:
+                self.save_preset(name_var.get())
+            except (OSError, ValueError) as exc:
+                messagebox.showerror("Freeda", self.tr(str(exc)), parent=dialog)
+                return
+            dialog.destroy()
+        buttons = ctk.CTkFrame(dialog, fg_color="transparent")
+        buttons.grid(row=2, column=0, sticky="ew", padx=20, pady=20)
+        buttons.grid_columnconfigure((0, 1), weight=1)
+        self._button(buttons, self.tr("Speichern"), save).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        self._button(buttons, self.tr("Abbrechen"), dialog.destroy).grid(row=0, column=1, sticky="ew", padx=(4, 0))
+        entry.bind("<Return>", lambda _e: save())
+        dialog.bind("<Escape>", lambda _e: dialog.destroy())
+        entry.focus_set()
+        self.wait_window(dialog)
+
+    def apply_preset(self, name):
+        if self._busy or name not in self.presets:
+            return
+        values = self.presets[name]
+        for key in _PRESET_VARIABLES:
+            if key not in values:
+                continue
+            variable = getattr(self, key)
+            value = values[key]
+            allowed = next((options for _, var, _, options in self._localized_options if var is variable), None)
+            if allowed is not None and key != "font_var" and value not in allowed:
+                continue
+            if key == "mode_var" and value not in ("Web", "Print"):
+                continue
+            if isinstance(variable, tk.DoubleVar):
+                if not isinstance(value, (float, int)) or not math.isfinite(value):
+                    continue
+                if key == "frame_var" and not 3 <= value <= 5:
+                    continue
+                if key == "caption_size_var" and not 1 <= value <= 8:
+                    continue
+            elif isinstance(variable, tk.BooleanVar):
+                if not isinstance(value, bool):
+                    continue
+            elif not isinstance(value, str):
+                continue
+            variable.set(value)
+        self.preset_var.set(name)
+        self._mode_changed(self.mode_var.get())
+        self._size_changed(self.size_var.get())
+        self._print_format_changed(self.print_format_var.get())
+        self._color_preset_changed(self.color_preset_var.get())
+        self._frame_changed(self.frame_var.get())
+        self._caption_size_changed(self.caption_size_var.get())
+        self._aspect_changed(self.aspect_var.get(), clear=False)
+        self._set_text(self.status, "Preset geladen")
 
     def _set_start_button_normal(self) -> None:
         if not hasattr(self, "start_button"):
@@ -488,11 +798,35 @@ class FreedaApp(ctk.CTk):
         row += 1
         ctk.CTkLabel(
             self.sidebar,
-            text="Free-view Stereo für Web und Print",
+            text="Freeview Stereo für Web und Print",
             anchor="w",
             text_color=TEXT_MUTED,
             font=(FONT_FAMILY, 12),
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 18))
+        row += 1
+
+        self._label(self.sidebar, "Sprache / Language").grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
+        self.language_var = tk.StringVar(value="English" if self.language == "en" else "Deutsch")
+        self._option(self.sidebar, self.language_var, ("Deutsch", "English"), self._language_changed).grid(
+            row=row, column=0, sticky="ew", padx=20, pady=(4, 12))
+        row += 1
+
+        self._label(self.sidebar, "Eigene Presets", section=True).grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
+        self.preset_var = tk.StringVar(value="—")
+        self.preset_menu = ctk.CTkOptionMenu(self.sidebar, variable=self.preset_var,
+                                           values=sorted(self.presets, key=str.casefold) or ["—"],
+                                           command=self.apply_preset, fg_color=PANEL,
+                                           button_color=PANEL_HOVER, button_hover_color=BORDER,
+                                           dropdown_fg_color=BG_SOFT, dropdown_hover_color=PANEL_HOVER,
+                                           dropdown_text_color=TEXT, text_color=TEXT,
+                                           corner_radius=RADIUS_CONTROL,
+                                           state="normal" if self.presets else "disabled")
+        self.preset_menu.grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 6))
+        row += 1
+        self._button(self.sidebar, "Preset speichern …", self.choose_preset_name).grid(
+            row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
         row += 1
 
         self._label(self.sidebar, "Eingabe", section=True).grid(row=row, column=0, sticky="ew", padx=20)
@@ -508,6 +842,10 @@ class FreedaApp(ctk.CTk):
         self._button(input_buttons, "Ordner …", self.choose_folder).grid(
             row=0, column=1, sticky="ew", padx=(4, 0)
         )
+        self.include_subfolders_var = tk.BooleanVar(value=False)
+        self.subfolders_checkbox = self._checkbox(self.sidebar, "Unterordner einbeziehen", self.include_subfolders_var, self._reload_folder)
+        self.subfolders_checkbox.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
+        row += 1
         self.input_status = self._label(self.sidebar, "Keine Bilder gewählt")
         self.input_status.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 16))
         row += 1
@@ -529,7 +867,7 @@ class FreedaApp(ctk.CTk):
         self.mode_selector.grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 10))
         row += 1
 
-        self.layout_var = tk.StringVar(value="Parallel + Kreuz")
+        self.layout_var = tk.StringVar(value="Parallelblick + Kreuzblick")
         self._label(self.sidebar, "Ansicht").grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
         self._option(
@@ -542,18 +880,33 @@ class FreedaApp(ctk.CTk):
         self.web_controls.grid_columnconfigure(0, weight=1)
         row += 1
         self._label(self.web_controls, "Web-Breite").grid(row=0, column=0, sticky="ew")
-        self.size_var = tk.StringVar(value="1920")
+        self.size_var = tk.StringVar(value="2048")
         self.size_menu = self._option(
             self.web_controls, self.size_var, WEB_WIDTH_PRESETS, self._size_changed
         )
         self.size_menu.grid(row=1, column=0, sticky="ew", pady=(4, 6))
-        self.custom_width_var = tk.StringVar(value="1920")
+        self.custom_width_var = tk.StringVar(value="2048")
         self.custom_width = self._entry(
             self.web_controls, self.custom_width_var, "Breite in Pixel"
         )
         self.custom_width.grid(row=2, column=0, sticky="ew", pady=(0, 12))
         self.custom_width.grid_remove()
         self.custom_width.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+
+        self.aspect_var = tk.StringVar(value="Original")
+        self.custom_aspect_var = tk.StringVar(value="4:3")
+        self._label(self.web_controls, "Seitenverhältnis der Halbbilder").grid(row=3, column=0, sticky="ew")
+        self._option(self.web_controls, self.aspect_var,
+            ("Original", "1:1", "4:3", "3:2", "16:9", "3:4", "2:3", "Benutzerdefiniert"), self._aspect_changed).grid(row=4, column=0, sticky="ew", pady=(4, 6))
+        self.custom_aspect_entry = self._entry(self.web_controls, self.custom_aspect_var, "Breite:Höhe, z. B. 4:3")
+        self.custom_aspect_entry.grid(row=5, column=0, sticky="ew", pady=(0, 6))
+        self.custom_aspect_entry.grid_remove()
+        self.custom_aspect_entry.bind("<KeyRelease>", lambda e: self._aspect_changed(self.aspect_var.get()))
+        self.web_crop_mode_var = tk.StringVar(value="Jedes Bild manuell")
+        self._label(self.web_controls, "Bildausschnitt im Batch").grid(row=6, column=0, sticky="ew")
+        self._option(self.web_controls, self.web_crop_mode_var, tuple(_CROP_MODES)).grid(row=7, column=0, sticky="ew", pady=(4, 6))
+        self.web_review_var = tk.BooleanVar(value=False)
+        self._checkbox(self.web_controls, "Bildausschnitt beim Export prüfen", self.web_review_var).grid(row=8, column=0, sticky="ew", pady=(0, 12))
 
         self.print_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         self.print_controls.grid(row=row, column=0, sticky="ew", padx=20)
@@ -595,50 +948,68 @@ class FreedaApp(ctk.CTk):
         self.dpi_var = tk.StringVar(value="300")
         dpi_block = ctk.CTkFrame(print_pair, fg_color="transparent")
         dpi_block.grid(row=0, column=0, sticky="ew", padx=(0, 4))
-        self._label(dpi_block, "Auflösung").pack(fill="x")
-        self._option(dpi_block, self.dpi_var, ("300", "600"), lambda _v: self.schedule_preview()).pack(
-            fill="x", pady=(3, 0)
-        )
+        self._label(dpi_block, "Auflösung in dpi").pack(fill="x")
+        self.dpi_entry = self._entry(dpi_block, self.dpi_var, "dpi")
+        self.dpi_entry.pack(fill="x", pady=(3, 0))
+        self.dpi_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
 
-        self.bleed_var = tk.StringVar(value="3")
+        self.bleed_var = tk.StringVar(value="0")
         bleed_block = ctk.CTkFrame(print_pair, fg_color="transparent")
         bleed_block.grid(row=0, column=1, sticky="ew", padx=(4, 0))
-        self._label(bleed_block, "Beschnitt").pack(fill="x")
-        self._option(
-            bleed_block, self.bleed_var, ("0", "3"), lambda _v: self.schedule_preview()
-        ).pack(fill="x", pady=(3, 0))
+        self._label(bleed_block, "Beschnittrand in mm").pack(fill="x")
+        self.bleed_entry = self._entry(bleed_block, self.bleed_var)
+        self.bleed_entry.pack(fill="x", pady=(3, 0))
+        self.bleed_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
 
-        self._label(self.print_controls, "Crop im Batch").grid(row=4, column=0, sticky="ew")
+        self.show_bleed_var = tk.BooleanVar(value=True)
+        self.show_bleed_checkbox = self._checkbox(self.print_controls, "Beschnittrand in Vorschau zeigen",
+                                                  self.show_bleed_var, self.schedule_preview)
+        self.show_bleed_checkbox.grid(row=4, column=0, sticky="ew", pady=(0, 8))
+
+        self._label(self.print_controls, "Bildausschnitt im Batch").grid(row=5, column=0, sticky="ew")
         self.crop_mode_var = tk.StringVar(value="Jedes Bild manuell")
         self._option(
             self.print_controls,
             self.crop_mode_var,
             tuple(_CROP_MODES.keys()),
-        ).grid(row=5, column=0, sticky="ew", pady=(3, 8))
+        ).grid(row=6, column=0, sticky="ew", pady=(3, 8))
 
-        self._label(self.print_controls, "Schneidehilfe").grid(row=6, column=0, sticky="ew")
+        self._label(self.print_controls, "Schneidehilfe").grid(row=7, column=0, sticky="ew")
         self.cutting_var = tk.StringVar(value="Keine")
         self._option(
             self.print_controls,
             self.cutting_var,
             tuple(_CUTTING_GUIDES.keys()),
             lambda _v: self.schedule_preview(),
-        ).grid(row=7, column=0, sticky="ew", pady=(3, 12))
+        ).grid(row=8, column=0, sticky="ew", pady=(3, 12))
         self.print_controls.grid_remove()
+
+        crop_buttons = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        crop_buttons.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
+        row += 1
+        crop_buttons.grid_columnconfigure(0, weight=1)
+        self._button(crop_buttons, "Ausschnitt anpassen …", self.edit_crop).grid(row=0, column=0, sticky="ew", pady=(0, 6))
+        self._button(crop_buttons, "Ausschnitt zurücksetzen", self.reset_crop).grid(row=1, column=0, sticky="ew")
+        self.remember_crops_var = tk.BooleanVar(value=False)
+        self.remember_crops_checkbox = self._checkbox(crop_buttons, "Bildausschnitte merken", self.remember_crops_var, self._remember_crops_changed)
+        self.remember_crops_checkbox.grid(row=2, column=0, sticky="ew", pady=(10, 4))
+        remember_hint = self._label(crop_buttons, "Im Bilderordner speichern und beim Laden wiederherstellen.")
+        remember_hint.configure(wraplength=300, justify="left")
+        remember_hint.grid(row=3, column=0, sticky="ew")
 
         self._label(self.sidebar, "Rahmen", section=True).grid(
             row=row, column=0, sticky="ew", padx=20, pady=(4, 0)
         )
         row += 1
-        self.frame_label = self._label(self.sidebar, "Breite: 1,50 % je Halbbild")
+        self.frame_label = self._label(self.sidebar, "Breite: 4,00 % je Halbbild")
         self.frame_label.grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
-        self.frame_var = tk.DoubleVar(value=1.5)
+        self.frame_var = tk.DoubleVar(value=4.0)
         ctk.CTkSlider(
             self.sidebar,
-            from_=0.0,
+            from_=3.0,
             to=5.0,
-            number_of_steps=100,
+            number_of_steps=40,
             variable=self.frame_var,
             command=self._frame_changed,
             progress_color=SLIDER_PROGRESS,
@@ -704,10 +1075,19 @@ class FreedaApp(ctk.CTk):
         row += 1
         caption.bind("<KeyRelease>", lambda _e: self.schedule_preview())
 
-        self.font_var = tk.StringVar(value="Segoe UI")
-        self._option(
-            self.sidebar, self.font_var, available_fonts(), lambda _v: self.schedule_preview()
-        ).grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
+        self.font_var = tk.StringVar(value=available_fonts()[0])
+        self._font_picker(self.sidebar).grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
+        row += 1
+
+        self.caption_size_var = tk.DoubleVar(value=3.5)
+        self.caption_size_label = self._label(self.sidebar, "Untertitelgröße: 3,50 % je Halbbild")
+        self.caption_size_label.grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
+        ctk.CTkSlider(self.sidebar, from_=1.0, to=8.0, number_of_steps=140,
+                      variable=self.caption_size_var, command=self._caption_size_changed,
+                      progress_color=SLIDER_PROGRESS, button_color=SLIDER_BUTTON,
+                      button_hover_color=SLIDER_BUTTON_HOVER, fg_color=SLIDER_TRACK).grid(
+            row=row, column=0, sticky="ew", padx=20, pady=(2, 12))
         row += 1
 
         self._label(self.sidebar, "Dateiformat", section=True).grid(row=row, column=0, sticky="ew", padx=20)
@@ -718,24 +1098,43 @@ class FreedaApp(ctk.CTk):
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 8))
         row += 1
 
-        self._button(self.sidebar, "Ausgabeordner …", self.choose_output).grid(
+        self.use_input_output = tk.BooleanVar(value=True)
+        self.output_checkbox = self._checkbox(self.sidebar, "Unterordner output bei der Eingabe",
+                                              self.use_input_output, self._refresh_output)
+        self.output_checkbox.grid(
+            row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
+        row += 1
+        self._button(self.sidebar, "Eigener Ausgabeordner …", self.choose_output).grid(
             row=row, column=0, sticky="ew", padx=20, pady=(0, 5)
         )
         row += 1
-        self.output_status = self._label(self.sidebar, "Noch kein Ausgabeordner gewählt")
+        self.output_status = self._label(self.sidebar, "output/web bei der Eingabe")
+        self.output_status.configure(wraplength=330)
         self.output_status.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 14))
         row += 1
 
-        self.start_button = self._button(self.sidebar, "Batch starten", self.start_batch, primary=True)
+        nav = ctk.CTkFrame(self.footer, fg_color="transparent")
+        nav.grid(row=0, column=0, sticky="ew", padx=20, pady=(10, 8))
+        nav.grid_columnconfigure((0, 1), weight=1)
+        self.previous_button = self._button(nav, "◀ Vorheriges", lambda: self.navigate(-1))
+        self.previous_button.grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        self.next_button = self._button(nav, "Nächstes ▶", lambda: self.navigate(1))
+        self.next_button.grid(row=0, column=1, sticky="ew", padx=(4, 0))
+        self.navigation_status = self._label(self.footer, "")
+        self.navigation_status.configure(wraplength=SIDEBAR_WIDTH - 40, justify="left", width=SIDEBAR_WIDTH - 40)
+        self.navigation_status.grid(row=1, column=0, sticky="ew", padx=20)
+        row = 2
+        self.start_button = self._button(self.footer, "Bild exportieren", self.start_batch, primary=True)
         self.start_button.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
         row += 1
         self.progress = ctk.CTkProgressBar(
-            self.sidebar, progress_color=GOLD, fg_color=PROGRESS_TRACK
+            self.footer, progress_color=GOLD, fg_color=PROGRESS_TRACK
         )
         self.progress.set(0)
         self.progress.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 5))
         row += 1
-        self.status = self._label(self.sidebar, "Bereit")
+        self.status = self._label(self.footer, "Bereit")
+        self.status.configure(wraplength=SIDEBAR_WIDTH - 40, justify="left", width=SIDEBAR_WIDTH - 40)
         self.status.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 22))
 
         self._mode_changed("Web")
@@ -745,11 +1144,12 @@ class FreedaApp(ctk.CTk):
         if is_web:
             self.web_controls.grid()
             self.print_controls.grid_remove()
-            self.start_button.configure(text="Batch starten")
         else:
             self.web_controls.grid_remove()
             self.print_controls.grid()
-            self.start_button.configure(text="Print-Batch starten")
+        self._refresh_output()
+        self._refresh_start()
+        self._refresh_preview_note()
         self._set_start_button_normal()
         self.schedule_preview()
 
@@ -768,7 +1168,18 @@ class FreedaApp(ctk.CTk):
         self.schedule_preview()
 
     def _frame_changed(self, value: float) -> None:
-        self.frame_label.configure(text=f"Breite: {value:.2f} % je Halbbild".replace(".", ","))
+        self._set_text(self.frame_label, f"Breite: {value:.2f} % je Halbbild".replace(".", ","))
+        self.schedule_preview()
+
+    def _refresh_preview_note(self):
+        if self.mode_var.get() == "Print":
+            self._set_text(self.preview_note, "Vorschau mit Beschnittrand" if self.show_bleed_var.get()
+                           else "Vorschau: fertiges Schnittformat ohne Beschnittrand")
+        else:
+            self._set_text(self.preview_note, "")
+
+    def _caption_size_changed(self, value: float) -> None:
+        self._set_text(self.caption_size_label, f"Untertitelgröße: {value:.2f} % je Halbbild".replace(".", ","))
         self.schedule_preview()
 
     def _color_preset_changed(self, value: str) -> None:
@@ -799,34 +1210,183 @@ class FreedaApp(ctk.CTk):
         except ValueError:
             return default
 
+    def _reload_folder(self):
+        if self._busy or self.input_root is None:
+            return
+        self.items = discover_files([self.input_root], recursive=self.include_subfolders_var.get())
+        self._input_changed()
+
+    def _report_crop_storage_error(self, error):
+        message = str(error)
+        if message not in self.crop_storage_errors:
+            self.crop_storage_errors.append(message)
+        self._set_text(self.status, "Ausschnitte konnten nicht gespeichert oder geladen werden.")
+
+    def _store_crop(self, item, mode, crop):
+        key = item.source.resolve()
+        if crop is None:
+            self.image_crops[mode].pop(key, None)
+        else:
+            self.image_crops[mode][key] = crop.clamped()
+        if self.remember_crops_var.get():
+            try:
+                aspect = None
+                if crop is not None:
+                    with Image.open(item.source) as image:
+                        aspect = (image.width // 2) * crop.width / (image.height * crop.height)
+                save_crop(item.source, mode, crop, aspect)
+            except (OSError, ValueError) as error:
+                self._report_crop_storage_error(error)
+
+    def _load_remembered_crops(self):
+        if not self.remember_crops_var.get():
+            return
+        records = {}
+        for item in self.sources:
+            directory = item.source.parent.resolve()
+            if directory not in records:
+                try:
+                    records[directory] = load_crops(directory)
+                except (OSError, ValueError) as error:
+                    records[directory] = {}
+                    self._report_crop_storage_error(error)
+            for mode, crop in records[directory].get(item.source.name, {}).items():
+                self.image_crops[mode][item.source.resolve()] = crop
+        self.schedule_preview()
+
+    def _remember_crops_changed(self):
+        if self._busy:
+            return
+        self.crop_storage_errors.clear()
+        if not self.remember_crops_var.get():
+            return
+        self._load_remembered_crops()
+        for item in self.sources:
+            for mode in ("Web", "Print"):
+                crop = self.image_crops[mode].get(item.source.resolve())
+                if crop is not None:
+                    self._store_crop(item, mode, crop)
+
+    def _web_aspect(self):
+        return parse_aspect(self.custom_aspect_var.get() if self.aspect_var.get() == "Benutzerdefiniert" else self.aspect_var.get())
+
+    def _aspect_changed(self, value, clear=True):
+        if value == "Benutzerdefiniert":
+            self.custom_aspect_entry.grid()
+        else:
+            self.custom_aspect_entry.grid_remove()
+        if clear:
+            self.image_crops["Web"].clear()
+        self.schedule_preview()
+
+    def _current_item(self):
+        return self.sources[self.source_index] if self.sources else (self.items[0] if self.items else None)
+
+    def _current_crop(self, mode):
+        item = self._current_item()
+        return self.image_crops[mode].get(item.source.resolve(), Crop()) if item else Crop()
+
+    def edit_crop(self):
+        if self._busy or not self.items:
+            return
+        mode = self.mode_var.get()
+        item = self._current_item()
+        try:
+            options = self._web_options() if mode == "Web" else self._print_options()
+            with Image.open(item.source) as source:
+                dialog = CropDialog(self, source.convert("RGB"), options, index=self.source_index+1,
+                    total=len(self.sources) or 1, filename=item.source.name, editing=True)
+            self.wait_window(dialog)
+            if dialog.action == "accept":
+                self._store_crop(item, mode, dialog.result)
+                self.schedule_preview()
+        except ValueError as error:
+            messagebox.showerror("Freeda", self.tr(str(error)))
+
+    def reset_crop(self):
+        if self._busy:
+            return
+        item = self._current_item()
+        if item:
+            self._store_crop(item, self.mode_var.get(), None)
+        if self.mode_var.get() == "Web":
+            self.aspect_var.set("Original")
+            self._aspect_changed("Original", clear=False)
+        self.schedule_preview()
+
     def choose_files(self) -> None:
+        if self._busy:
+            return
         names = filedialog.askopenfilenames(
-            title="Full-SBS-Bilder wählen",
+            title=self.tr("Full-SBS-Bilder wählen"),
             filetypes=[
-                ("Bilder", "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp"),
-                ("Alle Dateien", "*.*"),
+                (self.tr("Bilder"), "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp"),
+                (self.tr("Alle Dateien"), "*.*"),
             ],
         )
         if names:
+            self.input_root = None
             self.items = discover_files([Path(n) for n in names])
             self._input_changed()
+            if len(self.items) == 1:
+                selected = self.items[0].source.resolve()
+                self.sources = sorted(discover_files([selected.parent], recursive=False), key=lambda i: i.source.name.casefold())
+                self.source_index = next(i for i, item in enumerate(self.sources) if item.source.resolve() == selected)
+                self.batch_mode = False
+                self._refresh_navigation()
+                self._load_remembered_crops()
 
     def choose_folder(self) -> None:
-        name = filedialog.askdirectory(title="Ordner mit Full-SBS-Bildern wählen")
+        if self._busy:
+            return
+        name = filedialog.askdirectory(title=self.tr("Ordner mit Full-SBS-Bildern wählen"))
         if name:
-            self.items = discover_files([Path(name)], recursive=True)
+            self.input_root = Path(name)
+            self.items = discover_files([Path(name)], recursive=self.include_subfolders_var.get())
             self._input_changed()
 
     def _input_changed(self) -> None:
+        self.sources = list(self.items)
+        self.source_index = 0
+        self.batch_mode = len(self.items) > 1 or self.input_root is not None
+        self._refresh_navigation()
         count = len(self.items)
-        self.input_status.configure(text=f"{count} Bild{'er' if count != 1 else ''} gewählt")
+        self._set_text(self.input_status, f"{count} Bild{'er' if count != 1 else ''} gewählt")
+        self._refresh_start()
+        self._refresh_output()
+        self._load_remembered_crops()
         self.schedule_preview()
 
     def choose_output(self) -> None:
-        name = filedialog.askdirectory(title="Ausgabeordner wählen")
+        if self._busy:
+            return
+        name = filedialog.askdirectory(title=self.tr("Ausgabeordner wählen"))
         if name:
             self.output_dir = Path(name)
-            self.output_status.configure(text=str(self.output_dir))
+            self.use_input_output.set(False)
+            self._refresh_output()
+
+    def _refresh_output(self) -> None:
+        mode = self.mode_var.get().lower()
+        if self.use_input_output.get():
+            root = self.input_root or (self.items[0].source.parent if self.items else None)
+            text = str(root / "output" / mode) if root else f"output/{mode} bei der Eingabe"
+            if self.input_root is None and len({item.source.parent for item in self.items}) > 1:
+                text = f"output/{mode} im jeweiligen Eingabeordner"
+        else:
+            text = str(self.output_dir / mode) if self.output_dir else "Bitte eigenen Ausgabeordner wählen"
+        self._set_text(self.output_status, text)
+
+    def _refresh_start(self) -> None:
+        text = f"Batch exportieren ({len(self.items)} Bilder)" if self.batch_mode else "Angezeigtes Bild exportieren"
+        self._set_text(self.start_button, text)
+        self.start_button.configure(state="disabled" if self._busy or not self.items else "normal")
+        self._refresh_navigation()
+        self._set_start_button_normal()
+
+    def _export_targets(self, output_format):
+        return export_targets(list(self.items), None if self.use_input_output.get() else self.output_dir,
+                              self.input_root, self.mode_var.get().lower(), output_format)
 
     def _output_format(self) -> OutputFormat:
         return OutputFormat.PNG if self.format_var.get() == "PNG" else OutputFormat.JPEG
@@ -839,13 +1399,15 @@ class FreedaApp(ctk.CTk):
             try:
                 target_width = max(320, int(self.custom_width_var.get()))
             except ValueError:
-                target_width = 1920
+                target_width = 2048
         else:
             target_width = int(size)
 
         return WebRenderOptions(
             layout=_LAYOUT_TO_MODE[self.layout_var.get()],
             target_width=target_width,
+            eye_aspect=self._web_aspect(),
+            crop=self._current_crop("Web"),
             frame_percent=float(self.frame_var.get()),
             frame_color=self._hex_color(self.frame_color_var.get(), DEFAULT_FRAME_COLOR),
             accent_color=self._hex_color(self.accent_color_var.get(), DEFAULT_ACCENT_COLOR),
@@ -853,6 +1415,7 @@ class FreedaApp(ctk.CTk):
             inner_radius_percent=max(0.0, self._float(self.inner_radius_var.get())),
             caption=self.caption_var.get(),
             font_family=self.font_var.get(),
+            caption_size_percent=float(self.caption_size_var.get()),
             output_format=self._output_format(),
         )
 
@@ -863,21 +1426,23 @@ class FreedaApp(ctk.CTk):
             height_mm = max(20.0, self._float(self.print_height_var.get(), 100.0))
         else:
             width_mm, height_mm = preset
-        dpi = 96 if preview else int(self.dpi_var.get())
+        dpi = 96 if preview else parse_dpi(self.dpi_var.get())
         return PrintRenderOptions(
             layout=_LAYOUT_TO_MODE[self.layout_var.get()],
             width_mm=width_mm,
             height_mm=height_mm,
             dpi=dpi,
-            bleed_mm=max(0.0, self._float(self.bleed_var.get(), 3.0)),
+            bleed_mm=parse_bleed(self.bleed_var.get()),
             frame_percent=float(self.frame_var.get()),
             frame_color=self._hex_color(self.frame_color_var.get(), DEFAULT_FRAME_COLOR),
             accent_color=self._hex_color(self.accent_color_var.get(), DEFAULT_ACCENT_COLOR),
             caption=self.caption_var.get(),
             font_family=self.font_var.get(),
+            caption_size_percent=float(self.caption_size_var.get()),
             inner_radius_percent=max(0.0, self._float(self.inner_radius_var.get())),
             output_format=self._output_format(),
             cutting_guide=_CUTTING_GUIDES[self.cutting_var.get()],
+            crop=self._current_crop("Print"),
         )
 
     def schedule_preview(self) -> None:
@@ -890,73 +1455,124 @@ class FreedaApp(ctk.CTk):
 
     def update_preview(self) -> None:
         self._preview_job = None
+        self._refresh_preview_note()
         if not self.items:
-            self.preview_label.configure(image="", text="Bild wählen")
+            self.preview_label.configure(image="", text=self.tr("Bild wählen"))
             return
-        item = self.items[0]
+        item = self.sources[self.source_index] if self.sources else self.items[0]
         try:
+            panel_w = max(1, self.preview_label.winfo_width() - 10)
+            panel_h = max(1, self.preview_label.winfo_height() - 10)
             with Image.open(item.source) as image:
                 image.load()
                 source = image.convert("RGB")
                 if self.mode_var.get() == "Web":
                     options = self._web_options()
-                    panel_w = max(500, self.preview_label.winfo_width() - 10)
                     preview_width = min(panel_w, options.target_width or source.width)
                     rendered = render_web(source, replace(options, target_width=preview_width))
                 else:
-                    rendered = render_print(source, self._print_options(preview=True))
-            panel_w = max(500, self.preview_label.winfo_width() - 10)
-            panel_h = max(400, self.preview_label.winfo_height() - 10)
-            rendered.thumbnail((panel_w, panel_h), Image.Resampling.LANCZOS)
+                    options = print_preview_options(self._print_options(), panel_w, panel_h)
+                    rendered = print_preview_image(source, options, show_bleed=self.show_bleed_var.get())
+            rendered = fit_preview(rendered, panel_w, panel_h)
             self.preview_photo = ImageTk.PhotoImage(rendered)
             self.preview_label.configure(image=self.preview_photo, text="")
         except Exception as exc:
-            self.preview_label.configure(image="", text=f"Vorschaufehler:\n{exc}")
+            self.preview_label.configure(image="", text=self.tr(f"Vorschaufehler:\n{exc}"))
 
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
-        self.start_button.configure(state="disabled" if busy else "normal")
+        self.subfolders_checkbox.configure(state="disabled" if busy else "normal")
+        self.remember_crops_checkbox.configure(state="disabled" if busy else "normal")
+        self._refresh_start()
         if busy:
             self._set_start_button_disabled()
         else:
             self._set_start_button_normal()
+            self.schedule_preview()
 
     def start_batch(self) -> None:
         if self._busy:
             return
         if not self.items:
-            messagebox.showinfo("Freeda", "Bitte zuerst Bilder oder einen Ordner wählen.")
+            messagebox.showinfo("Freeda", self.tr("Bitte zuerst Bilder oder einen Ordner wählen."))
             return
-        if self.output_dir is None:
+        if not self.use_input_output.get() and self.output_dir is None:
             self.choose_output()
             if self.output_dir is None:
                 return
 
-        if self.mode_var.get() == "Print":
-            self._start_print_batch()
-        else:
-            self._start_web_batch()
+        try:
+            if self.mode_var.get() == "Print":
+                self._start_print_batch()
+            else:
+                self._start_web_batch()
+        except ValueError as exc:
+            self._batch_failed(exc)
+
+    def _prepare_web_crops(self, items, options):
+        crops = dict(self.image_crops["Web"])
+        active = options.eye_aspect is not None or self.web_review_var.get()
+        if not active:
+            return crops, items
+        kept = []
+        shared = None
+        reuse = self.web_crop_mode_var.get() == "Gleichen Ausschnitt verwenden"
+        self._set_busy(True)
+        try:
+            for index, item in enumerate(items, 1):
+                key = item.source.resolve()
+                if reuse and shared is not None:
+                    crop = shared
+                elif key in crops and not self.web_review_var.get():
+                    crop = crops[key]
+                else:
+                    self._set_text(self.status, f"Ausschnitt {index}/{len(items)}: {item.source.name}")
+                    with Image.open(item.source) as source:
+                        dialog = CropDialog(self, source.convert("RGB"), replace(options, crop=crops.get(key, Crop())),
+                            index=index, total=len(items), filename=item.source.name)
+                    self.wait_window(dialog)
+                    if dialog.action == "cancel":
+                        self._set_text(self.status, "Export abgebrochen – 0 Dateien exportiert")
+                        return crops, []
+                    if dialog.action == "skip":
+                        continue
+                    crop = dialog.result or Crop()
+                shared = crop
+                crops[key] = crop
+                self._store_crop(item, "Web", crop)
+                kept.append(item)
+            return crops, kept
+        finally:
+            self._set_busy(False)
+            self.schedule_preview()
 
     def _start_web_batch(self) -> None:
         options = self._web_options()
+        items = list(self.items)
+        crops, items = self._prepare_web_crops(items, options)
+        if not items:
+            return
+        all_targets = dict(zip((i.source.resolve() for i in self.items), self._export_targets(options.output_format)))
+        targets = [all_targets[i.source.resolve()] for i in items]
         self._set_busy(True)
         self.progress.set(0)
-        self.status.configure(text="Batch läuft …")
+        self._set_text(self.status, "Export läuft …")
 
         def progress(index, total, item):
             self.after(0, lambda: self._progress_ui(index, total, item.source.name))
 
         def worker():
             try:
-                written = render_web_batch(self.items, self.output_dir, options, progress=progress)
+                written = render_web_batch(items, self.output_dir or Path(), replace(options, crop=Crop()), progress=progress, targets=targets, crops=crops)
                 self.after(0, lambda: self._batch_done(len(written)))
             except Exception as exc:
-                self.after(0, lambda: self._batch_failed(exc))
+                self.after(0, lambda error=exc: self._batch_failed(error))
 
         threading.Thread(target=worker, daemon=True).start()
 
     def _start_print_batch(self) -> None:
         options = self._print_options()
+        targets = self._export_targets(options.output_format)
         session = PrintBatchSession(
             list(self.items),
             mode=_CROP_MODES[self.crop_mode_var.get()],
@@ -972,7 +1588,7 @@ class FreedaApp(ctk.CTk):
                 if item is None:
                     break
                 index = session.index + 1
-                self.status.configure(text=f"Bild {index}/{total}: {item.source.name}")
+                self._set_text(self.status, f"Verarbeitung {index}/{total}: {item.source.name}")
                 self.progress.set((index - 1) / max(1, total))
                 self.update_idletasks()
 
@@ -984,14 +1600,14 @@ class FreedaApp(ctk.CTk):
                     dialog = CropDialog(
                         self,
                         source,
-                        options,
+                        replace(options, crop=self.image_crops["Print"].get(item.source.resolve(), Crop())),
                         index=index,
                         total=total,
                         filename=item.source.name,
                     )
                     self.wait_window(dialog)
                     if dialog.action == "cancel":
-                        self.status.configure(text="Print-Batch abgebrochen")
+                        self._set_text(self.status, f"Export abgebrochen – {written} Dateien exportiert")
                         break
                     if dialog.action == "skip":
                         session.skip()
@@ -1000,11 +1616,11 @@ class FreedaApp(ctk.CTk):
                 else:
                     crop = session.suggested_crop()
 
+                self._store_crop(item, "Print", crop)
                 session.accept(crop)
                 current = replace(options, crop=crop)
                 rendered = render_print(source, current)
-                stem = item.relative_path.stem + "_print"
-                target = self.output_dir / item.relative_path.with_name(stem)
+                target = targets[index - 1]
                 save_render(
                     rendered,
                     target,
@@ -1016,10 +1632,8 @@ class FreedaApp(ctk.CTk):
                 self.progress.set(session.index / max(1, total))
                 self.update_idletasks()
 
-            if written:
+            if session.finished:
                 self._batch_done(written)
-            elif session.finished:
-                self._batch_done(0)
             else:
                 self._set_busy(False)
         except Exception as exc:
@@ -1027,18 +1641,20 @@ class FreedaApp(ctk.CTk):
 
     def _progress_ui(self, index: int, total: int, name: str) -> None:
         self.progress.set(index / max(1, total))
-        self.status.configure(text=f"{index}/{total}: {name}")
+        self._set_text(self.status, f"Verarbeitung {index}/{total}: {name}")
 
     def _batch_done(self, count: int) -> None:
         self._set_busy(False)
         self.progress.set(1)
-        self.status.configure(text=f"Fertig – {count} Datei{'en' if count != 1 else ''}")
+        self._set_text(self.status, f"Fertig – {count} Datei{'en' if count != 1 else ''}")
+        if self.crop_storage_errors:
+            self._set_text(self.status, "Export fertig; Ausschnitte konnten nicht gespeichert oder geladen werden.")
         play_ready_sound(resource_path("assets/ready.wav"))
 
     def _batch_failed(self, exc: Exception) -> None:
         self._set_busy(False)
-        self.status.configure(text="Fehler")
-        messagebox.showerror("Freeda", str(exc))
+        self._set_text(self.status, "Fehler")
+        messagebox.showerror("Freeda", self.tr(str(exc)))
 
 
 def run() -> None:

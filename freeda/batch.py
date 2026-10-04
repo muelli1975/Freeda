@@ -27,6 +27,8 @@ def discover_files(paths: Iterable[Path], *, recursive: bool = True) -> list[Bat
         if path.is_dir():
             iterator = path.rglob("*") if recursive else path.glob("*")
             for child in sorted(iterator):
+                if "output" in (part.casefold() for part in child.relative_to(path).parts[:-1]):
+                    continue
                 if not child.is_file() or child.suffix.lower() not in SUPPORTED_EXTENSIONS:
                     continue
                 resolved = child.resolve()
@@ -46,14 +48,17 @@ def render_web_batch(
     caption_from_filename: bool = False,
     overwrite: bool = True,
     progress=None,
+    targets: list[Path] | None = None,
+    crops: dict[Path, object] | None = None,
 ) -> list[Path]:
     written: list[Path] = []
     item_list = list(items)
     for index, item in enumerate(item_list, start=1):
         caption = item.source.stem if caption_from_filename else options.caption
-        current = WebRenderOptions(**{**options.__dict__, "caption": caption})
+        current = WebRenderOptions(**{**options.__dict__, "caption": caption,
+            "crop": crops.get(item.source.resolve(), options.crop) if crops is not None else options.crop})
         suffix = ".png" if current.output_format.value == "png" else ".jpg"
-        target = Path(output_root) / item.relative_path.with_suffix(suffix)
+        target = targets[index - 1] if targets is not None else Path(output_root) / item.relative_path.with_suffix(suffix)
         if target.exists() and not overwrite:
             continue
         with Image.open(item.source) as source:

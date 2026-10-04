@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 APP_NAME = "Freeda"
-APP_VERSION = "0.1.0"
+from . import __version__
+
+APP_VERSION = __version__
 
 WEB_WIDTH_PRESETS = ("Original", "1280", "1600", "1920", "2048", "3840", "Benutzerdefiniert")
-LAYOUTS = ("Parallel + Kreuz", "Parallel", "Kreuz")
+LAYOUTS = ("Parallelblick + Kreuzblick", "Parallelblick", "Kreuzblick", "L–R–L")
 OUTPUT_FORMATS = ("JPEG", "PNG")
 
-DEFAULT_FRAME_PERCENT = 1.5
+DEFAULT_FRAME_PERCENT = 4.0
 DEFAULT_FRAME_COLOR = "#111111"
 DEFAULT_ACCENT_COLOR = "#c6a95e"
 DEFAULT_JPEG_QUALITY = 90

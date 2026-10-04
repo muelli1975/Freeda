@@ -10,25 +10,28 @@ class RowGeometry:
     frame_px: int
 
 
-def frame_geometry_for_total_width(total_width: int, frame_percent: float) -> RowGeometry:
-    """Return exact row geometry for two equally wide eye images.
+def frame_geometry_for_total_width(total_width: int, frame_percent: float, eye_count: int = 2) -> RowGeometry:
+    """Return exact row geometry for two or three equally wide eye images.
 
     The outer left/right frame and centre bar have the same width.  Frame width
     is defined as a percentage of ONE rendered eye image, not of the whole row.
     """
     total_width = max(16, int(total_width))
+    if eye_count not in (2, 3):
+        raise ValueError("Unsupported eye count")
+    bars = eye_count + 1
     fraction = max(0.0, float(frame_percent)) / 100.0
 
-    ideal = total_width * fraction / (2.0 + 3.0 * fraction) if fraction else 0.0
+    ideal = total_width * fraction / (eye_count + bars * fraction) if fraction else 0.0
     centre = max(0, int(round(ideal)))
 
     # Need (total_width - 3*frame) to be even so both eye images are identical.
     candidates = [max(0, centre + delta) for delta in (0, -1, 1, -2, 2, -3, 3)]
-    valid = [b for b in candidates if total_width - 3 * b >= 2 and (total_width - 3 * b) % 2 == 0]
+    valid = [b for b in candidates if total_width - bars * b >= eye_count and (total_width - bars * b) % eye_count == 0]
     if not valid:
         valid = [0]
     frame = min(valid, key=lambda b: abs(b - ideal))
-    eye = (total_width - 3 * frame) // 2
+    eye = (total_width - bars * frame) // eye_count
     return RowGeometry(total_width=total_width, eye_width=eye, frame_px=frame)
 
 

@@ -44,6 +44,21 @@ class PrintRenderTests(unittest.TestCase):
         )
         self.assertEqual(plain.size, lined.size)
 
+    def test_cutting_line_is_gray_for_light_and_dark_frames(self):
+        for frame in ("#ffffff", "#111111"):
+            options = PrintRenderOptions(width_mm=130, height_mm=90, dpi=150,
+                bleed_mm=3, frame_color=frame, cutting_guide=CuttingGuide.LINE)
+            image = render_print(self.source(), options)
+            bleed = mm_to_px(3, 150)
+            self.assertEqual(image.getpixel((bleed, bleed))[:3], (128, 128, 128))
+
+    def test_lrl_print_order(self):
+        options = PrintRenderOptions(layout=LayoutMode.LRL, width_mm=150, height_mm=100, dpi=150, bleed_mm=0)
+        image = render_print(self.source(), options)
+        self.assertEqual(image.size, print_canvas_px(150, 100, 150, 0))
+        colors = [image.getpixel((round(image.width*x), image.height//2))[:3] for x in (1/6, 1/2, 5/6)]
+        self.assertEqual(colors, [(255, 0, 0), (0, 255, 0), (255, 0, 0)])
+
     def test_crop_for_aspect_is_linkable_and_clamped(self):
         crop = crop_for_aspect((1920, 1280), 1.2, zoom=2.0, position_x=1.0, position_y=0.0)
         self.assertGreater(crop.width, 0)

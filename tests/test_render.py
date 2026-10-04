@@ -25,6 +25,13 @@ class RenderTests(unittest.TestCase):
         ))
         self.assertEqual(result.width, 1280)
 
+    def test_lrl_order_and_exact_width(self):
+        for width in (1280, 1920, 2048):
+            image = render_web(self.source(), WebRenderOptions(layout=LayoutMode.LRL, target_width=width))
+            self.assertEqual(image.width, width)
+            colors = [image.getpixel((round(width * x), image.height // 2))[:3] for x in (1/6, 1/2, 5/6)]
+            self.assertEqual(colors, [(255, 0, 0), (0, 255, 0), (255, 0, 0)])
+
     def test_both_is_taller_than_single(self):
         single = render_web(self.source(), WebRenderOptions(
             layout=LayoutMode.PARALLEL, target_width=1280

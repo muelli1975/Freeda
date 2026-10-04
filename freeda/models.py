@@ -9,6 +9,7 @@ class LayoutMode(str, Enum):
     BOTH = "both"
     PARALLEL = "parallel"
     CROSS = "cross"
+    LRL = "lrl"
 
 
 class OutputFormat(str, Enum):
@@ -40,14 +41,16 @@ class Crop:
 @dataclass(frozen=True)
 class WebRenderOptions:
     layout: LayoutMode = LayoutMode.BOTH
-    target_width: int | None = 1920
-    frame_percent: float = 1.5
+    target_width: int | None = 2048
+    eye_aspect: float | None = None
+    frame_percent: float = 4.0
     frame_color: str = "#111111"
     accent_color: str = "#c6a95e"
     outer_radius_percent: float = 0.0
     inner_radius_percent: float = 0.0
     caption: str = ""
     font_family: str = "Segoe UI"
+    caption_size_percent: float = 3.5
     output_format: OutputFormat = OutputFormat.JPEG
     crop: Crop = Crop()
 
@@ -58,12 +61,13 @@ class PrintRenderOptions:
     width_mm: float = 148.0
     height_mm: float = 105.0
     dpi: int = 300
-    bleed_mm: float = 3.0
-    frame_percent: float = 1.5
+    bleed_mm: float = 0.0
+    frame_percent: float = 4.0
     frame_color: str = "#111111"
     accent_color: str = "#c6a95e"
     caption: str = ""
     font_family: str = "Segoe UI"
+    caption_size_percent: float = 3.5
     crop: Crop = Crop()
     manual_crop_each_image: bool = True
     inner_radius_percent: float = 0.0

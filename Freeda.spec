@@ -24,14 +24,22 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
     name="Freeda",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
+    exclude_binaries=True,
     console=False,
-    icon=None,
+    icon=str(icon),
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    name="Freeda",
 )

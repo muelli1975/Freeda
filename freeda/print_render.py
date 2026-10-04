@@ -8,9 +8,14 @@ from .geometry import frame_geometry_for_total_width, mm_to_px, print_canvas_px
 from .models import Crop, CuttingGuide, LayoutMode, PrintRenderOptions
 from .render import (
     _draw_centered,
+    _draw_caption,
+    _caption_metrics,
+    _fit_lrl_caption,
+    _draw_symbols,
     _font,
     _rounded_eye,
     _text_height,
+    _symbol_style,
     crop_eye,
     split_full_sbs,
 )
@@ -47,14 +52,14 @@ def crop_for_aspect(
     return Crop(x=x, y=y, width=crop_w, height=crop_h).clamped()
 
 
-def _bands(eye_width: int, frame: int, caption: str, family: str, symbol: str):
-    symbol_font = _font(family, max(10, round(eye_width * 0.050)))
-    caption_font = _font(family, max(9, round(eye_width * 0.035)))
-    symbol_h = _text_height(symbol_font, symbol)
-    caption_h = _text_height(caption_font, caption) if caption else 0
-    symbol_gap = max(frame, round(eye_width * 0.012))
+def _bands(eye_width: int, frame: int, caption: str, family: str, symbol: str, caption_size_percent: float, eye_count: int = 2):
+    symbol_font, symbol_gap = _symbol_style(family, frame, symbol)
+    caption_font = _font(family, max(9, round(eye_width * caption_size_percent / 100)))
+    if eye_count == 3:
+        caption, caption_font = _fit_lrl_caption(caption, caption_font, family, eye_width)
+    _, _, caption_h = _caption_metrics(caption, caption_font, eye_width)
     caption_gap = max(frame, round(eye_width * 0.010)) if caption else 0
-    symbol_band = symbol_h + 2 * symbol_gap
+    symbol_band = 0
     caption_band = caption_h + 2 * caption_gap if caption else 0
     return symbol_font, caption_font, symbol_gap, caption_gap, symbol_band, caption_band
 
@@ -63,11 +68,13 @@ def print_eye_aspect(options: PrintRenderOptions) -> float:
     """Return the aspect ratio of the printed image area of one stereo half."""
     trim_w = mm_to_px(options.width_mm, options.dpi)
     trim_h = mm_to_px(options.height_mm, options.dpi)
-    geom = frame_geometry_for_total_width(trim_w, options.frame_percent)
-    row_h = trim_h if options.layout != LayoutMode.BOTH else (trim_h + geom.frame_px) // 2
+    geom = frame_geometry_for_total_width(trim_w, options.frame_percent, 3 if options.layout == LayoutMode.LRL else 2)
+    row_h = trim_h if options.layout != LayoutMode.BOTH else (trim_h + geom.frame_px * (2 if options.caption else 1)) // 2
     _, _, _, _, symbol_band, caption_band = _bands(
-        geom.eye_width, geom.frame_px, options.caption, options.font_family, "II"
+        geom.eye_width, geom.frame_px, options.caption, options.font_family, "II", options.caption_size_percent, 3 if options.layout == LayoutMode.LRL else 2
     )
+    if options.caption and options.layout != LayoutMode.BOTH:
+        caption_band -= geom.frame_px
     eye_h = max(1, row_h - 2 * geom.frame_px - symbol_band - caption_band)
     return geom.eye_width / eye_h
 
@@ -95,12 +102,16 @@ def _fixed_row(
     height: int,
     options: PrintRenderOptions,
     symbol: str,
+    final_row: bool = False,
 ) -> Image.Image:
-    geom = frame_geometry_for_total_width(width, options.frame_percent)
+    eye_count = 3 if options.layout == LayoutMode.LRL else 2
+    geom = frame_geometry_for_total_width(width, options.frame_percent, eye_count)
     eye_w, frame = geom.eye_width, geom.frame_px
     symbol_font, caption_font, symbol_gap, caption_gap, symbol_band, caption_band = _bands(
-        eye_w, frame, options.caption, options.font_family, symbol
+        eye_w, frame, options.caption, options.font_family, symbol, options.caption_size_percent, eye_count
     )
+    if final_row and options.caption:
+        caption_band -= frame
     eye_h = height - 2 * frame - symbol_band - caption_band
     if eye_h < 1:
         raise ValueError("Das gewählte Druckformat ist für Rahmen und Beschriftung zu niedrig.")
@@ -115,31 +126,21 @@ def _fixed_row(
 
     row = Image.new("RGBA", (width, height), options.frame_color)
     draw = ImageDraw.Draw(row)
-    x1 = frame
-    x2 = frame + eye_w + frame
+    positions = [frame + index * (eye_w + frame) for index in range(eye_count)]
     image_y = frame + symbol_band
     radius = max(0, round(eye_w * max(0.0, options.inner_radius_percent) / 100.0))
-    row.alpha_composite(_rounded_eye(left, radius), (x1, image_y))
-    row.alpha_composite(_rounded_eye(right, radius), (x2, image_y))
-
-    symbol_y = frame + symbol_gap
-    _draw_centered(draw, symbol, x1 + eye_w // 2, symbol_y, symbol_font, options.accent_color)
-    _draw_centered(draw, symbol, x2 + eye_w // 2, symbol_y, symbol_font, options.accent_color)
+    eyes = (left, right, left) if eye_count == 3 else (left, right)
+    for x, eye in zip(positions, eyes):
+        row.alpha_composite(_rounded_eye(eye, radius), (x, image_y))
+    _draw_symbols(draw, positions, eye_w, frame, options.font_family, symbol, options.accent_color)
     if options.caption:
+        caption = options.caption
+        if eye_count == 3:
+            caption, _ = _fit_lrl_caption(caption, caption_font, options.font_family, eye_w, shrink=False)
         caption_y = image_y + eye_h + caption_gap
-        _draw_centered(draw, options.caption, x1 + eye_w // 2, caption_y, caption_font, options.accent_color)
-        _draw_centered(draw, options.caption, x2 + eye_w // 2, caption_y, caption_font, options.accent_color)
+        for x in positions:
+            _draw_caption(draw, caption, x + eye_w // 2, caption_y, caption_font, options.accent_color, eye_w)
     return row
-
-
-def _guide_color(frame_color: str) -> str:
-    value = frame_color.lstrip("#")
-    try:
-        r, g, b = (int(value[i:i+2], 16) for i in (0, 2, 4))
-    except (ValueError, TypeError):
-        return "#ffffff"
-    luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
-    return "#111111" if luminance > 0.55 else "#f2f2f2"
 
 
 def _draw_cutting_guides(
@@ -152,7 +153,7 @@ def _draw_cutting_guides(
         return
     draw = ImageDraw.Draw(image)
     left, top, right, bottom = trim_box
-    color = _guide_color(options.frame_color)
+    color = "#808080"
     line_w = max(1, mm_to_px(0.2, options.dpi))
 
     if options.cutting_guide == CuttingGuide.LINE:
@@ -191,17 +192,17 @@ def render_print(source: Image.Image, options: PrintRenderOptions) -> Image.Imag
     geom = frame_geometry_for_total_width(trim_w, options.frame_percent)
     rows: list[Image.Image] = []
     if options.layout == LayoutMode.BOTH:
-        first_h = (trim_h + geom.frame_px) // 2
+        first_h = (trim_h + geom.frame_px * (2 if options.caption else 1)) // 2
         second_h = trim_h + geom.frame_px - first_h
         rows.append(_fixed_row(left, right, width=trim_w, height=first_h, options=options, symbol="II"))
-        rows.append(_fixed_row(right, left, width=trim_w, height=second_h, options=options, symbol="X"))
+        rows.append(_fixed_row(right, left, width=trim_w, height=second_h, options=options, symbol="X", final_row=True))
         trim = Image.new("RGBA", (trim_w, trim_h), options.frame_color)
         trim.alpha_composite(rows[0], (0, 0))
         trim.alpha_composite(rows[1], (0, first_h - geom.frame_px))
     elif options.layout == LayoutMode.CROSS:
-        trim = _fixed_row(right, left, width=trim_w, height=trim_h, options=options, symbol="X")
+        trim = _fixed_row(right, left, width=trim_w, height=trim_h, options=options, symbol="X", final_row=True)
     else:
-        trim = _fixed_row(left, right, width=trim_w, height=trim_h, options=options, symbol="II")
+        trim = _fixed_row(left, right, width=trim_w, height=trim_h, options=options, symbol="II", final_row=True)
 
     canvas = Image.new("RGBA", (canvas_w, canvas_h), options.frame_color)
     canvas.alpha_composite(trim, (bleed, bleed))

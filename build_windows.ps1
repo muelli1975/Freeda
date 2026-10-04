@@ -8,19 +8,20 @@ $Venv = Join-Path $Root ".venv-build"
 $Build = Join-Path $Root "build"
 $Dist = Join-Path $Root "dist"
 $Release = Join-Path $Root "release"
-$Package = Join-Path $Release "Freeda_preview_Windows_x64"
-$Zip = Join-Path $Release "Freeda_preview_Windows_x64.zip"
-
-foreach ($Path in @($Venv, $Build, $Dist, $Release)) {
-    if (Test-Path $Path) { Remove-Item -Recurse -Force $Path }
-}
 
 $PythonCommand = Get-Command python -ErrorAction Stop
-& $PythonCommand.Source -m venv $Venv
+if (-not (Test-Path (Join-Path $Venv "Scripts\python.exe"))) {
+    & $PythonCommand.Source -m venv $Venv
+    if ($LASTEXITCODE -ne 0) { throw "Build environment creation failed." }
+}
 $Python = Join-Path $Venv "Scripts\python.exe"
+$Version = (& $Python -c "from freeda import __version__; print(__version__)").Trim()
+$PackageName = "Freeda_1.0_Windows_x64"
+$Package = Join-Path $Release $PackageName
+$Zip = Join-Path $Release "$PackageName.zip"
 
-& $Python -m pip install --upgrade pip
 & $Python -m pip install -r requirements-build.txt
+if ($LASTEXITCODE -ne 0) { throw "Build dependency installation failed." }
 & $Python -m unittest discover -s tests -p "test_*.py"
 if ($LASTEXITCODE -ne 0) { throw "Unit tests failed." }
 
@@ -30,21 +31,26 @@ if ($LASTEXITCODE -ne 0) { throw "Python compilation failed." }
 & $Python -m PyInstaller --noconfirm --clean Freeda.spec
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed." }
 
-$Exe = Join-Path $Dist "Freeda.exe"
+$Program = Join-Path $Dist "Freeda"
+$Exe = Join-Path $Program "Freeda.exe"
 if (-not (Test-Path $Exe)) {
     throw "PyInstaller did not create Freeda.exe"
 }
 
 New-Item -ItemType Directory -Force $Package | Out-Null
 Copy-Item -Force $Exe (Join-Path $Package "Freeda.exe")
+Copy-Item -Recurse -Force (Join-Path $Program "_internal") $Package
 Copy-Item -Force (Join-Path $Root "README.md") (Join-Path $Package "README.md")
+Copy-Item -Force (Join-Path $Root "QUICKSTART.md") (Join-Path $Package "QUICKSTART.md")
+Copy-Item -Force (Join-Path $Root "THIRD_PARTY_NOTICES.md") (Join-Path $Package "THIRD_PARTY_NOTICES.md")
+Copy-Item -Recurse -Force (Join-Path $Root "licenses") $Package
 Copy-Item -Force (Join-Path $Root "LICENSE") (Join-Path $Package "LICENSE")
 
-Compress-Archive -Path $Package -DestinationPath $Zip -CompressionLevel Optimal
+Compress-Archive -Path $Package -DestinationPath $Zip -CompressionLevel Optimal -Force
 $Hash = (Get-FileHash -Algorithm SHA256 $Zip).Hash.ToLowerInvariant()
-"$Hash  Freeda_preview_Windows_x64.zip" | Set-Content -Encoding ASCII (Join-Path $Release "SHA256SUMS.txt")
+"$Hash  $PackageName.zip" | Set-Content -Encoding ASCII (Join-Path $Release "SHA256SUMS.txt")
 
 Write-Host ""
-Write-Host "Freeda preview build created:"
+Write-Host "Freeda release build created:"
 Write-Host $Zip
 Write-Host "SHA256:" $Hash
