@@ -8,6 +8,8 @@ $Venv = Join-Path $Root ".venv-build"
 $Build = Join-Path $Root "build"
 $Dist = Join-Path $Root "dist"
 $Release = Join-Path $Root "release"
+$Package = Join-Path $Release "Freeda_preview_Windows_x64"
+$Zip = Join-Path $Release "Freeda_preview_Windows_x64.zip"
 
 foreach ($Path in @($Venv, $Build, $Dist, $Release)) {
     if (Test-Path $Path) { Remove-Item -Recurse -Force $Path }
@@ -28,13 +30,16 @@ if (-not (Test-Path $Exe)) {
     throw "PyInstaller did not create Freeda.exe"
 }
 
-New-Item -ItemType Directory -Force $Release | Out-Null
-$Zip = Join-Path $Release "Freeda-dev-win64.zip"
-Compress-Archive -Path $Exe -DestinationPath $Zip -CompressionLevel Optimal
+New-Item -ItemType Directory -Force $Package | Out-Null
+Copy-Item -Force $Exe (Join-Path $Package "Freeda.exe")
+Copy-Item -Force (Join-Path $Root "README.md") (Join-Path $Package "README.md")
+Copy-Item -Force (Join-Path $Root "LICENSE") (Join-Path $Package "LICENSE")
+
+Compress-Archive -Path $Package -DestinationPath $Zip -CompressionLevel Optimal
 $Hash = (Get-FileHash -Algorithm SHA256 $Zip).Hash.ToLowerInvariant()
-"$Hash  Freeda-dev-win64.zip" | Set-Content -Encoding ASCII (Join-Path $Release "SHA256SUMS.txt")
+"$Hash  Freeda_preview_Windows_x64.zip" | Set-Content -Encoding ASCII (Join-Path $Release "SHA256SUMS.txt")
 
 Write-Host ""
-Write-Host "Freeda build created:"
+Write-Host "Freeda preview build created:"
 Write-Host $Zip
 Write-Host "SHA256:" $Hash
