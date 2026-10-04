@@ -59,7 +59,7 @@ def render_web_batch(
         with Image.open(item.source) as source:
             source.load()
             rendered = render_web(source.convert("RGB"), current)
-        save_render(rendered, target, current.output_format)
+        save_render(rendered, target, current.output_format, background_color=current.frame_color)
         written.append(target)
         if progress:
             progress(index, len(item_list), item)
