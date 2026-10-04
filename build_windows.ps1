@@ -42,6 +42,8 @@ Copy-Item -Force $Exe (Join-Path $Package "Freeda.exe")
 Copy-Item -Recurse -Force (Join-Path $Program "_internal") $Package
 Copy-Item -Force (Join-Path $Root "README.md") (Join-Path $Package "README.md")
 Copy-Item -Force (Join-Path $Root "README_EN.md") (Join-Path $Package "README_EN.md")
+Copy-Item -Force (Join-Path $Root "README_DE.md") (Join-Path $Package "README_DE.md")
+Copy-Item -Recurse -Force (Join-Path $Root "docs") $Package
 Copy-Item -Force (Join-Path $Root "QUICKSTART.md") (Join-Path $Package "QUICKSTART.md")
 Copy-Item -Force (Join-Path $Root "THIRD_PARTY_NOTICES.md") (Join-Path $Package "THIRD_PARTY_NOTICES.md")
 Copy-Item -Recurse -Force (Join-Path $Root "licenses") $Package

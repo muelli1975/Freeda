@@ -73,6 +73,8 @@ class PrintRenderOptions:
     inner_radius_percent: float = 0.0
     output_format: OutputFormat = OutputFormat.JPEG
     cutting_guide: CuttingGuide = CuttingGuide.NONE
+    eye_aspect: float | None = None
+    fit_to_paper: bool = True
 
 
 @dataclass(frozen=True)

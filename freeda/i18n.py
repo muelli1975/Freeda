@@ -14,6 +14,8 @@ EN = {
     "Angezeigtes Bild exportieren": "Export displayed image",
     "Unterordner einbeziehen": "Include subfolders",
     "Seitenverhältnis der Halbbilder": "Aspect ratio of each stereo view",
+    "Druckformat ausfüllen": "Fill paper format",
+    "Freie Bildformate werden zentriert auf weißem Papier eingepasst.": "Custom image formats are centred on white paper.",
     "Breite:Höhe, z. B. 4:3": "Width:height, e.g. 4:3",
     "Bildausschnitt im Batch": "Batch cropping",
     "Bildausschnitt beim Export prüfen": "Review crop before export",

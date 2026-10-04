@@ -6,7 +6,13 @@ from .render import crop_eye
 from .cropping import fit_linked_crop
 
 def crop_grid(image, source, options):
-    from .print_render import _bands
+    from .print_render import _bands, print_content
+    if isinstance(options, PrintRenderOptions) and (not options.fit_to_paper or options.eye_aspect is not None):
+        content, web, offset = print_content(source, options)
+        result = image.convert("RGBA")
+        bleed = mm_to_px(options.bleed_mm, options.dpi)
+        result.alpha_composite(crop_grid(content, source, web), (bleed + offset[0], bleed + offset[1]))
+        return result
     result = image.convert("RGBA")
     overlay = Image.new("RGBA",result.size)
     draw=ImageDraw.Draw(overlay)

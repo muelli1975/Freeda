@@ -27,3 +27,5 @@ Deutsch und English stehen zur Verfügung. Die zuletzt gewählte Sprache wird in
 Standard-Rahmenbreite: 4 % je Halbbild, einstellbar von 3 bis 5 %. Für die mobile Darstellung sind Parallelblick und Kreuzblick untereinander meist lesbarer als drei L–R–L-Ansichten nebeneinander.
 
 Im Ausschnittdialog lässt sich das Drittelraster ein- und ausschalten. Es erscheint nur über den Bildflächen und wird nicht exportiert.
+
+Bei Print ist das Seitenverhältnis der Halbbilder unabhängig vom Papierformat wählbar. „Druckformat ausfüllen“ verwendet das bisherige Verhalten. „Original“, Presets und freie Verhältnisse passen die fertige Grafik mittig auf weißem Papier ein. Freie Papierflächen bleiben in der Vorschau sichtbar.

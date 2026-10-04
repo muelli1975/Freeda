@@ -1,72 +1,95 @@
 # Freeda 1.0
 
-Freeda erstellt aus Full-Side-by-Side-Stereobildern (SBS) Freeview-Darstellungen für Web und Druck. Die Anleitung für die portable Windows-Ausgabe steht in [QUICKSTART.md](QUICKSTART.md).
+[Deutsch](README_DE.md)
 
-## Builds und Downloads
+Freeda is a local desktop tool for framing and exporting full side-by-side stereo images as Freeview graphics for web and print. Parallel viewing, cross-eyed viewing and combined layouts share the same controls for framing, captions and cropping.
 
-Die finalen Pakete stehen unter [GitHub Releases](https://github.com/muelli1975/Freeda/releases/tag/v1.0): Windows x64, Linux x64 sowie macOS Apple Silicon und Intel. `build_windows.ps1` erstellt eine isolierte Buildumgebung, prüft die automatischen Tests und erzeugt `release/Freeda_1.0_Windows_x64.zip` samt SHA-256-Prüfsumme. Die nativen Linux-/macOS-Pakete baut `scripts/build_unix.py` auf dem jeweiligen System. Für den separaten Windows-Oberflächentest: `.venv-build/Scripts/python.exe tests/gui_feedback_smoke.py`.
+Freeda works completely locally: no account, no cloud, no tracking and no automatic downloads during use.
 
-## Funktionen
+![Freeda 1.0](docs/screenshots/Freeda.png)
 
-- einzelne Full-SBS-Bilder, mehrere Dateien oder ganze Ordner laden
-- Ordner im Batch verarbeiten, Unterordner optional einbeziehen
-- Parallelblick, Kreuzblick, beide Ansichten gemeinsam oder L–R–L ausgeben
-- Web-Ausgabe in Originalgröße, 1280, 1600, 1920, 2048, 3840 Pixel oder frei wählbarer Breite
-- proportionaler Außenrahmen sowie gleich breite Mittel- und Querstege
-- optionale Rundung der äußeren und inneren Ecken
-- optionale Untertitel unter beiden Halbbildern
-- frei wählbare Schriftart für Untertitel
-- Farbvorgaben für Rahmen und Beschriftung sowie benutzerdefinierte Farben
-- Live-Vorschau
-- PNG-Ausgabe mit Transparenz
-- JPEG-Ausgabe mit Qualität 90 und 4:4:4 ohne Chroma-Subsampling
+## Portable Windows release
 
-## Druck
+[Download Freeda 1.0](https://github.com/muelli1975/Freeda/releases/tag/v1.0)
 
-Der Druckmodus unterstützt feste Ausgabeformate, frei eingegebene positive ganzzahlige dpi (Standard 300), einen frei einstellbaren Beschnittrand in mm und einen gekoppelten Bildausschnitt für beide Stereo-Halbbilder.
+1. Extract the complete `Freeda_1.0_Windows_x64.zip` into a writable folder.
+2. Start `Freeda.exe`.
+3. Keep the application folder together; `_internal` and the other supplied files belong to the application.
 
-Enthaltene Formatvorgaben:
+No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Copy this file to the new application folder when updating. The executable is not Authenticode-signed.
 
-- Foto 9 × 13 cm
-- Foto 10 × 15 cm
-- Foto 11 × 17 cm
-- Foto 13 × 18 cm
-- Foto 15 × 20 cm
-- Foto 20 × 30 cm
-- DIN A6
-- klassische Stereokarte 7 × 3½ Zoll
-- Stereokarte 18 × 9 cm
-- Raumbildkarte 13 × 6 cm
-- benutzerdefiniertes Format
+## macOS and Linux builds
 
-Bei Druck-Batches kann derselbe Ausschnitt für eine Serie übernommen oder für jedes Bild einzeln gesetzt werden. Im manuellen Modus pausiert der Batch bei jedem Bild, bis der Ausschnitt übernommen oder das Bild übersprungen wird.
+The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package for your processor. Settings are stored beside the app bundle.
 
-Optional können Schneidelinien beziehungsweise Schnittmarken mit ausgegeben werden.
+All four variants are built from the same tagged source. Automated tests and packaged startup checks run on every platform; GUI export checks also run on Windows and Linux. Manual desktop testing on macOS and Linux is still pending. The macOS applications are ad-hoc signed and are not Apple-notarized.
 
-## Lizenz
+## Quick start
 
-MIT License — Christoph Müller.
+1. Open one full-SBS image, several files or an image folder.
+2. Choose **Web** or **Print** and the viewing layout.
+3. Set the output width or print dimensions, frame colours and captions.
+4. If needed, choose a per-eye aspect ratio and use **Adjust crop** to position the crop.
+5. Check the preview. Use Previous/Next to inspect other images.
+6. Start the export. Single-image export processes the displayed image; batch export processes the entire selection.
 
-## Startwerte, Bildausschnitt und Navigation
+The first launch uses German. Select English in the language control; Freeda remembers the last language. Other settings start at their defaults: Web, 2048 pixels, 4% frame width, 3.5% caption size, 300 dpi and 0 mm bleed with bleed preview enabled. Presets are applied only when explicitly selected.
 
-Freeda startet mit der zuletzt gewählten Sprache, im Webmodus mit 2048 Pixeln und Standardwerten. Ohne gespeicherte Sprachwahl ist Deutsch voreingestellt. Eigene Presets werden ausschließlich auf Wunsch angewendet und bleiben portabel in `settings.json` neben der EXE. Die Sprachwahl wird ebenfalls portabel in `settings.json` gespeichert.
+## Supported inputs
 
-Web unterstützt Original, 1:1, 4:3, 3:2, 16:9, Hochformate und freie positive Seitenverhältnisse (Breite:Höhe oder Dezimalzahl). Die Breite bezeichnet weiterhin die komplette Ausgabe. Beide Stereoansichten erhalten denselben Ausschnitt. „Ausschnitt anpassen …“ funktioniert bei Web und Print; manuelle Ausschnitte gehören zum Bild und werden nicht in Presets gespeichert. Für Serien lässt sich jedes Bild einzeln prüfen oder der erste Ausschnitt relativ auf weitere Bilder übernehmen. Ein gewähltes Seitenverhältnis wird auch bei unterschiedlichen Eingabeformaten eingehalten. Mit Original und deaktivierter Exportprüfung läuft der Webexport ohne Dialog.
+Freeda opens JPEG, PNG, TIFF, BMP and WebP images containing two equal-sized views side by side: left eye on the left, right eye on the right (`L|R`). It expects full-SBS images, not horizontally compressed half-SBS images. It does not generate stereo depth or align the two views.
 
-Vorheriges/Nächstes und Bild↑/Bild↓ blättern in der Vorschau. Einzelbildexport verarbeitet nur das angezeigte Bild; Batch exportiert die komplette Auswahl. Vorschauposition und Verarbeitungsfortschritt werden getrennt angezeigt. Ein einzeln gewähltes Bild kann durch seine Nachbarbilder im gleichen Ordner navigiert werden. Eine Ordnerauswahl ist stets ein Batch, auch mit nur einem Bild.
+## Viewing layouts
 
-Lange Untertitel umbrechen innerhalb jedes Halbbilds. Bei L–R–L wird derselbe Untertitel unter allen drei Ansichten in einer Zeile wiederholt, damit beide Blickmethoden übereinstimmende Beschriftungen sehen. Lange Texte werden zunächst auf mindestens 75 % der gewählten Schriftgröße verkleinert und anschließend nötigenfalls mit … gekürzt. II/X bleiben als Blickhinweise erhalten. Web wächst dafür in der Höhe; Print behält das Druckformat und verkleinert entsprechend den Bildbereich. Schneidelinie und Schnittmarken sind unabhängig vom Rahmen mittelgrau (#808080).
+- **Parallel viewing:** `L|R`.
+- **Cross-eyed viewing:** `R|L`.
+- **Parallel viewing + cross-eyed viewing:** both pairs in two rows.
+- **L–R–L:** three views in one row; the left pair supports parallel viewing and the right pair supports cross-eyed viewing.
 
-Angepasste Ausschnitte bleiben standardmäßig nur pro Bild und getrennt für Web/Print im Arbeitsspeicher. „Bildausschnitte merken“ ist beim Start aus. Aktiviert die Checkbox, um vorhandene Ausschnitte zu laden und bestätigte Änderungen automatisch in `freeda-crops.json` im jeweiligen Bilderordner zu speichern. Die Datei verwendet Dateinamen und relative Ausschnittkoordinaten; beim Verschieben des ganzen Bilderordners kommen die Ausschnitte mit. Auch das Seitenverhältnis wird als Zusatzinformation gespeichert. Presets enthalten keine individuellen Bildausschnitte. Ausschalten belässt aktuelle Ausschnitte im Arbeitsspeicher und die Datei auf der Festplatte. Zurücksetzen entfernt nur den Ausschnitt des aktuellen Bilds im aktuellen Modus aus der Datei. Originalbilder werden nicht geändert.
+The II/X viewing symbols occupy a frame-width strip. In L–R–L they sit above the gaps between views. Captions appear below the images; their area can grow independently of the symbol strip. Long L–R–L captions shrink to 75% of the selected size if necessary, then end with an ellipsis. The lowest caption area uses one frame width less padding.
 
-Standard-Rahmenbreite: 4 % je Halbbild, einstellbar von 3 bis 5 %. Für die mobile Darstellung sind Parallelblick und Kreuzblick untereinander meist lesbarer als drei L–R–L-Ansichten nebeneinander.
+## Web and print
 
-Der Beschnittrand startet mit 0 mm. „Beschnittrand in Vorschau zeigen“ ist standardmäßig eingeschaltet, damit jeder eingegebene Rand sofort sichtbar wird.
+Web widths describe the complete finished graphic, including the frame. Use a preset, a custom width or the original width. Per-eye aspect ratios can remain original or use a preset or a custom ratio.
 
-## Plattformen
+Print separates paper dimensions from the aspect ratio of each eye image. **Fill paper format** keeps the previous edge-to-edge layout; **Original**, aspect presets and custom ratios fit the complete Freeview graphic centrally on white paper without stretching. Changing paper size or dpi preserves the selected image ratio.
 
-Linux x64 wird auf Ubuntu 22.04 gebaut und benötigt glibc 2.35 oder neuer sowie eine grafische Desktop-Sitzung. macOS wird getrennt für Apple Silicon und Intel gebaut. Einstellungen liegen auf macOS neben `Freeda.app`; auf Windows/Linux neben dem ausführbaren Programm. Den vollständigen Programmordner an einen beschreibbaren Ort verschieben. Die Programme sind nicht mit einem Entwicklerzertifikat signiert beziehungsweise Apple-notarisiert.
+Print offers preset and custom dimensions, freely entered positive integer dpi and a freely entered decimal **Bleed margin in mm**. Bleed starts at 0 mm; its preview is enabled so an added margin is immediately visible. Optional cutting lines and crop marks are grey. The preview fits the available space; its display scale is independent of export dpi.
 
-Der GitHub-Releaseablauf prüft und veröffentlicht zunächst Windows. Linux und macOS werden anschließend nativ gebaut, geprüft und dem gleichen Release hinzugefügt. Automatisierte GUI-Exportprüfungen laufen auf Windows und Linux; macOS erhält Unit-Tests und einen Starttest des fertigen App-Binaries. Ein manueller Desktop-Test auf Linux/macOS ist noch nicht erfolgt.
+Frame width is adjustable from 3 to 5%, with 4% as the default. Caption font and size are adjustable, with 3.5% as the default. Both percentages refer to the width of one eye image and work the same way in Web and Print.
 
-Die Prozentwerte beziehen sich in 1.0 weiter auf die Halbbildbreite. Die vorgeschlagene gemeinsame Bezugsgröße aus Breite und Höhe bleibt eine spätere Änderung.
+## Image crops
+
+**Adjust crop** applies the same relative crop to both stereo views. **Reset** restores zoom and position. A toggleable rule-of-thirds grid appears separately over each view and is never exported. Batch cropping can inspect every image or reuse the same relative crop.
+
+Crops normally remain in memory for the current session. Enable **Remember image crops** to load and save confirmed crop changes in `freeda-crops.json` in each image folder. Entries use filenames and relative coordinates, separately for Web and Print. Move the folder together with this file to retain its crops.
+
+The checkbox is off at startup. Turning it off leaves saved files intact. Resetting a crop removes only the entry for that image and mode. Original images remain unchanged.
+
+## Batch processing and navigation
+
+Opening a single image also makes the other supported images in its folder available for preview navigation. Previous/Next and Page Up/Page Down move through them without wrapping at the ends. Single-image export still processes only the displayed image.
+
+Selecting several files or a folder creates a batch. Navigation changes the preview; batch export processes the entire selection. Subfolders are included only when the corresponding checkbox is enabled.
+
+## Output and folders
+
+By default, Freeda writes to `output/web` or `output/print` beside the input. A custom output folder can be selected. Folder batches retain their relative folder structure.
+
+Files use names such as `image_freeda_web.jpg` or `image_freeda_print.png`. Existing output images at the same destination are overwritten on export. Original input images remain unchanged. Exports are JPEG or PNG; Freeda renders the images in 8-bit RGB.
+
+## Settings and language
+
+German and English are available. Language and named presets are stored locally in `settings.json` beside the application, keeping the complete program portable. Saved presets contain export and appearance settings; image paths, output paths, image-specific caption text and individual crops are not part of a preset.
+
+The last language is restored at startup. Other controls use the standard values until a preset is selected. Individual crop files stay in the respective image folders rather than in the application settings.
+
+## Source code and long-term use
+
+The [GitHub repository](https://github.com/muelli1975/Freeda) contains the source and build scripts. Development requires Python 3.12 and the dependencies in `requirements-lock.txt`. `build_windows.ps1` packages Windows; `scripts/build_unix.py` packages Linux and macOS on their respective systems. The release workflow runs tests before publishing the platform packages.
+
+Freeda is intended to remain usable independently of accounts or online services. Active maintenance, support, issue handling or pull-request review cannot be guaranteed.
+
+## License
+
+Freeda is licensed under the [MIT License](LICENSE), copyright Christoph Müller. Third-party components retain their own licences. The packages include [third-party notices](THIRD_PARTY_NOTICES.md) and licence copies in `licenses`.
