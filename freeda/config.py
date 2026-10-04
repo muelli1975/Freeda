@@ -13,6 +13,16 @@ DEFAULT_ACCENT_COLOR = "#c6a95e"
 DEFAULT_JPEG_QUALITY = 90
 DEFAULT_FONT_FAMILY = "Segoe UI"
 
+COLOR_PRESETS = {
+    "Nachtgold": ("#111111", "#c6a95e"),
+    "Schwarzweiß": ("#000000", "#f2f2f2"),
+    "Elfenbein": ("#eee9df", "#2a2520"),
+    "Bordeaux": ("#2b161a", "#e0c38c"),
+    "Petrol": ("#102629", "#d8c58d"),
+    "Benutzerdefiniert": None,
+}
+DEFAULT_COLOR_PRESET = "Nachtgold"
+
 
 # Nominal print sizes in millimetres. Labels follow common German photo-lab
 # naming (short side x long side), while values are stored landscape (width, height).
