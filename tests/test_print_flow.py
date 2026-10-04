@@ -22,10 +22,12 @@ class PrintBatchFlowTests(unittest.TestCase):
         session.accept(Crop())
         self.assertTrue(session.finished)
 
-    def test_reuse_mode_remembers_crop(self):
+    def test_reuse_mode_pauses_only_first_item(self):
         session = PrintBatchSession(self.items(), CropBatchMode.REUSE)
+        self.assertTrue(session.needs_manual_crop)
         crop = Crop(0.1, 0.2, 0.7, 0.6)
         session.accept(crop)
+        self.assertFalse(session.needs_manual_crop)
         self.assertEqual(session.suggested_crop(), crop)
 
 
