@@ -10,6 +10,7 @@ a = Analysis(
     binaries=[],
     datas=collect_data_files("customtkinter") + [
         (str(root / "assets" / "ready.wav"), "assets"),
+        (str(root / "assets" / "Freeda.ico"), "assets"),
     ],
     hiddenimports=["PIL._tkinter_finder"],
     hookspath=[],
