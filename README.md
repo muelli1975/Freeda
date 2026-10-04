@@ -1,55 +1,42 @@
 # Freeda
 
-Freeda creates free-view stereoscopic layouts from Full Side-by-Side images for web and print.
+Freeda creates free-view stereoscopic layouts from Full Side-by-Side (SBS) images for web and print.
 
-> Development status: early 1.0 development.
+## Functions
 
-## Current development build
-
-The first working foundation already includes:
-
-- Full-SBS input (left/right)
-- single files, multiple files and recursive folder batches
-- parallel view, cross view, or both
-- exact web row widths: Original, 1280, 1600, 1920, 2048, 3840, custom
-- proportional frame width, defined relative to one half image
-- matching outer frame, centre divider and horizontal divider
-- default frame color `#111111`
-- `II` / `X` and captions in light gold `#c6a95e`
-- stereo-safe duplicated captions
-- selectable Windows font for captions
-- optional inner and outer corner rounding
-- PNG with transparency
-- JPEG quality 90 with 4:4:4 chroma (no subsampling)
+- load individual Full-SBS images, multiple files or complete folders
+- batch-process folders recursively
+- create parallel-view, cross-view or combined parallel/cross layouts
+- web output at Original, 1280, 1600, 1920, 2048, 3840 px or a custom width
+- proportional outer frame and dividers
+- optional rounded inner and outer corners
+- optional captions beneath both stereo half-images
+- selectable caption font
 - live preview
-- batch export
-- shared Stereo-Tools completion sound
+- PNG output with transparency
+- JPEG output at quality 90 with 4:4:4 chroma
 
-## Print design
+## Print
 
-The print path is being built around physical size, DPI and bleed. Presets include
-DIN A6, common German photo-lab sizes (9 × 13, 10 × 15, 11 × 17, 13 × 18,
-15 × 20 and 20 × 30 cm), historical stereo-card sizes (7 × 3½ in, 18 × 9 cm,
-13 × 6 cm) and a custom size, at 300 or 600 dpi.
+Freeda's print mode supports physical output sizes, 300 or 600 dpi, bleed and linked cropping of both stereo half-images.
 
-Manual print cropping is explicitly batch-aware:
+Available print presets include:
 
-- **Manual crop per image**: the batch pauses on every image until the crop is
-  accepted, skipped or the batch is cancelled.
-- **Reuse crop**: one relative crop can be reused for a similarly composed
-  series.
+- 9 × 13 cm
+- 10 × 15 cm
+- 11 × 17 cm
+- 13 × 18 cm
+- 15 × 20 cm
+- 20 × 30 cm
+- DIN A6
+- classic stereocard 7 × 3½ in
+- stereocard 18 × 9 cm
+- Raumbild card 13 × 6 cm
+- custom size
 
-The crop is always applied identically to both stereo half images.
+For print batches, the crop can either be reused for a series or set manually for every image. In manual mode the batch pauses for each image until the crop is accepted or the image is skipped.
 
-## Development
-
-Runtime dependencies are pinned in `requirements-lock.txt`. A Windows
-PyInstaller build is defined by `Freeda.spec` and `build_windows.ps1`.
-
-Automated tests run on Windows/Python 3.12 through GitHub Actions.
-
-The application follows the shared StereoFine / SplatTricia dark-and-gold
-design standard documented in `DESIGN_STANDARD_STEREOTOOLS.txt`.
+Optional cutting guides can be added to the print output.
 
 ## License
 
