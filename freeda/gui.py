@@ -111,7 +111,8 @@ class FreedaApp(ctk.CTk):
         self._label(self.sidebar, "Eingabe", section=True).grid(row=row, column=0, sticky="ew", padx=20); row += 1
         input_buttons = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         input_buttons.grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 6)); row += 1
-        input_buttons.grid_columnconfigure(0, weight=1)\n        input_buttons.grid_columnconfigure(1, weight=1)
+        input_buttons.grid_columnconfigure(0, weight=1)
+        input_buttons.grid_columnconfigure(1, weight=1)
         self._button(input_buttons, "Dateien …", self.choose_files).grid(row=0, column=0, sticky="ew", padx=(0,4))
         self._button(input_buttons, "Ordner …", self.choose_folder).grid(row=0, column=1, sticky="ew", padx=(4,0))
         self.input_status = self._label(self.sidebar, "Keine Bilder gewählt")
@@ -160,7 +161,8 @@ class FreedaApp(ctk.CTk):
 
         radius_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         radius_frame.grid(row=row, column=0, sticky="ew", padx=20, pady=(0,10)); row += 1
-        radius_frame.grid_columnconfigure(0, weight=1)\n        radius_frame.grid_columnconfigure(1, weight=1)
+        radius_frame.grid_columnconfigure(0, weight=1)
+        radius_frame.grid_columnconfigure(1, weight=1)
         self.outer_radius_var = tk.StringVar(value="0")
         self.inner_radius_var = tk.StringVar(value="0")
         for col, label, var in ((0,"Außenradius %",self.outer_radius_var),(1,"Innenradius %",self.inner_radius_var)):
@@ -309,7 +311,8 @@ class FreedaApp(ctk.CTk):
             self.preview_photo = ImageTk.PhotoImage(rendered)
             self.preview_label.configure(image=self.preview_photo, text="")
         except Exception as exc:
-            self.preview_label.configure(image="", text=f"Vorschaufehler:\n{exc}")
+            self.preview_label.configure(image="", text=f"Vorschaufehler:
+{exc}")
 
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
