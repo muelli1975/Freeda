@@ -33,5 +33,5 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon=str(icon) if icon.is_file() else None,
+    icon=None,
 )
