@@ -104,6 +104,7 @@ _PRESET_VARIABLES = (
     "color_preset_var", "frame_color_var", "accent_color_var", "font_var",
     "caption_size_var", "format_var", "aspect_var", "custom_aspect_var",
     "web_crop_mode_var", "web_review_var",
+    "show_symbols_var",
 )
 
 
@@ -733,7 +734,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             if isinstance(variable, tk.DoubleVar):
                 if not isinstance(value, (float, int)) or not math.isfinite(value):
                     continue
-                if key == "frame_var" and not 3 <= value <= 5:
+                if key == "frame_var" and not 0 <= value <= 5:
                     continue
                 if key == "caption_size_var" and not 1 <= value <= 8:
                     continue
@@ -1007,9 +1008,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.frame_var = tk.DoubleVar(value=4.0)
         ctk.CTkSlider(
             self.sidebar,
-            from_=3.0,
+            from_=0.0,
             to=5.0,
-            number_of_steps=40,
+            number_of_steps=100,
             variable=self.frame_var,
             command=self._frame_changed,
             progress_color=SLIDER_PROGRESS,
@@ -1017,6 +1018,11 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             button_hover_color=SLIDER_BUTTON_HOVER,
             fg_color=SLIDER_TRACK,
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(2, 10))
+        row += 1
+
+        self.show_symbols_var = tk.BooleanVar(value=True)
+        self.show_symbols_checkbox = self._checkbox(self.sidebar, "Blicksymbole anzeigen", self.show_symbols_var, self.schedule_preview)
+        self.show_symbols_checkbox.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 10))
         row += 1
 
         radius_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -1171,6 +1177,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
     def _frame_changed(self, value: float) -> None:
         self._set_text(self.frame_label, f"Breite: {value:.2f} % je Halbbild".replace(".", ","))
+        self.show_symbols_checkbox.configure(state="disabled" if float(value) == 0 else "normal")
         self.schedule_preview()
 
     def _refresh_preview_note(self):
@@ -1410,6 +1417,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             target_width=target_width,
             eye_aspect=self._web_aspect(),
             crop=self._current_crop("Web"),
+            show_symbols=self.show_symbols_var.get(),
             frame_percent=float(self.frame_var.get()),
             frame_color=self._hex_color(self.frame_color_var.get(), DEFAULT_FRAME_COLOR),
             accent_color=self._hex_color(self.accent_color_var.get(), DEFAULT_ACCENT_COLOR),
@@ -1445,6 +1453,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             output_format=self._output_format(),
             cutting_guide=_CUTTING_GUIDES[self.cutting_var.get()],
             crop=self._current_crop("Print"),
+            show_symbols=self.show_symbols_var.get(),
         )
 
     def schedule_preview(self) -> None:

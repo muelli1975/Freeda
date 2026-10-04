@@ -54,7 +54,9 @@ Web widths describe the complete finished graphic, including the frame. Use a pr
 
 Print offers preset and custom dimensions, freely entered positive integer dpi and a freely entered decimal **Bleed margin in mm**. Bleed starts at 0 mm; its preview is enabled so an added margin is immediately visible. The print format is filled completely; each eye image’s aspect ratio follows from paper size, layout, frame and captions. The crop dialog positions the image crop. Bleed uses the frame colour. Optional cutting lines and crop marks are grey. The preview fits the available space; its display scale is independent of export dpi.
 
-Frame width is adjustable from 3 to 5%, with 4% as the default. Caption font and size are adjustable, with 3.5% as the default. The caption font selection applies only to captions; II/X symbols retain the standard font. Both percentages refer to the width of one eye image and work the same way in Web and Print.
+Frame width is adjustable from 0 to 5%, with 4% as the default. Caption font and size are adjustable, with 3.5% as the default. The caption font selection applies only to captions; II/X symbols retain the standard font. Both percentages refer to the width of one eye image and work the same way in Web and Print.
+
+For plain stereo cards, select Print, parallel or cross-eyed viewing, a 0% frame and an empty caption. The two views then meet directly without an outer frame or centre bar and fill the print format. **Show viewing symbols** independently toggles II/X; at 0% they are automatically omitted. Symbols remain enabled by default. Frame width and symbol visibility are saved in presets.
 
 ## Image crops
 

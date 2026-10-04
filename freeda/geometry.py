@@ -21,6 +21,8 @@ def frame_geometry_for_total_width(total_width: int, frame_percent: float, eye_c
         raise ValueError("Unsupported eye count")
     bars = eye_count + 1
     fraction = max(0.0, float(frame_percent)) / 100.0
+    if fraction == 0:
+        return RowGeometry(total_width, total_width // eye_count, 0)
 
     ideal = total_width * fraction / (eye_count + bars * fraction) if fraction else 0.0
     centre = max(0, int(round(ideal)))

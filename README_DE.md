@@ -54,7 +54,9 @@ Webbreiten beziehen sich auf die gesamte fertige Grafik einschließlich Rahmen. 
 
 Print bietet vorgegebene und eigene Druckformate, frei eingegebene positive ganzzahlige dpi und einen frei einstellbaren **Beschnittrand in mm** mit Nachkommastellen. Der Beschnittrand startet bei 0 mm; seine Vorschau ist eingeschaltet, damit ein hinzugefügter Rand sofort sichtbar wird. Das Druckformat wird vollständig ausgefüllt; das Seitenverhältnis der Halbbilder ergibt sich aus Papierformat, Ansicht, Rahmen und Untertiteln. Der Ausschnittdialog legt den passenden Bildausschnitt fest. Der Beschnittrand hat dieselbe Farbe wie der Rahmen. Optionale Schneidelinien und Schnittmarken sind grau. Die Vorschau passt sich dem verfügbaren Platz an; ihre Anzeigeskalierung ist unabhängig von den Export-dpi.
 
-Die Rahmenbreite ist von 3 bis 5 % einstellbar, mit 4 % als Standard. Untertitelschrift und Untertitelgröße lassen sich anpassen; die Standardgröße beträgt 3,5 %. Die Schriftwahl betrifft ausschließlich Untertitel; die II/X-Symbole behalten ihre Standardschrift. Beide Prozentwerte beziehen sich auf die Breite eines Halbbilds und werden in Web und Print gleich berechnet.
+Die Rahmenbreite ist von 0 bis 5 % einstellbar, mit 4 % als Standard. Untertitelschrift und Untertitelgröße lassen sich anpassen; die Standardgröße beträgt 3,5 %. Die Schriftwahl betrifft ausschließlich Untertitel; die II/X-Symbole behalten ihre Standardschrift. Beide Prozentwerte beziehen sich auf die Breite eines Halbbilds und werden in Web und Print gleich berechnet.
+
+Für schlichte Stereokarten bei Print Parallelblick oder Kreuzblick, 0 % Rahmenbreite und einen leeren Untertitel wählen. Die Halbbilder liegen dann ohne Außenrahmen und Zwischensteg direkt nebeneinander und füllen das Druckformat aus. **Blicksymbole anzeigen** schaltet II/X unabhängig vom Rahmen ein oder aus; bei 0 % entfallen sie automatisch. Standardmäßig bleibt die Option eingeschaltet. Rahmenbreite und Symbolwahl gehören zu den Presets.
 
 ## Bildausschnitte
 

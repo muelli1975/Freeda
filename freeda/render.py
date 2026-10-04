@@ -155,6 +155,7 @@ def _row(
     caption_size_percent: float,
     inner_radius_percent: float,
     eye_count: int = 2,
+    show_symbols: bool = True,
 ) -> Image.Image:
     geom = frame_geometry_for_total_width(total_width, frame_percent, eye_count)
     eye_w = geom.eye_width
@@ -162,8 +163,6 @@ def _row(
 
     aspect = left.height / left.width
     eye_h = max(1, int(round(eye_w * aspect)))
-    left = left.resize((eye_w, eye_h), Image.Resampling.LANCZOS)
-    right = right.resize((eye_w, eye_h), Image.Resampling.LANCZOS)
 
     caption_font = _font(font_family, max(9, round(eye_w * caption_size_percent / 100)))
     if eye_count == 3:
@@ -182,9 +181,13 @@ def _row(
 
     radius = max(0, round(eye_w * max(0.0, inner_radius_percent) / 100.0))
     eyes = (left, right, left) if eye_count == 3 else (left, right)
-    for x, eye in zip(positions, eyes):
+    for index, (x, eye) in enumerate(zip(positions, eyes)):
+        # Fill integer rounding remainder without introducing an outer strip.
+        width = total_width - x if frame == 0 and index == eye_count - 1 else eye_w
+        eye = eye.resize((width, eye_h), Image.Resampling.LANCZOS)
         row.alpha_composite(_rounded_eye(eye, radius), (x, image_y))
-    _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color)
+    if show_symbols and frame > 0:
+        _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color)
 
     if caption:
         caption_y = image_y + eye_h + caption_gap
@@ -224,6 +227,7 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             caption_size_percent=options.caption_size_percent,
             inner_radius_percent=options.inner_radius_percent,
             eye_count=3 if options.layout == LayoutMode.LRL else 2,
+            show_symbols=options.show_symbols,
         ))
     if options.layout in (LayoutMode.BOTH, LayoutMode.CROSS):
         rows.append(_row(
@@ -237,6 +241,7 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             font_family=options.font_family,
             caption_size_percent=options.caption_size_percent,
             inner_radius_percent=options.inner_radius_percent,
+            show_symbols=options.show_symbols,
         ))
 
     if options.caption and rows:

@@ -117,12 +117,8 @@ def _fixed_row(
         raise ValueError("Das gewählte Druckformat ist für Rahmen und Beschriftung zu niedrig.")
 
     target_aspect = eye_w / eye_h
-    left = _fit_crop_to_aspect(left, options.crop, target_aspect).resize(
-        (eye_w, eye_h), Image.Resampling.LANCZOS
-    )
-    right = _fit_crop_to_aspect(right, options.crop, target_aspect).resize(
-        (eye_w, eye_h), Image.Resampling.LANCZOS
-    )
+    left = _fit_crop_to_aspect(left, options.crop, target_aspect)
+    right = _fit_crop_to_aspect(right, options.crop, target_aspect)
 
     row = Image.new("RGBA", (width, height), options.frame_color)
     draw = ImageDraw.Draw(row)
@@ -130,9 +126,12 @@ def _fixed_row(
     image_y = frame + symbol_band
     radius = max(0, round(eye_w * max(0.0, options.inner_radius_percent) / 100.0))
     eyes = (left, right, left) if eye_count == 3 else (left, right)
-    for x, eye in zip(positions, eyes):
+    for index, (x, eye) in enumerate(zip(positions, eyes)):
+        target_width = width - x if frame == 0 and index == eye_count - 1 else eye_w
+        eye = eye.resize((target_width, eye_h), Image.Resampling.LANCZOS)
         row.alpha_composite(_rounded_eye(eye, radius), (x, image_y))
-    _draw_symbols(draw, positions, eye_w, frame, symbol, options.accent_color)
+    if options.show_symbols and frame > 0:
+        _draw_symbols(draw, positions, eye_w, frame, symbol, options.accent_color)
     if options.caption:
         caption = options.caption
         if eye_count == 3:

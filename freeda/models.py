@@ -53,6 +53,7 @@ class WebRenderOptions:
     caption_size_percent: float = 3.5
     output_format: OutputFormat = OutputFormat.JPEG
     crop: Crop = Crop()
+    show_symbols: bool = True
 
 
 @dataclass(frozen=True)
@@ -73,6 +74,7 @@ class PrintRenderOptions:
     inner_radius_percent: float = 0.0
     output_format: OutputFormat = OutputFormat.JPEG
     cutting_guide: CuttingGuide = CuttingGuide.NONE
+    show_symbols: bool = True
 
 
 @dataclass(frozen=True)

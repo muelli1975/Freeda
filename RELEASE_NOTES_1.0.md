@@ -6,8 +6,9 @@ Freeda converts full side-by-side stereo images into Freeview graphics for web a
 - Exact web output width, default 2048 pixels; linked crop editing and custom per-eye aspect ratios.
 - Print fills the selected paper format; image crops remain adjustable and bleed uses the frame colour.
 - Print sizes, freely entered dpi (default 300), bleed margin (default 0 mm) with visible bleed preview, grey cutting guides.
-- Proportional frames (default 4% of eye width, range 3–5%), colors, rounded corners and adjustable captions (default 3.5%). L–R–L captions shorten with an ellipsis when necessary.
+- Proportional frames (default 4% of eye width, range 0–5%), colors, rounded corners and adjustable captions (default 3.5%). L–R–L captions shorten with an ellipsis when necessary.
 - Caption font can be chosen independently of the standard II/X viewing symbols.
+- Plain stereo cards with 0% frame; viewing symbols can be independently hidden. Defaults remain 4% with symbols enabled, and both settings are included in presets.
 - Rule-of-thirds grid in the crop dialog, for each eye; never exported.
 - Fixed sidebar width with wrapped long filenames.
 - Single-image and batch export with preview navigation, optional subfolders and stable output filenames that overwrite earlier exports.

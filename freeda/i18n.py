@@ -22,6 +22,7 @@ EN = {
     "Seitenverhältnis: Bitte positive Werte eingeben, z. B. 4:3.": "Aspect ratio: enter positive values, e.g. 4:3.",
     "◀ Vorheriges": "◀ Previous", "Nächstes ▶": "Next ▶",
     "Untertitelschrift": "Caption font",
+    "Blicksymbole anzeigen": "Show viewing symbols",
     "Schriftart": "Font", "Bild": "Image",
     "Freeview Stereo für Web und Print": "Freeview stereo for web and print",
     "Sprache / Language": "Sprache / Language",

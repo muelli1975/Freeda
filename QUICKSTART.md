@@ -24,10 +24,12 @@ Im Ausschnittdialog setzt „Zurücksetzen“ Zoom und Position auf den Ausgangs
 
 Deutsch und English stehen zur Verfügung. Die zuletzt gewählte Sprache wird in `settings.json` neben der EXE gespeichert und beim nächsten Start wieder verwendet.
 
-Standard-Rahmenbreite: 4 % je Halbbild, einstellbar von 3 bis 5 %. Für die mobile Darstellung sind Parallelblick und Kreuzblick untereinander meist lesbarer als drei L–R–L-Ansichten nebeneinander.
+Standard-Rahmenbreite: 4 % je Halbbild, einstellbar von 0 bis 5 %. Für die mobile Darstellung sind Parallelblick und Kreuzblick untereinander meist lesbarer als drei L–R–L-Ansichten nebeneinander.
 
 Im Ausschnittdialog lässt sich das Drittelraster ein- und ausschalten. Es erscheint nur über den Bildflächen und wird nicht exportiert.
 
 Bei Print wird das Druckformat vollständig ausgefüllt. Die Halbbildformate ergeben sich aus Druckformat, Ansicht, Rahmen und Beschriftung. Den Bildausschnitt im Ausschnittdialog wählen. Der Beschnittrand hat dieselbe Farbe wie der Rahmen. Freie Halbbildverhältnisse stehen weiterhin bei Web zur Verfügung.
 
 „Untertitelschrift“ ändert nur die Untertitel. Die II/X-Symbole behalten unabhängig davon ihre Standardschrift. Die gewählte Untertitelschrift gehört zu den gespeicherten Presets.
+
+Schlichte Stereokarte: Print → Parallelblick oder Kreuzblick → Rahmenbreite 0 % → Untertitel leer. „Blicksymbole anzeigen“ kann II/X auch bei vorhandenem Rahmen ausschalten. Bei 0 % werden sie automatisch weggelassen. Beide Einstellungen werden in Presets gespeichert; der Standard bleibt 4 % mit Blicksymbolen.
