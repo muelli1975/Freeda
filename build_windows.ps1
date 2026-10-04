@@ -22,8 +22,13 @@ $Python = Join-Path $Venv "Scripts\python.exe"
 & $Python -m pip install --upgrade pip
 & $Python -m pip install -r requirements-build.txt
 & $Python -m unittest discover -s tests -p "test_*.py"
+if ($LASTEXITCODE -ne 0) { throw "Unit tests failed." }
+
 & $Python -m compileall -q Freeda.py freeda tests
+if ($LASTEXITCODE -ne 0) { throw "Python compilation failed." }
+
 & $Python -m PyInstaller --noconfirm --clean Freeda.spec
+if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed." }
 
 $Exe = Join-Path $Dist "Freeda.exe"
 if (-not (Test-Path $Exe)) {
