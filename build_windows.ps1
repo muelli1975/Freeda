@@ -22,6 +22,8 @@ $Zip = Join-Path $Release "$PackageName.zip"
 
 & $Python -m pip install -r requirements-build.txt
 if ($LASTEXITCODE -ne 0) { throw "Build dependency installation failed." }
+& $Python scripts/prepare_exiftool.py
+if ($LASTEXITCODE -ne 0) { throw "ExifTool preparation failed." }
 & $Python -m unittest discover -s tests -p "test_*.py"
 if ($LASTEXITCODE -ne 0) { throw "Unit tests failed." }
 
@@ -33,6 +35,7 @@ if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed." }
 
 $Program = Join-Path $Dist "Freeda"
 $Exe = Join-Path $Program "Freeda.exe"
+Copy-Item -Recurse -Force (Join-Path $Root "tools") $Program
 if (-not (Test-Path $Exe)) {
     throw "PyInstaller did not create Freeda.exe"
 }
@@ -40,6 +43,7 @@ if (-not (Test-Path $Exe)) {
 New-Item -ItemType Directory -Force $Package | Out-Null
 Copy-Item -Force $Exe (Join-Path $Package "Freeda.exe")
 Copy-Item -Recurse -Force (Join-Path $Program "_internal") $Package
+Copy-Item -Recurse -Force (Join-Path $Program "tools") $Package
 Copy-Item -Force (Join-Path $Root "README.md") (Join-Path $Package "README.md")
 Copy-Item -Force (Join-Path $Root "README_EN.md") (Join-Path $Package "README_EN.md")
 Copy-Item -Force (Join-Path $Root "README_DE.md") (Join-Path $Package "README_DE.md")

@@ -225,3 +225,7 @@ __marimo__/
 # Portable user presets
 /settings.json
 /settings.tmp
+
+# Official ExifTool distributions are downloaded and verified for each build.
+/tools/*
+!/tools/README.md

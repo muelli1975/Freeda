@@ -50,6 +50,7 @@ def render_web_batch(
     progress=None,
     targets: list[Path] | None = None,
     crops: dict[Path, object] | None = None,
+    metadata_warnings: list[str] | None = None,
 ) -> list[Path]:
     written: list[Path] = []
     item_list = list(items)
@@ -64,7 +65,10 @@ def render_web_batch(
         with Image.open(item.source) as source:
             source.load()
             rendered = render_web(source.convert("RGB"), current)
-        save_render(rendered, target, current.output_format, background_color=current.frame_color)
+        metadata = save_render(rendered, target, current.output_format,
+            background_color=current.frame_color, metadata_source=item.source)
+        if not metadata.success and metadata_warnings is not None:
+            metadata_warnings.append(f"{item.source.name}: {metadata.message}")
         written.append(target)
         if progress:
             progress(index, len(item_list), item)

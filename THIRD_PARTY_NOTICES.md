@@ -10,3 +10,5 @@ Freeda is distributed under the MIT license (LICENSE). Bundled Python runtime an
 - Tcl/Tk: BSD-style licenses supplied with the bundled runtime.
 
 Copies of the package notices available at build time are in `licenses/`. Fonts selected from the operating system are used for rendering, not redistributed by Freeda.
+
+- ExifTool 13.59: copyright Phil Harvey; distributed under the same terms as Perl (Artistic License or GNU GPL). Its official platform distribution is kept separately in `tools/` with all original support files and notices. Windows includes the original launcher and bundled Perl runtime, including their licence files. On macOS, `tools/` is inside `Freeda.app/Contents/MacOS`.

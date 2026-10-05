@@ -279,7 +279,8 @@ def save_render(
     *,
     dpi: int | None = None,
     background_color: str = "#111111",
-) -> None:
+    metadata_source: Path | None = None,
+):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     kwargs = {}
@@ -302,3 +303,7 @@ def save_render(
             optimize=True,
             **kwargs,
         )
+    if metadata_source is not None:
+        from .metadata import copy_metadata
+        suffix = ".png" if output_format == OutputFormat.PNG else ".jpg"
+        return copy_metadata(metadata_source, path.with_suffix(suffix), image.size, dpi=dpi)

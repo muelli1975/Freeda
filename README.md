@@ -14,13 +14,13 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 
 1. Extract the complete `Freeda_1.0_Windows_x64.zip` into a writable folder.
 2. Start `Freeda.exe`.
-3. Keep the application folder together; `_internal` and the other supplied files belong to the application.
+3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
 
 No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Copy this file to the new application folder when updating. The executable is not Authenticode-signed.
 
 ## macOS and Linux builds
 
-The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package for your processor. Settings are stored beside the app bundle.
+The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package for your processor. Settings are stored beside the app bundle. ExifTool is included in `tools` beside the Linux executable and in `Freeda.app/Contents/MacOS/tools` on macOS, matching StereoFine. Linux and macOS need a working Perl interpreter for metadata transfer; the Windows package includes its own runtime.
 
 All four variants are built from the same tagged source. Automated tests and packaged startup checks run on every platform; GUI export checks also run on Windows and Linux. Manual desktop testing on macOS and Linux is still pending. The macOS applications are ad-hoc signed and are not Apple-notarized.
 
@@ -78,6 +78,14 @@ By default, Freeda writes to `output/web` or `output/print` beside the input. A 
 
 Files use names such as `image_freeda_web.jpg` or `image_freeda_print.png`. Existing output images at the same destination are overwritten on export. Original input images remain unchanged. Exports are JPEG or PNG; Freeda renders the images in 8-bit RGB.
 
+## Metadata
+
+Where possible, Freeda copies metadata from the source image to each finished JPEG or PNG with the bundled ExifTool, following StereoFine and SplatTricia. Capture date, camera, exposure, original focal length, copyright and GPS information are retained where the output format supports them. Embedded previews, thumbnails, Orientation and MPF/MPO container data are excluded.
+
+Output dimensions describe the newly rendered image, including any bleed. Source resolution values are excluded; Print retains the chosen export dpi. Metadata copying never changes source files and creates no `_original` backup files. If metadata transfer fails, the exported image remains valid and Freeda shows a nonfatal warning in the selected language.
+
+ExifTool 13.59 is supplied separately under `tools` with its original support files and licence notices. It runs only during export, without a console window on Windows. No download occurs during application use.
+
 ## Settings and language
 
 German and English are available. Language and named presets are stored locally in `settings.json` beside the application, keeping the complete program portable. Saved presets contain export and appearance settings; image paths, output paths, image-specific caption text and individual crops are not part of a preset.
@@ -86,7 +94,7 @@ The last language is restored at startup. Other controls use the standard values
 
 ## Source code and long-term use
 
-The [GitHub repository](https://github.com/muelli1975/Freeda) contains the source and build scripts. Development requires Python 3.12 and the dependencies in `requirements-lock.txt`. `build_windows.ps1` packages Windows; `scripts/build_unix.py` packages Linux and macOS on their respective systems. The release workflow runs tests before publishing the platform packages.
+The [GitHub repository](https://github.com/muelli1975/Freeda) contains the source and build scripts. Development requires Python 3.12 and the dependencies in `requirements-lock.txt`. `build_windows.ps1` prepares the verified ExifTool distribution and packages Windows; For Linux and macOS, run `python scripts/prepare_exiftool.py` followed by `scripts/build_unix.py` on the respective system. Build downloads use the publisher’s pinned archive checksums. The release workflow runs tests before publishing the platform packages.
 
 Freeda is intended to remain usable independently of accounts or online services. Active maintenance, support, issue handling or pull-request review cannot be guaranteed.
 

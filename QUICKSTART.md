@@ -1,6 +1,6 @@
 # Freeda 1.0 – Kurzstart
 
-1. ZIP vollständig in einen frei beschreibbaren Ordner entpacken. `Freeda.exe` und `_internal` zusammen lassen.
+1. ZIP vollständig in einen frei beschreibbaren Ordner entpacken. `Freeda.exe`, `_internal` und `tools` zusammen lassen.
 2. `Freeda.exe` starten. Freeda beginnt mit der zuletzt gewählten Sprache, im Webmodus, mit 2048 Pixeln und den Standardwerten. Beim ersten Start ist Deutsch voreingestellt.
 3. Ein Full-SBS-Bild (`L|R`), mehrere Dateien oder einen Bilderordner wählen. Unterordner sind optional.
 4. Mit Vorheriges/Nächstes oder Bild↑/Bild↓ die Vorschau wechseln. Ein Einzelbildexport verarbeitet das angezeigte Bild; ein Batch die gesamte Auswahl.
@@ -33,3 +33,7 @@ Bei Print wird das Druckformat vollständig ausgefüllt. Die Halbbildformate erg
 „Untertitelschrift“ ändert nur die Untertitel. Die II/X-Symbole behalten unabhängig davon ihre Standardschrift. Die gewählte Untertitelschrift gehört zu den gespeicherten Presets.
 
 Schlichte Stereokarte: Print → Parallelblick oder Kreuzblick → Rahmenbreite 0 % → Untertitel leer. „Blicksymbole anzeigen“ kann II/X auch bei vorhandenem Rahmen ausschalten. Bei 0 % werden sie automatisch weggelassen. Beide Einstellungen werden in Presets gespeichert; der Standard bleibt 4 % mit Blicksymbolen.
+
+## Metadaten
+
+ExifTool übernimmt geeignete Metadaten automatisch beim Export. Vorschaubilder, Orientation und MPF/MPO-Daten werden nicht übernommen; neue Bildabmessungen und gewählte Druck-dpi bleiben erhalten. Originale werden nicht verändert. Bei einem Metadatenfehler bleibt das fertige Bild erhalten und Freeda zeigt einen Hinweis. Den Ordner `tools` mit seinen Begleitdateien zusammenhalten. Unter Linux und macOS wird Perl benötigt, unter Windows ist die Laufzeitumgebung enthalten.

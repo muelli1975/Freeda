@@ -1574,8 +1574,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
         def worker():
             try:
-                written = render_web_batch(items, self.output_dir or Path(), replace(options, crop=Crop()), progress=progress, targets=targets, crops=crops)
-                self.after(0, lambda: self._batch_done(len(written)))
+                warnings = []
+                written = render_web_batch(items, self.output_dir or Path(), replace(options, crop=Crop()), progress=progress, targets=targets, crops=crops, metadata_warnings=warnings)
+                self.after(0, lambda: self._batch_done(len(written), warnings))
             except Exception as exc:
                 self.after(0, lambda error=exc: self._batch_failed(error))
 
@@ -1589,6 +1590,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             mode=_CROP_MODES[self.crop_mode_var.get()],
         )
         written = 0
+        metadata_warnings = []
         self._set_busy(True)
         self.progress.set(0)
 
@@ -1632,21 +1634,25 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 current = replace(options, crop=crop)
                 rendered = render_print(source, current)
                 target = targets[index - 1]
-                save_render(
+                metadata = save_render(
                     rendered,
                     target,
                     current.output_format,
                     dpi=current.dpi,
                     background_color=current.frame_color,
+                    metadata_source=item.source,
                 )
+                if not metadata.success:
+                    metadata_warnings.append(f"{item.source.name}: {metadata.message}")
                 written += 1
                 self.progress.set(session.index / max(1, total))
                 self.update_idletasks()
 
             if session.finished:
-                self._batch_done(written)
+                self._batch_done(written, metadata_warnings)
             else:
                 self._set_busy(False)
+                self._report_metadata_warnings(metadata_warnings)
         except Exception as exc:
             self._batch_failed(exc)
 
@@ -1654,13 +1660,23 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.progress.set(index / max(1, total))
         self._set_text(self.status, f"Verarbeitung {index}/{total}: {name}")
 
-    def _batch_done(self, count: int) -> None:
+    def _batch_done(self, count: int, metadata_warnings=()) -> None:
         self._set_busy(False)
         self.progress.set(1)
         self._set_text(self.status, f"Fertig – {count} Datei{'en' if count != 1 else ''}")
         if self.crop_storage_errors:
             self._set_text(self.status, "Export fertig; Ausschnitte konnten nicht gespeichert oder geladen werden.")
         play_ready_sound(resource_path("assets/ready.wav"))
+        self._report_metadata_warnings(metadata_warnings)
+
+    def _report_metadata_warnings(self, warnings):
+        if warnings:
+            self._set_text(self.status, "Export fertig; Metadaten konnten nicht vollständig übernommen werden.")
+            details = "\n".join(prefix + ": " + self.tr(reason)
+                for prefix, reason in (message.split(": ", 1) for message in warnings[:5]))
+            if len(warnings) > 5:
+                details += f"\n… ({len(warnings)})"
+            messagebox.showwarning("Freeda", self.tr("Die Bilder wurden exportiert. Metadaten konnten nicht vollständig übernommen werden.") + "\n\n" + details)
 
     def _batch_failed(self, exc: Exception) -> None:
         self._set_busy(False)
