@@ -36,8 +36,8 @@ shutil.copytree(root / 'tools', tool_destination, dirs_exist_ok=True)
 if sys.platform == 'darwin':
     bundle = root / 'dist/Freeda.app'
     subprocess.run(['codesign', '--force', '--deep', '--sign', '-', str(bundle)], check=True)
-    # PyInstaller bundles contain framework/data symlinks; expanding them breaks signing.
-    shutil.copytree(bundle, package / 'Freeda.app', dirs_exist_ok=True, symlinks=True)
+    # ditto preserves framework symlinks AND signature xattrs on ExifTool scripts.
+    subprocess.run(['ditto', str(bundle), str(package / 'Freeda.app')], check=True)
     for signed_bundle in (bundle, package / 'Freeda.app'):
         subprocess.run(['codesign', '--verify', '--deep', '--strict', str(signed_bundle)], check=True)
 for filename in ('README.md', 'README_DE.md', 'README_EN.md', 'QUICKSTART.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
