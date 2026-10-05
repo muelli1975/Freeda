@@ -26,8 +26,7 @@ name = 'Freeda_1.0_' + args.label
 if sys.platform == 'darwin':
     package = release / name
     package.mkdir(exist_ok=True)
-    shutil.copytree(root / 'dist/Freeda.app', package / 'Freeda.app', dirs_exist_ok=True)
-    tool_destination = package / 'Freeda.app/Contents/MacOS/tools'
+    tool_destination = root / 'dist/Freeda.app/Contents/MacOS/tools'
 else:
     package = root / 'dist/Freeda'
     tool_destination = package / 'tools'
@@ -35,10 +34,12 @@ if not (root / 'tools/exiftool').is_file():
     raise SystemExit('Run scripts/prepare_exiftool.py before building.')
 shutil.copytree(root / 'tools', tool_destination, dirs_exist_ok=True)
 if sys.platform == 'darwin':
-    # Keep the runnable dist copy identical to the packaged app for startup checks.
-    shutil.copytree(root / 'tools', root / 'dist/Freeda.app/Contents/MacOS/tools', dirs_exist_ok=True)
-    for bundle in (root / 'dist/Freeda.app', package / 'Freeda.app'):
-        subprocess.run(['codesign', '--force', '--deep', '--sign', '-', str(bundle)], check=True)
+    bundle = root / 'dist/Freeda.app'
+    subprocess.run(['codesign', '--force', '--deep', '--sign', '-', str(bundle)], check=True)
+    # PyInstaller bundles contain framework/data symlinks; expanding them breaks signing.
+    shutil.copytree(bundle, package / 'Freeda.app', dirs_exist_ok=True, symlinks=True)
+    for signed_bundle in (bundle, package / 'Freeda.app'):
+        subprocess.run(['codesign', '--verify', '--deep', '--strict', str(signed_bundle)], check=True)
 for filename in ('README.md', 'README_DE.md', 'README_EN.md', 'QUICKSTART.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
     shutil.copy2(root / filename, package / filename)
 shutil.copytree(root / 'licenses', package / 'licenses', dirs_exist_ok=True)
