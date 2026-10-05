@@ -74,7 +74,7 @@ Die Auswahl mehrerer Dateien oder eines Ordners erzeugt einen Batch. Die Navigat
 
 ## Ausgabe und Ordner
 
-Standardmäßig schreibt Freeda nach `output/web` oder `output/print` bei der Eingabe. Ein eigener Ausgabeordner lässt sich auswählen. Bei Ordner-Batches bleibt die relative Ordnerstruktur erhalten.
+Standardmäßig ist „Unterordner im Input-Ordner verwenden“ aktiviert: Freeda schreibt nach `output/web` oder `output/print` im Input-Ordner. Ein eigener Ausgabeordner lässt sich auswählen und bleibt bei aktivierter Unterordner-Option sichtbar, erscheint aber grau. Das tatsächliche Ausgabeziel wird separat angezeigt. Input- und Outputdialoge merken sich während der Sitzung getrennte Startordner. Bei Ordner-Batches bleibt die relative Ordnerstruktur erhalten. Während des Exports sind die Einstellungen gesperrt.
 
 Dateien heißen beispielsweise `bild_freeda_web.jpg` oder `bild_freeda_print.png`. Bestehende Ausgabebilder am selben Ziel werden beim Export überschrieben. Originaldateien bleiben unverändert. Freeda exportiert JPEG oder PNG und verarbeitet die Bilder in 8-Bit-RGB.
 

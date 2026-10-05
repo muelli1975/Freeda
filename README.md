@@ -74,7 +74,7 @@ Selecting several files or a folder creates a batch. Navigation changes the prev
 
 ## Output and folders
 
-By default, Freeda writes to `output/web` or `output/print` beside the input. A custom output folder can be selected. Folder batches retain their relative folder structure.
+By default, “Use subfolder in input folder” is enabled: Freeda writes to `output/web` or `output/print` inside the input folder. A custom output folder can be selected and remains visible in grey when the input subfolder option is enabled. The actual output destination is shown separately. Input and output dialogs remember separate starting folders during the session. Folder batches retain their relative folder structure. Settings are locked during export.
 
 Files use names such as `image_freeda_web.jpg` or `image_freeda_print.png`. Existing output images at the same destination are overwritten on export. Original input images remain unchanged. Exports are JPEG or PNG; Freeda renders the images in 8-bit RGB.
 

@@ -463,6 +463,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.batch_mode = False
         self.output_dir: Path | None = None
         self.input_root: Path | None = None
+        self.last_input_dir: Path | None = None
+        self._control_states = {}
         self.preview_photo = None
         self._preview_job = None
         self._busy = False
@@ -635,6 +637,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             dropdown_hover_color=PANEL_HOVER,
             dropdown_text_color=TEXT,
             text_color=TEXT,
+            text_color_disabled=TEXT_DISABLED,
             corner_radius=RADIUS_CONTROL,
         )
         self._localized_options.append((menu, variable, display, values))
@@ -822,6 +825,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                                            button_color=PANEL_HOVER, button_hover_color=BORDER,
                                            dropdown_fg_color=BG_SOFT, dropdown_hover_color=PANEL_HOVER,
                                            dropdown_text_color=TEXT, text_color=TEXT,
+                                           text_color_disabled=TEXT_DISABLED,
                                            corner_radius=RADIUS_CONTROL,
                                            state="normal" if self.presets else "disabled")
         self.preset_menu.grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 6))
@@ -830,7 +834,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
         row += 1
 
-        self._label(self.sidebar, "Eingabe", section=True).grid(row=row, column=0, sticky="ew", padx=20)
+        self._label(self.sidebar, "Input", section=True).grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
         input_buttons = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         input_buttons.grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 6))
@@ -864,6 +868,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             unselected_color=BG_SOFT,
             unselected_hover_color=PANEL_HOVER,
             text_color=TEXT,
+            text_color_disabled=TEXT_DISABLED,
         )
         self.mode_selector.grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 10))
         row += 1
@@ -1107,7 +1112,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         row += 1
 
         self.use_input_output = tk.BooleanVar(value=True)
-        self.output_checkbox = self._checkbox(self.sidebar, "Unterordner output bei der Eingabe",
+        self.output_checkbox = self._checkbox(self.sidebar, "Unterordner im Input-Ordner verwenden",
                                               self.use_input_output, self._refresh_output)
         self.output_checkbox.grid(
             row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
@@ -1116,7 +1121,13 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             row=row, column=0, sticky="ew", padx=20, pady=(0, 5)
         )
         row += 1
-        self.output_status = self._label(self.sidebar, "output/web bei der Eingabe")
+        self.custom_output_status = self._label(self.sidebar, "Kein eigener Ausgabeordner gewählt")
+        self.custom_output_status.configure(wraplength=330)
+        self.custom_output_status.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
+        row += 1
+        self._label(self.sidebar, "Ausgabeziel").grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
+        self.output_status = self._label(self.sidebar, "output/web im Input-Ordner")
         self.output_status.configure(wraplength=330)
         self.output_status.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 14))
         row += 1
@@ -1177,7 +1188,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
     def _frame_changed(self, value: float) -> None:
         self._set_text(self.frame_label, f"Breite: {value:.2f} % je Halbbild".replace(".", ","))
-        self.show_symbols_checkbox.configure(state="disabled" if float(value) == 0 else "normal")
+        disabled = self._busy or float(value) == 0
+        self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal",
+                                              fg_color=TEXT_DISABLED if disabled else GOLD)
         self.schedule_preview()
 
     def _refresh_preview_note(self):
@@ -1328,12 +1341,14 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             return
         names = filedialog.askopenfilenames(
             title=self.tr("Full-SBS-Bilder wählen"),
+            initialdir=str(self.last_input_dir) if self.last_input_dir else None,
             filetypes=[
                 (self.tr("Bilder"), "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.webp"),
                 (self.tr("Alle Dateien"), "*.*"),
             ],
         )
         if names:
+            self.last_input_dir = Path(names[0]).parent
             self.input_root = None
             self.items = discover_files([Path(n) for n in names])
             self._input_changed()
@@ -1348,8 +1363,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def choose_folder(self) -> None:
         if self._busy:
             return
-        name = filedialog.askdirectory(title=self.tr("Ordner mit Full-SBS-Bildern wählen"))
+        name = filedialog.askdirectory(title=self.tr("Ordner mit Full-SBS-Bildern wählen"),
+                                      initialdir=str(self.last_input_dir) if self.last_input_dir else None)
         if name:
+            self.last_input_dir = Path(name)
             self.input_root = Path(name)
             self.items = discover_files([Path(name)], recursive=self.include_subfolders_var.get())
             self._input_changed()
@@ -1369,7 +1386,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def choose_output(self) -> None:
         if self._busy:
             return
-        name = filedialog.askdirectory(title=self.tr("Ausgabeordner wählen"))
+        name = filedialog.askdirectory(title=self.tr("Ausgabeordner wählen"),
+                                      initialdir=str(self.output_dir) if self.output_dir else None)
         if name:
             self.output_dir = Path(name)
             self.use_input_output.set(False)
@@ -1379,12 +1397,15 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         mode = self.mode_var.get().lower()
         if self.use_input_output.get():
             root = self.input_root or (self.items[0].source.parent if self.items else None)
-            text = str(root / "output" / mode) if root else f"output/{mode} bei der Eingabe"
+            text = str(root / "output" / mode) if root else f"output/{mode} im Input-Ordner"
             if self.input_root is None and len({item.source.parent for item in self.items}) > 1:
                 text = f"output/{mode} im jeweiligen Eingabeordner"
         else:
             text = str(self.output_dir / mode) if self.output_dir else "Bitte eigenen Ausgabeordner wählen"
         self._set_text(self.output_status, text)
+        self._set_text(self.custom_output_status,
+                       str(self.output_dir) if self.output_dir else "Kein eigener Ausgabeordner gewählt")
+        self.custom_output_status.configure(text_color=TEXT_DISABLED if self.use_input_output.get() else TEXT)
 
     def _refresh_start(self) -> None:
         text = f"Batch exportieren ({len(self.items)} Bilder)" if self.batch_mode else "Angezeigtes Bild exportieren"
@@ -1491,9 +1512,40 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             self.preview_label.configure(image="", text=self.tr(f"Vorschaufehler:\n{exc}"))
 
     def _set_busy(self, busy: bool) -> None:
+        if busy == self._busy:
+            return
         self._busy = busy
-        self.subfolders_checkbox.configure(state="disabled" if busy else "normal")
-        self.remember_crops_checkbox.configure(state="disabled" if busy else "normal")
+        if busy:
+            def lock_controls(parent):
+                for widget in parent.winfo_children():
+                    if isinstance(widget, (ctk.CTkButton, ctk.CTkEntry, ctk.CTkSlider,
+                                           ctk.CTkCheckBox, ctk.CTkOptionMenu, ctk.CTkSegmentedButton)):
+                        colors = {}
+                        if isinstance(widget, ctk.CTkSlider):
+                            colors = {key: widget.cget(key) for key in
+                                      ("progress_color", "button_color", "button_hover_color")}
+                        elif isinstance(widget, ctk.CTkCheckBox):
+                            colors = {"fg_color": widget.cget("fg_color")}
+                        # CustomTkinter 5.2 exposes segmented state only on its buttons.
+                        state = (next(child.cget("state") for child in widget.winfo_children()
+                                      if isinstance(child, ctk.CTkButton))
+                                 if isinstance(widget, ctk.CTkSegmentedButton) else widget.cget("state"))
+                        self._control_states[widget] = (state, colors)
+                        widget.configure(state="disabled")
+                        if isinstance(widget, ctk.CTkSlider):
+                            widget.configure(progress_color=BORDER, button_color=TEXT_DISABLED,
+                                             button_hover_color=TEXT_DISABLED)
+                        elif isinstance(widget, ctk.CTkCheckBox):
+                            widget.configure(fg_color=TEXT_DISABLED)
+                        continue
+                    lock_controls(widget)
+            lock_controls(self.sidebar_container)
+        else:
+            for widget, (state, colors) in self._control_states.items():
+                if widget.winfo_exists():
+                    widget.configure(state=state, **colors)
+            self._control_states.clear()
+            self._frame_changed(self.frame_var.get())
         self._refresh_start()
         if busy:
             self._set_start_button_disabled()

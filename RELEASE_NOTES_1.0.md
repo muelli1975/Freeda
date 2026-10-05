@@ -12,6 +12,7 @@ Freeda converts full side-by-side stereo images into Freeview graphics for web a
 - ExifTool 13.59 bundled separately in tools, matching StereoFine/SplatTricia metadata handling. Capture metadata is copied where supported; previews, Orientation and MPF are excluded. Actual output dimensions and selected Print dpi are preserved. Failures produce a nonfatal warning while retaining the exported image.
 - Rule-of-thirds grid in the crop dialog, for each eye; never exported.
 - Fixed sidebar width with wrapped long filenames.
+- Shared Stereo-Tools wording and output controls: the custom output folder stays visible when inactive, input/output dialogs remember separate locations during the session, and settings are locked during export.
 - Single-image and batch export with preview navigation, optional subfolders and stable output filenames that overwrite earlier exports.
 - Portable presets and remembered DE/EN language in settings.json next to the program. Crop remembering is optional and uses freeda-crops.json in the image folders.
 
