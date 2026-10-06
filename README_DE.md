@@ -6,7 +6,7 @@ Freeda ist ein lokales Desktop-Werkzeug zum Einrahmen und Exportieren von Full-S
 
 Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und keine automatischen Downloads während der Nutzung.
 
-![Freeda 1.0](docs/screenshots/Freeda.png)
+![Freeda 1.1](docs/screenshots/Freeda.png)
 
 ## Portable Windows-Version
 

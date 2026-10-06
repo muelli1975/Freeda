@@ -6,7 +6,7 @@ Freeda is a local desktop tool for framing and exporting full side-by-side stere
 
 Freeda works completely locally: no account, no cloud, no tracking and no automatic downloads during use.
 
-![Freeda 1.0](docs/screenshots/Freeda.png)
+![Freeda 1.1](docs/screenshots/Freeda.png)
 
 ## Portable Windows release
 
