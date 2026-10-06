@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from functools import lru_cache
 
@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .fonts import resolve_font, available_fonts
 from .cropping import fit_linked_crop
-from .geometry import frame_geometry_for_total_width
+from .geometry import RowGeometry, frame_geometry_for_total_width
 from .models import CaptionMode, Crop, EyeShape, LayoutMode, OutputFormat, WebRenderOptions
 from .eye_shapes import shape_eye, round_outer_corners
 from .logos import load_logo, logo_layout
@@ -140,6 +140,113 @@ def _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color):
             _draw_centered(draw, marker, center, y, font, accent_color)
 
 
+@dataclass(frozen=True)
+class WebRowLayout:
+    geometry: RowGeometry
+    eye_height: int
+    caption: str
+    font: object
+    gap_top: int
+    band_height: int
+    logo: Image.Image | None
+    logo_size: tuple[int, int] | None
+
+    @property
+    def height(self):
+        return self.eye_height + self.band_height + 2 * self.geometry.frame_px
+
+
+def _web_row_layout(eye_size, *, total_width, frame_percent, caption, font_family,
+                    caption_size_percent, eye_count=2, caption_mode=CaptionMode.TEXT,
+                    logo_path=None, logo_height_percent=6):
+    geom = frame_geometry_for_total_width(total_width, frame_percent, eye_count)
+    eye_h = max(1, round(geom.eye_width * eye_size[1] / eye_size[0]))
+    font = _font(font_family, max(9, round(geom.eye_width * caption_size_percent / 100)))
+    if eye_count == 3:
+        caption, font = _fit_lrl_caption(caption, font, font_family, geom.eye_width)
+    _, _, caption_h = _caption_metrics(caption, font, geom.eye_width)
+    gap = max(1, round(font.size * .4)) if caption else 0
+    band = caption_h + gap + max(1, round(font.size * .6)) if caption else 0
+    logo, size = None, None
+    if caption_mode == CaptionMode.LOGO:
+        logo = load_logo(logo_path)
+        footer = logo_layout(logo.size, geom.eye_width, logo_height_percent)
+        size = (max(1, round(footer.width)), max(1, round(footer.height)))
+        gap = max(1, round(footer.gap_top))
+        band = size[1] + gap + max(1, round(footer.gap_bottom))
+    return WebRowLayout(geom, eye_h, caption, font, gap, band, logo, size)
+
+
+@dataclass(frozen=True)
+class WebGeometry:
+    row: WebRowLayout
+    eye_count: int
+    rows: int
+    native_size: tuple[int, int]
+    output_size: tuple[int, int]
+
+    @property
+    def eye_boxes(self):
+        geom = self.row.geometry
+        count = self.eye_count
+        boxes = []
+        for row in range(self.rows):
+            y = geom.frame_px + row * (self.row.height - geom.frame_px)
+            for index, x in enumerate(self._positions):
+                width = geom.total_width - x if geom.frame_px == 0 and index == count - 1 else geom.eye_width
+                boxes.append((x, y, x + width, y + self.row.eye_height))
+        return tuple(boxes)
+
+    @property
+    def _positions(self):
+        geom = self.row.geometry
+        return tuple(geom.frame_px + i * (geom.eye_width + geom.frame_px) for i in range(self.eye_count))
+
+
+def web_geometry(eye_size, options):
+    """Measure before resampling the eyes; the final long edge is exact."""
+    count = 3 if options.layout == LayoutMode.LRL else 2
+    rows = 2 if options.layout == LayoutMode.BOTH else 1
+    has_caption = options.caption_mode == CaptionMode.LOGO or bool(options.caption)
+    def measure(width):
+        row = _web_row_layout(eye_size, total_width=width, frame_percent=options.frame_percent,
+            caption=options.caption, font_family=options.font_family, caption_size_percent=options.caption_size_percent,
+            eye_count=count, caption_mode=options.caption_mode, logo_path=options.logo_path,
+            logo_height_percent=options.logo_height_percent)
+        height = rows * row.height - (rows - 1 + int(has_caption)) * row.geometry.frame_px
+        return row, (row.geometry.total_width, height)
+    edge = options.target_long_edge
+    if edge is None:
+        width = count * eye_size[0] + (count + 1) * round(eye_size[0] * max(0, options.frame_percent) / 100)
+        if count == 2 and width % 2:
+            width += 1
+        row, size = measure(width)
+        return WebGeometry(row, count, rows, size, size)
+    if isinstance(edge, bool) or not isinstance(edge, int) or edge < 16:
+        raise ValueError("Lange Seite: Bitte eine ganze Zahl ab 16 px eingeben.")
+    row, native = measure(edge)
+    if native[1] > edge:
+        # Font metrics and integer frame widths can add a few pixels. Choose
+        # the closest layout, then correct only the remaining pixel rounding.
+        best = (row, native)
+        low, high = 16, edge - 1
+        while low <= high:
+            width = (low + high) // 2
+            candidate, size = measure(width)
+            if abs(size[1] - edge) < abs(best[1][1] - edge):
+                best = candidate, size
+            if size[1] < edge:
+                low = width + 1
+            else:
+                high = width - 1
+        row, native = best
+    if native[0] >= native[1]:
+        output = (edge, max(1, round(native[1] * edge / native[0])))
+    else:
+        output = (max(1, round(native[0] * edge / native[1])), edge)
+    return WebGeometry(row, count, rows, native, output)
+
+
 def _row(
     left: Image.Image,
     right: Image.Image,
@@ -161,29 +268,16 @@ def _row(
     logo_path: Path | None = None,
     logo_height_percent: float = 6.0,
 ) -> Image.Image:
-    geom = frame_geometry_for_total_width(total_width, frame_percent, eye_count)
+    metrics = _web_row_layout(left.size, total_width=total_width, frame_percent=frame_percent,
+        caption=caption, font_family=font_family, caption_size_percent=caption_size_percent,
+        eye_count=eye_count, caption_mode=caption_mode, logo_path=logo_path, logo_height_percent=logo_height_percent)
+    geom = metrics.geometry
     eye_w = geom.eye_width
     frame = geom.frame_px
 
-    aspect = left.height / left.width
-    eye_h = max(1, int(round(eye_w * aspect)))
-
-    caption_font = _font(font_family, max(9, round(eye_w * caption_size_percent / 100)))
-    if eye_count == 3:
-        caption, caption_font = _fit_lrl_caption(caption, caption_font, font_family, eye_w)
-    _, _, caption_h = _caption_metrics(caption, caption_font, eye_w)
-
-    caption_gap = max(1, round(caption_font.size * .4)) if caption else 0
-    caption_bottom = max(1, round(caption_font.size * .6)) if caption else 0
-    caption_band = caption_h + caption_gap + caption_bottom if caption else 0
-    logo = None
-    if caption_mode == CaptionMode.LOGO:
-        logo = load_logo(logo_path)
-        footer = logo_layout(logo.size, eye_w, logo_height_percent)
-        logo = logo.resize((max(1, round(footer.width)), max(1, round(footer.height))), Image.Resampling.LANCZOS)
-        caption_gap = max(1, round(footer.gap_top))
-        caption_bottom = max(1, round(footer.gap_bottom))
-        caption_band = logo.height + caption_gap + caption_bottom
+    eye_h, caption_font, caption = metrics.eye_height, metrics.font, metrics.caption
+    caption_gap, caption_band = metrics.gap_top, metrics.band_height
+    logo = metrics.logo.resize(metrics.logo_size, Image.Resampling.LANCZOS) if metrics.logo is not None else None
 
     height = frame + eye_h + caption_band + frame
     row = Image.new("RGBA", (total_width, height), frame_color)
@@ -219,15 +313,8 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
     left = crop_eye(left, crop)
     right = crop_eye(right, crop)
 
-    if options.target_width is None:
-        # Preserve the two source-eye widths and add the proportional frame.
-        fraction = max(0.0, options.frame_percent) / 100.0
-        eye_count = 3 if options.layout == LayoutMode.LRL else 2
-        target_width = eye_count * left.width + (eye_count + 1) * round(left.width * fraction)
-        if eye_count == 2 and target_width % 2 == 1:
-            target_width += 1
-    else:
-        target_width = int(options.target_width)
+    geometry = web_geometry(left.size, options)
+    target_width = geometry.native_size[0]
 
     rows: list[Image.Image] = []
     if options.layout in (LayoutMode.BOTH, LayoutMode.PARALLEL, LayoutMode.LRL):
@@ -290,7 +377,10 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
                 y -= frame
 
     radius = max(0, round(result.width * max(0.0, options.outer_radius_percent) / 100.0))
-    return round_outer_corners(result, radius)
+    result = round_outer_corners(result, radius)
+    if result.size != geometry.output_size:
+        result = result.resize(geometry.output_size, Image.Resampling.LANCZOS)
+    return result
 
 
 def flatten_for_jpeg(image: Image.Image, background_color: str = "#000000") -> Image.Image:

@@ -1,7 +1,7 @@
 # Freeda 1.1 – Kurzstart
 
 1. ZIP vollständig in einen frei beschreibbaren Ordner entpacken. `Freeda.exe`, `_internal` und `tools` zusammen lassen.
-2. `Freeda.exe` starten. Freeda beginnt mit der zuletzt gewählten Sprache, im Webmodus, mit 2048 Pixeln und den Standardwerten. Beim ersten Start ist Deutsch voreingestellt.
+2. `Freeda.exe` starten. Freeda beginnt mit der zuletzt gewählten Sprache, im Webmodus, mit 2048 Pixeln an der langen Seite und den Standardwerten. Beim ersten Start ist Deutsch voreingestellt.
 3. Ein Full-SBS-Bild (`L|R`), mehrere Dateien oder einen Bilderordner wählen. Unterordner sind optional.
 4. Mit Vorheriges/Nächstes oder Bild↑/Bild↓ die Vorschau wechseln. Ein Einzelbildexport verarbeitet das angezeigte Bild; ein Batch die gesamte Auswahl.
 5. Ansicht, Rahmen, Farben und Untertitel einstellen. L–R–L bietet links Parallelblick und rechts Kreuzblick. Lange Untertitel werden dort einzeilig begrenzt und nötigenfalls mit … gekürzt.

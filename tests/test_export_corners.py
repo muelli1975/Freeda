@@ -16,7 +16,7 @@ class CornerTests(unittest.TestCase):
         source = Image.new("RGB", (600,200), "red")
         with tempfile.TemporaryDirectory() as tmp:
             for kind, base, render, bg in (
-                ("web",WebRenderOptions(target_width=600,layout=LayoutMode.PARALLEL),render_web,(0,0,0)),
+                ("web",WebRenderOptions(target_long_edge=600,layout=LayoutMode.PARALLEL),render_web,(0,0,0)),
                 ("print",PrintRenderOptions(dpi=96),render_print,(255,255,255))):
                 for output in OutputFormat:
                     options = replace(base, outer_radius_percent=5,frame_color="#eee5d3",output_format=output)
@@ -41,7 +41,7 @@ class CornerTests(unittest.TestCase):
 
     def test_inner_corners_stay_frame_coloured(self):
         source = Image.new("RGB",(600,200),"red")
-        options = WebRenderOptions(target_width=600,inner_radius_percent=10,frame_color="#eee5d3")
+        options = WebRenderOptions(target_long_edge=600,inner_radius_percent=10,frame_color="#eee5d3")
         image = render_web(source,options)
         from freeda.geometry import frame_geometry_for_total_width
         f = frame_geometry_for_total_width(600,4).frame_px

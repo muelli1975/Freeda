@@ -11,7 +11,7 @@ class CaptionSpacingTests(unittest.TestCase):
         eye=source.crop((0,0,300,200))
         for layout in LayoutMode:
             count=3 if layout==LayoutMode.LRL else 2
-            options=WebRenderOptions(layout=layout,target_width=2048,caption="Untertitel")
+            options=WebRenderOptions(layout=layout,target_long_edge=2048,caption="Untertitel")
             geom=frame_geometry_for_total_width(2048,options.frame_percent,count)
             row=_row(eye,eye,total_width=2048,frame_percent=options.frame_percent,
                 frame_color=options.frame_color,accent_color=options.accent_color,symbol="II",

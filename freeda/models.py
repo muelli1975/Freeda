@@ -62,7 +62,7 @@ class Crop:
 @dataclass(frozen=True)
 class WebRenderOptions:
     layout: LayoutMode = LayoutMode.BOTH
-    target_width: int | None = 2048
+    target_long_edge: int | None = 2048
     eye_aspect: float | None = None
     frame_percent: float = 4.0
     frame_color: str = "#111111"

@@ -98,7 +98,7 @@ class CardTests(unittest.TestCase):
 
     def test_grid_is_clipped_to_arch_in_web_and_print(self):
         source = Image.new("RGB", (600,200), "red")
-        for options in (WebRenderOptions(layout=LayoutMode.PARALLEL, target_width=600, eye_shape=EyeShape.ARCH),
+        for options in (WebRenderOptions(layout=LayoutMode.PARALLEL, target_long_edge=600, eye_shape=EyeShape.ARCH),
                         self.holmes(dpi=96, arch_height_percent=50)):
             original = render_web(source,options) if isinstance(options,WebRenderOptions) else render_print(source,options)
             grid = crop_grid(original,source,options)

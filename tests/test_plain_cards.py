@@ -15,7 +15,7 @@ class PlainCardTests(unittest.TestCase):
     def test_zero_frame_has_no_strip_for_every_layout_even_and_odd_widths(self):
         for layout in LayoutMode:
             for width in (512,513,514):
-                options=WebRenderOptions(layout=layout,target_width=width,frame_percent=0)
+                options=WebRenderOptions(layout=layout,target_long_edge=width,frame_percent=0)
                 result=render_web(self.source,options)
                 self.assertEqual(result.width,width)
                 self.assertEqual(frame_geometry_for_total_width(width,0,3 if layout==LayoutMode.LRL else 2).frame_px,0)
@@ -33,7 +33,7 @@ class PlainCardTests(unittest.TestCase):
 
     def test_symbols_can_be_hidden_without_changing_geometry_or_captions(self):
         for layout in LayoutMode:
-            for options, render in ((WebRenderOptions(layout=layout,target_width=1200,caption='Caption'),render_web),
+            for options, render in ((WebRenderOptions(layout=layout,target_long_edge=1200,caption='Caption'),render_web),
                 (PrintRenderOptions(layout=layout,dpi=150,caption='Caption'),render_print)):
                 shown=render(self.source,options)
                 hidden=render(self.source,replace(options,show_symbols=False))

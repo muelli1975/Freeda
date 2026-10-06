@@ -88,7 +88,7 @@ class RealMetadataTests(unittest.TestCase):
             source=self.source(root)
             original=source.read_bytes()
             for format in OutputFormat:
-                options=WebRenderOptions(target_width=900,output_format=format,outer_radius_percent=3)
+                options=WebRenderOptions(target_long_edge=900,output_format=format,outer_radius_percent=3)
                 rendered=render_web(Image.open(source),options)
                 target=root/('web.'+('jpg' if format==OutputFormat.JPEG else 'png'))
                 result=save_render(rendered,target,format,metadata_source=source)

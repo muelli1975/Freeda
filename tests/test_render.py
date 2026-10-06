@@ -21,29 +21,29 @@ class RenderTests(unittest.TestCase):
 
     def test_parallel_exact_width(self):
         result = render_web(self.source(), WebRenderOptions(
-            layout=LayoutMode.PARALLEL, target_width=1280, frame_percent=1.5
+            layout=LayoutMode.PARALLEL, target_long_edge=1280, frame_percent=1.5
         ))
         self.assertEqual(result.width, 1280)
 
     def test_lrl_order_and_exact_width(self):
         for width in (1280, 1920, 2048):
-            image = render_web(self.source(), WebRenderOptions(layout=LayoutMode.LRL, target_width=width))
+            image = render_web(self.source(), WebRenderOptions(layout=LayoutMode.LRL, target_long_edge=width))
             self.assertEqual(image.width, width)
             colors = [image.getpixel((round(width * x), image.height // 2))[:3] for x in (1/6, 1/2, 5/6)]
             self.assertEqual(colors, [(255, 0, 0), (0, 255, 0), (255, 0, 0)])
 
     def test_both_is_taller_than_single(self):
         single = render_web(self.source(), WebRenderOptions(
-            layout=LayoutMode.PARALLEL, target_width=1280
+            layout=LayoutMode.PARALLEL, target_long_edge=1280
         ))
         both = render_web(self.source(), WebRenderOptions(
-            layout=LayoutMode.BOTH, target_width=1280
+            layout=LayoutMode.BOTH, target_long_edge=1280
         ))
         self.assertGreater(both.height, single.height)
 
     def test_png_keeps_alpha_and_jpeg_is_444(self):
         image = render_web(self.source(), WebRenderOptions(
-            target_width=1280, outer_radius_percent=3.0, output_format=OutputFormat.PNG
+            target_long_edge=1280, outer_radius_percent=3.0, output_format=OutputFormat.PNG
         ))
         self.assertEqual(image.mode, "RGBA")
         self.assertEqual(image.getpixel((0, 0))[3], 0)

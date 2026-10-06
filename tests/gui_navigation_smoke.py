@@ -27,6 +27,20 @@ with tempfile.TemporaryDirectory() as tmp:
     app.navigate(1)
     assert app.source_index == 1
     app._set_busy(False)
+    original = 'Freiburg – Blick auf die Stadt'
+    app.caption_var.set(original)
+    image, text = app._font_preview(app.font_var.get())
+    assert text == original and image.size == (380, 70)
+    original = 'Ein sehr langer Untertitel mit Umlauten äöü und vielen Worten ' * 12
+    app.caption_var.set(original)
+    image, text = app._font_preview(app.font_var.get())
+    assert text.endswith('…') and len(text) < len(original)
+    from freeda.render import _font
+    assert _font(app.font_var.get(), 24).getlength(text) <= 364
+    assert app.caption_var.get() == original
+    app.caption_var.set('  ')
+    assert app._font_preview(app.font_var.get())[1] == 'Aa – Freeda 123'
+    app.caption_var.set(original)
     app._open_fonts()
     app.update()
     dialog = next(w for w in app.winfo_children() if w.winfo_class() == "Toplevel")
@@ -35,6 +49,8 @@ with tempfile.TemporaryDirectory() as tmp:
         for child in widget.winfo_children():
             yield child
             yield from descendants(child)
+    sample = next(w for w in descendants(dialog) if hasattr(w, 'display_text'))
+    assert sample.display_text.endswith('…') and app.caption_var.get() == original
     listing = next(w for w in descendants(dialog) if isinstance(w, ctk.CTkScrollableFrame))
     canvas = listing._parent_canvas
     before = canvas.yview()

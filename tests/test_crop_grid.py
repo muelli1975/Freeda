@@ -10,7 +10,7 @@ class CropGridTests(unittest.TestCase):
     def test_grid_is_confined_and_does_not_modify_export(self):
         source=Image.new("RGB",(600,200),"red")
         for layout in LayoutMode:
-            for options in (WebRenderOptions(layout=layout,target_width=1200,caption="Caption"),
+            for options in (WebRenderOptions(layout=layout,target_long_edge=1200,caption="Caption"),
                             PrintRenderOptions(layout=layout,dpi=100,caption="Caption")):
                 rendered=render_web(source,options) if isinstance(options,WebRenderOptions) else render_print(source,options)
                 original=rendered.tobytes()
@@ -22,7 +22,7 @@ class CropGridTests(unittest.TestCase):
 
     def test_vertical_thirds_repeat_for_every_eye(self):
         source=Image.new("RGB",(600,200),"red")
-        options=WebRenderOptions(layout=LayoutMode.LRL,target_width=1200)
+        options=WebRenderOptions(layout=LayoutMode.LRL,target_long_edge=1200)
         rendered=render_web(source,options)
         grid=crop_grid(rendered,source,options)
         geometry=frame_geometry_for_total_width(1200,options.frame_percent,3)

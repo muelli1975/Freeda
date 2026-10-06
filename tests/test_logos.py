@@ -64,7 +64,7 @@ class LogoTests(unittest.TestCase):
 
     def test_web_logo_replaces_caption_and_repeats_identically(self):
         for mode in LayoutMode:
-            options = WebRenderOptions(layout=mode,target_width=1200,caption_mode=CaptionMode.LOGO,
+            options = WebRenderOptions(layout=mode,target_long_edge=1200,caption_mode=CaptionMode.LOGO,
                         logo_path=self.logo,caption="This text must not affect the result",frame_color="#123456")
             rendered = render_web(self.source,options)
             self.assertEqual(rendered.width,1200)
@@ -101,7 +101,7 @@ class LogoTests(unittest.TestCase):
             print_layout(replace(base,logo_height_mm=20))
 
     def test_grid_never_crosses_logo_or_changes_export(self):
-        for options,render in ((WebRenderOptions(layout=LayoutMode.BOTH,target_width=600,
+        for options,render in ((WebRenderOptions(layout=LayoutMode.BOTH,target_long_edge=600,
                    caption_mode=CaptionMode.LOGO,logo_path=self.logo),render_web),
                    (PrintRenderOptions(dpi=96,caption_mode=CaptionMode.LOGO,logo_path=self.logo),render_print)):
             image = render(self.source,options)

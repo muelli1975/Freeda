@@ -24,7 +24,7 @@ try:
         image.save(root / "one.png")
         assert app.frame_var.get() == 4
         assert app.size_var.get() == "2048"
-        assert app._web_options().target_width == 2048
+        assert app._web_options().target_long_edge == 2048
         assert app.output_checkbox.cget("fg_color") == GOLD
         assert app.output_checkbox.cget("hover_color") == GOLD_LIGHT
         assert app.output_checkbox.cget("border_color") == BORDER
@@ -85,6 +85,7 @@ try:
                 assert self.zoom_var.get() == 1 and self.x_var.get() == .5
                 self.after(100, self._accept)
         gui.CropDialog = AcceptDialog
+        app.print_review_var.set(True)
         app.dpi_var.set("450")
         assert app._print_options().dpi == 450
         app.start_batch()

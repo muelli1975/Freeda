@@ -16,7 +16,7 @@ class CaptionFontTests(unittest.TestCase):
             self.skipTest('Two fonts required')
         alternate=next((name for name in fonts if 'mono' in name.lower()), fonts[-1])
         for layout in (LayoutMode.PARALLEL,LayoutMode.LRL):
-            for options,render in ((WebRenderOptions(layout=layout,target_width=1400,caption='Caption Abc 123'),render_web),
+            for options,render in ((WebRenderOptions(layout=layout,target_long_edge=1400,caption='Caption Abc 123'),render_web),
                 (PrintRenderOptions(layout=layout,dpi=150,caption='Caption Abc 123'),render_print)):
                 first=render(source,replace(options,font_family=fonts[0]))
                 second=render(source,replace(options,font_family=alternate))

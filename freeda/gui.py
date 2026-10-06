@@ -26,7 +26,7 @@ from .config import (
     OUTPUT_FORMATS,
     PRINT_FORMAT_PRESETS,
     CARD_TEMPLATES,
-    WEB_WIDTH_PRESETS,
+    WEB_SIZE_PRESETS,
 )
 from .fonts import available_fonts
 from .i18n import translate
@@ -38,7 +38,7 @@ from .output import export_targets
 from .print_flow import CropBatchMode, PrintBatchSession
 from .print_render import crop_for_aspect, print_eye_aspect, render_print
 from .preview import fit_preview, parse_bleed, parse_dpi, print_preview_options, print_preview_image, preview_export_image
-from .render import render_web, save_render, split_full_sbs, _font
+from .render import render_web, save_render, split_full_sbs, _font, _fit_lrl_caption
 from .resources import resource_path, portable_settings_path
 from .window import fit_window
 from .theme import (
@@ -108,6 +108,7 @@ _NEW_PRESET_VARIABLES = (
     "margin_side_var", "margin_top_var", "margin_centre_var", "margin_bottom_var", "margin_row_gap_var",
     "caption_unit_var", "caption_points_var", "caption_gap_top_var", "caption_gap_bottom_var",
     "caption_mode_var", "logo_var", "logo_name_var", "logo_height_var", "logo_unit_var", "logo_mm_var",
+    "print_review_var",
 )
 
 _PRESET_VARIABLES = (
@@ -408,7 +409,8 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
             max_w = max(1, self.preview_label.winfo_width() - 10)
             max_h = max(1, self.preview_label.winfo_height() - 10)
             if isinstance(self.options, WebRenderOptions):
-                preview_options = replace(self.options, crop=self.current_crop(), target_width=min(max_w, self.options.target_width or self.source.width))
+                preview_options = replace(self.options, crop=self.current_crop(), target_long_edge=max(16,
+                    min(max(max_w, max_h), self.options.target_long_edge or max(self.source.size))))
                 rendered = render_web(self.source, preview_options)
                 if self.grid_var.get():
                     rendered = crop_grid(rendered, self.source, preview_options)
@@ -572,6 +574,16 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.font_var.trace_add("write", lambda *_: button.configure(text=self.font_var.get()))
         return button
 
+    def _font_preview(self, name):
+        text = self.caption_var.get().strip() or "Aa – Freeda 123"
+        font = _font(name, 24)
+        text, font = _fit_lrl_caption(text, font, name, 364, shrink=False)
+        image = Image.new("RGB", (380, 70), BG_MAIN)
+        box = font.getbbox(text)
+        ImageDraw.Draw(image).text((8 - box[0], (70 - box[3] + box[1]) / 2 - box[1]),
+                                  text, font=font, fill=TEXT)
+        return image, text
+
     def _open_fonts(self):
         dialog = ctk.CTkToplevel(self, fg_color=BG_MAIN)
         dialog.title(self.tr("Untertitelschrift"))
@@ -584,8 +596,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         sample = tk.Label(dialog, bg=BG_MAIN, fg=TEXT)
         sample.pack(fill="x", padx=14, pady=(0, 10))
         def show_sample(name):
-            image = Image.new("RGB", (380, 70), BG_MAIN)
-            ImageDraw.Draw(image).text((8, 8), "Aa – Freeda 123", font=_font(name, 24), fill=TEXT)
+            image, sample.display_text = self._font_preview(name)
             sample.photo = ImageTk.PhotoImage(image)
             sample.configure(image=sample.photo)
         show_sample(self.font_var.get())
@@ -910,15 +921,16 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.web_controls.grid(row=row, column=0, sticky="ew", padx=20)
         self.web_controls.grid_columnconfigure(0, weight=1)
         row += 1
-        self._label(self.web_controls, "Web-Breite").grid(row=0, column=0, sticky="ew")
+        self.web_size_label = self._label(self.web_controls, "Lange Seite (px)")
+        self.web_size_label.grid(row=0, column=0, sticky="ew")
         self.size_var = tk.StringVar(value="2048")
         self.size_menu = self._option(
-            self.web_controls, self.size_var, WEB_WIDTH_PRESETS, self._size_changed
+            self.web_controls, self.size_var, WEB_SIZE_PRESETS, self._size_changed
         )
         self.size_menu.grid(row=1, column=0, sticky="ew", pady=(4, 6))
         self.custom_width_var = tk.StringVar(value="2048")
         self.custom_width = self._entry(
-            self.web_controls, self.custom_width_var, "Breite in Pixel"
+            self.web_controls, self.custom_width_var, "Lange Seite in Pixeln"
         )
         self.custom_width.grid(row=2, column=0, sticky="ew", pady=(0, 12))
         self.custom_width.grid_remove()
@@ -1005,14 +1017,18 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             tuple(_CROP_MODES.keys()),
         ).grid(row=6, column=0, sticky="ew", pady=(3, 8))
 
-        self._label(self.print_controls, "Schneidehilfe").grid(row=7, column=0, sticky="ew")
+        self.print_review_var = tk.BooleanVar(value=False)
+        self._checkbox(self.print_controls, "Bildausschnitt beim Export prüfen", self.print_review_var).grid(
+            row=7, column=0, sticky="ew", pady=(0, 12))
+
+        self._label(self.print_controls, "Schneidehilfe").grid(row=8, column=0, sticky="ew")
         self.cutting_var = tk.StringVar(value="Keine")
         self._option(
             self.print_controls,
             self.cutting_var,
             tuple(_CUTTING_GUIDES.keys()),
             lambda _v: self.schedule_preview(),
-        ).grid(row=8, column=0, sticky="ew", pady=(3, 12))
+        ).grid(row=9, column=0, sticky="ew", pady=(3, 12))
         self._build_print_precision()
         self.print_controls.grid_remove()
 
@@ -1057,16 +1073,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.show_symbols_checkbox.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 10))
         row += 1
 
-        self.outer_radius_var = tk.StringVar(value="0")
-        self.outer_radius_label = self._label(self.sidebar, "Außenradius % der Gesamtbreite")
-        self.outer_radius_label.grid(row=row, column=0, sticky="ew", padx=20)
-        row += 1
-        self.outer_radius_entry = self._entry(self.sidebar, self.outer_radius_var)
-        self.outer_radius_entry.grid(row=row, column=0, sticky="ew", padx=20, pady=(3, 12))
-        self.outer_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
-        row += 1
-
-        self._label(self.sidebar, "Bildkontur").grid(row=row, column=0, sticky="ew", padx=20)
+        self.image_shape_heading = self._label(self.sidebar, "Bildkontur", section=True)
+        self.image_shape_heading.grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 0))
         row += 1
         self.eye_shape_var = tk.StringVar(value="Alle Ecken gerundet")
         self._option(self.sidebar, self.eye_shape_var, tuple(_EYE_SHAPES),
@@ -1093,6 +1101,16 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.inner_radius_entry = self._entry(self.image_radius_controls, self.inner_radius_var)
         self.inner_radius_entry.grid(row=1, column=0, sticky="ew", pady=(3, 0))
         self.inner_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+
+        self.outer_radius_var = tk.StringVar(value="0")
+        self.outer_radius_label = self._label(self.sidebar, "Gesamte Ausgabe: Außenradius % der Gesamtbreite")
+        self.outer_radius_label.configure(wraplength=330, justify="left")
+        self.outer_radius_label.grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
+        self.outer_radius_entry = self._entry(self.sidebar, self.outer_radius_var)
+        self.outer_radius_entry.grid(row=row, column=0, sticky="ew", padx=20, pady=(3, 12))
+        self.outer_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        row += 1
 
         self._label(self.sidebar, "Farben", section=True).grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
@@ -1240,10 +1258,13 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.print_geometry_label = self._label(self.print_controls, "")
         self.print_geometry_label.configure(wraplength=330, justify="left")
         self.print_geometry_label.grid(row=2, column=0, sticky="ew", pady=(0, 6))
-        self.precision_button = self._button(self.print_controls, "Ränder und Bildfenster anpassen …", self._toggle_print_precision)
-        self.precision_button.grid(row=3, column=0, sticky="ew", pady=(0, 12))
-        self.print_precision = ctk.CTkFrame(self.print_controls, fg_color=BG_SOFT, corner_radius=RADIUS_CONTROL)
-        self.print_precision.grid(row=13, column=0, sticky="ew", pady=(0, 12))
+        self.precision_group = ctk.CTkFrame(self.print_controls, fg_color="transparent")
+        self.precision_group.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+        self.precision_group.grid_columnconfigure(0, weight=1)
+        self.precision_button = self._button(self.precision_group, "Ränder und Bildfenster anpassen …", self._toggle_print_precision)
+        self.precision_button.grid(row=0, column=0, sticky="ew")
+        self.print_precision = ctk.CTkFrame(self.precision_group, fg_color=BG_SOFT, corner_radius=RADIUS_CONTROL)
+        self.print_precision.grid(row=1, column=0, sticky="ew", pady=(8, 0))
         self.print_precision.grid_columnconfigure(0, weight=1)
         self._label(self.print_precision, "Randberechnung").grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 3))
         self._option(self.print_precision, self.margin_mode_var, ("Proportional", "Exakte Ränder in mm"),
@@ -1287,8 +1308,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.caption_spacing_hint = automatic_hint
         automatic_hint.configure(wraplength=300, justify="left")
         automatic_hint.grid(row=7, column=0, sticky="ew", padx=12, pady=(0, 8))
-        self._button(self.print_precision, "Vorlage zurücksetzen", self._reset_card_template).grid(
-            row=8, column=0, sticky="ew", padx=12, pady=(0, 12))
+        self.reset_template_button = self._button(self.print_precision, "Vorlage zurücksetzen", self._reset_card_template)
+        self.reset_template_button.grid(row=8, column=0, sticky="ew", padx=12, pady=(0, 12))
         self.print_precision.grid_remove()
         print_hint = self._label(self.print_controls, "Beim Drucken: 100 % / tatsächliche Größe.")
         print_hint.configure(wraplength=330)
@@ -1384,10 +1405,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._layout_changed()
 
     def _reset_card_template(self):
-        if CARD_TEMPLATES.get(self.card_template_var.get()):
-            self._card_template_changed(self.card_template_var.get())
-        else:
-            self.margin_mode_var.set("Proportional")
+        if not CARD_TEMPLATES.get(self.card_template_var.get()) or self._busy:
+            return
+        self._card_template_changed(self.card_template_var.get())
         self.caption_gap_top_var.set("")
         self.caption_gap_bottom_var.set("")
         self._layout_changed()
@@ -1417,6 +1437,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             return
         is_print = self.mode_var.get() == "Print"
         is_logo = self.caption_mode_var.get() == "Logo"
+        self.reset_template_button.configure(state="normal" if not self._busy and
+                                             CARD_TEMPLATES.get(self.card_template_var.get()) else "disabled")
         for widget in self.caption_text_widgets:
             widget.grid_remove() if is_logo else widget.grid()
         self.logo_controls.grid() if is_logo else self.logo_controls.grid_remove()
@@ -1656,9 +1678,6 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         item = self._current_item()
         if item:
             self._store_crop(item, self.mode_var.get(), None)
-        if self.mode_var.get() == "Web":
-            self.aspect_var.set("Original")
-            self._aspect_changed("Original", clear=False)
         self.schedule_preview()
 
     def choose_files(self) -> None:
@@ -1749,18 +1768,20 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def _web_options(self, *, allow_pending_logo=False) -> WebRenderOptions:
         size = self.size_var.get()
         if size == "Original":
-            target_width = None
+            target_long_edge = None
         elif size == "Benutzerdefiniert":
             try:
-                target_width = max(320, int(self.custom_width_var.get()))
+                target_long_edge = int(self.custom_width_var.get().strip())
             except ValueError:
-                target_width = 2048
+                raise ValueError("Lange Seite: Bitte eine ganze Zahl ab 16 px eingeben.") from None
+            if target_long_edge < 16:
+                raise ValueError("Lange Seite: Bitte eine ganze Zahl ab 16 px eingeben.")
         else:
-            target_width = int(size)
+            target_long_edge = int(size)
 
         return WebRenderOptions(
             layout=_LAYOUT_TO_MODE[self.layout_var.get()],
-            target_width=target_width,
+            target_long_edge=target_long_edge,
             eye_aspect=self._web_aspect(),
             crop=self._current_crop("Web"),
             show_symbols=self.show_symbols_var.get(),
@@ -1887,8 +1908,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 source = image.convert("RGB")
                 if self.mode_var.get() == "Web":
                     options = self._web_options(allow_pending_logo=True)
-                    preview_width = min(panel_w, options.target_width or source.width)
-                    rendered = render_web(source, replace(options, target_width=preview_width))
+                    preview_width = max(16, min(max(panel_w, panel_h), options.target_long_edge or max(source.size)))
+                    rendered = render_web(source, replace(options, target_long_edge=preview_width))
                 else:
                     options = print_preview_options(self._print_options(allow_pending_logo=True), panel_w, panel_h)
                     rendered = print_preview_image(source, options, show_bleed=self.show_bleed_var.get())
@@ -1964,7 +1985,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
     def _prepare_web_crops(self, items, options):
         crops = dict(self.image_crops["Web"])
-        active = options.eye_aspect is not None or self.web_review_var.get()
+        active = (self.batch_mode and options.eye_aspect is not None) or self.web_review_var.get()
         if not active:
             return crops, items
         kept = []
@@ -2051,7 +2072,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                     image.load()
                     source = image.convert("RGB")
 
-                if session.needs_manual_crop:
+                if session.needs_manual_crop and (self.batch_mode or self.print_review_var.get()):
                     dialog = CropDialog(
                         self,
                         source,
@@ -2069,7 +2090,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                         continue
                     crop = dialog.result or Crop()
                 else:
-                    crop = session.suggested_crop()
+                    crop = (session.suggested_crop() if self.batch_mode else
+                            self.image_crops["Print"].get(item.source.resolve(), Crop()))
 
                 self._store_crop(item, "Print", crop)
                 session.accept(crop)

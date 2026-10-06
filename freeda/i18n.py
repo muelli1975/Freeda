@@ -2,6 +2,10 @@
 import re
 
 EN = {
+    "Lange Seite (px)": "Long edge (px)",
+    "Lange Seite in Pixeln": "Long edge in pixels",
+    "Lange Seite: Bitte eine ganze Zahl ab 16 px eingeben.": "Long edge: enter a whole number of 16 px or greater.",
+    "Gesamte Ausgabe: Außenradius % der Gesamtbreite": "Complete output: outer radius % of total width",
     "Text": "Text", "Logo": "Logo", "Logo wählen": "Choose logo", "Logo wählen …": "Choose logo …",
     "Kein Logo gewählt": "No logo selected", "Millimeter (mm)": "Millimetres (mm)",
     "Logohöhe in mm": "Logo height in mm", "Logoabstand oben mm": "Logo padding above mm",

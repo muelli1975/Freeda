@@ -15,6 +15,25 @@ with tempfile.TemporaryDirectory() as tmp:
     app.withdraw()
     try:
         assert app.caption_size_var.get() == 4
+        assert app.precision_button.master is app.print_precision.master
+        assert int(app.precision_button.grid_info()['row']) == 0
+        app._toggle_print_precision()
+        assert int(app.print_precision.grid_info()['row']) == 1
+        app._toggle_print_precision()
+        assert app.web_size_label.cget('text') == 'Lange Seite (px)'
+        assert 'bold' in app.image_shape_heading.cget('font')
+        assert app.reset_template_button.cget('state') == 'disabled'
+        app.size_var.set('Benutzerdefiniert')
+        for invalid in ('abc', '0', '15', 'nan', '2048.5'):
+            app.custom_width_var.set(invalid)
+            try:
+                app._web_options()
+                raise AssertionError('Invalid long edge accepted: ' + invalid)
+            except ValueError:
+                pass
+        app.custom_width_var.set('2049')
+        assert app._web_options().target_long_edge == 2049
+        app.size_var.set('2048')
         assert not app.print_precision.winfo_manager()
         assert app._web_options().eye_shape == EyeShape.ROUNDED
         assert app.image_radius_controls.winfo_manager() == 'grid'
@@ -116,10 +135,11 @@ with tempfile.TemporaryDirectory() as tmp:
         assert abs(before.eye_width_mm-after.eye_width_mm)<.001
         assert abs(before.y_mm[-1]-after.y_mm[-1])<.001
         app._language_changed("English")
-        assert app.outer_radius_label.cget('text') == 'Outer radius % of total width'
+        assert app.outer_radius_label.cget('text') == 'Complete output: outer radius % of total width'
         assert app.inner_radius_label.cget('text') == 'Image radius % of view width'
         assert "Image windows" in app.print_geometry_label.cget("text")
         assert app.tr("Creme") == "Cream"
+        assert app.web_size_label.cget('text') == 'Long edge (px)'
         # Invalid edited fields block an export and appear in the English summary.
         app.margin_bottom_var.set("nan")
         app._layout_changed()

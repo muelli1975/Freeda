@@ -20,7 +20,7 @@ class FeedbackTests(unittest.TestCase):
 
     def test_web_symbols_only_use_top_frame(self):
         for layout in (LayoutMode.PARALLEL, LayoutMode.CROSS, LayoutMode.BOTH):
-            options = WebRenderOptions(layout=layout, target_width=1280, frame_percent=3)
+            options = WebRenderOptions(layout=layout, target_long_edge=1280, frame_percent=3)
             geom = frame_geometry_for_total_width(1280, 3)
             eye_h = round(geom.eye_width * 2 / 3)
             result = render_web(self.source(), options)
@@ -50,13 +50,13 @@ class FeedbackTests(unittest.TestCase):
             items = discover_files([root])
             targets = export_targets(items, None, root, "web", OutputFormat.PNG)
             self.assertEqual(targets[0], root / "output/web/series/photo_freeda_web.png")
-            render_web_batch(items, root, WebRenderOptions(target_width=1280, output_format=OutputFormat.PNG), targets=targets)
+            render_web_batch(items, root, WebRenderOptions(target_long_edge=1280, output_format=OutputFormat.PNG), targets=targets)
             self.assertEqual(len(discover_files([root])), 1)
             second = export_targets(items, None, root, "web", OutputFormat.PNG)
             self.assertEqual(second[0], targets[0])
             original = source.read_bytes()
             first_export = targets[0].read_bytes()
-            render_web_batch(items, root, WebRenderOptions(target_width=1600, output_format=OutputFormat.PNG), targets=second)
+            render_web_batch(items, root, WebRenderOptions(target_long_edge=1600, output_format=OutputFormat.PNG), targets=second)
             self.assertNotEqual(targets[0].read_bytes(), first_export)
             self.assertEqual(source.read_bytes(), original)
             self.assertTrue(source.exists())

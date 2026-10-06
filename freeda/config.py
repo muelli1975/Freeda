@@ -5,7 +5,7 @@ from . import __version__
 
 APP_VERSION = __version__
 
-WEB_WIDTH_PRESETS = ("Original", "1280", "1600", "1920", "2048", "3840", "Benutzerdefiniert")
+WEB_SIZE_PRESETS = ("Original", "1280", "1600", "1920", "2048", "3840", "Benutzerdefiniert")
 LAYOUTS = ("Parallelblick + Kreuzblick", "Parallelblick", "Kreuzblick", "L–R–L")
 OUTPUT_FORMATS = ("JPEG", "PNG")
 
