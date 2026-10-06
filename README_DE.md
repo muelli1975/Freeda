@@ -1,4 +1,4 @@
-# Freeda 1.2
+# Freeda 1.1
 
 [English](README_EN.md)
 
@@ -10,9 +10,9 @@ Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und k
 
 ## Portable Windows-Version
 
-[Freeda 1.2 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.2)
+[Freeda 1.1 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
 
-1. `Freeda_1.2_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
+1. `Freeda_1.1_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
 2. `Freeda.exe` starten.
 3. Den Programmordner zusammenhalten; `_internal`, `tools` und die anderen mitgelieferten Dateien gehören zur Anwendung.
 
