@@ -141,16 +141,3 @@ jobs:
           gh release upload v1.1 artifacts/Freeda_1.1_Linux_x64.tar.gz artifacts/Freeda_1.1_macOS_AppleSilicon.zip artifacts/Freeda_1.1_macOS_Intel.zip artifacts/SHA256SUMS.txt --clobber
 
           gh release edit v1.1 --draft=false --latest
-
-      - name: Retire superseded 1.2 release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          if gh release view v1.2 >/dev/null 2>&1; then
-            release_id=$(gh api repos/$GH_REPO/releases/tags/v1.2 --jq '.id')
-            tag_sha=$(gh api repos/$GH_REPO/git/ref/tags/v1.2 --jq '.object.sha')
-            test "$release_id" = '404612290'
-            test "$tag_sha" = 'f255e7bb797de2fea537acf020d1962cf8aba8f1'
-            gh release delete v1.2 --cleanup-tag --yes
-          fi
