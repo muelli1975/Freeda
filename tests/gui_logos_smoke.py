@@ -9,7 +9,8 @@ from freeda.models import CaptionMode
 from freeda.batch import discover_files
 
 with tempfile.TemporaryDirectory() as tmp:
-    root = Path(tmp)
+    # Windows runners may spell TEMP with an 8.3 alias; compare resolved paths.
+    root = Path(tmp).resolve()
     program = root/'program';program.mkdir()
     source = root/'input';source.mkdir()
     Image.new('RGB',(600,200),'red').save(source/'sbs.png')
