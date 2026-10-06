@@ -1,4 +1,4 @@
-# Freeda 1.0
+# Freeda 1.1
 
 [Deutsch](README_DE.md)
 
@@ -10,9 +10,9 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 
 ## Portable Windows release
 
-[Download Freeda 1.0](https://github.com/muelli1975/Freeda/releases/tag/v1.0)
+[Download Freeda 1.1](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
 
-1. Extract the complete `Freeda_1.0_Windows_x64.zip` into a writable folder.
+1. Extract the complete `Freeda_1.1_Windows_x64.zip` into a writable folder.
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
 
@@ -33,7 +33,7 @@ All four variants are built from the same tagged source. Automated tests and pac
 5. Check the preview. Use Previous/Next to inspect other images.
 6. Start the export. Single-image export processes the displayed image; batch export processes the entire selection.
 
-The first launch uses German. Select English in the language control; Freeda remembers the last language. Other settings start at their defaults: Web, 2048 pixels, 4% frame width, 3.5% caption size, 300 dpi and 0 mm bleed with bleed preview enabled. Presets are applied only when explicitly selected.
+The first launch uses German. Select English in the language control; Freeda remembers the last language. Other settings start at their defaults: Web, 2048 pixels, 4% frame width, 4% caption size, 300 dpi and 0 mm bleed with bleed preview enabled. Presets are applied only when explicitly selected.
 
 ## Supported inputs
 
@@ -46,7 +46,7 @@ Freeda opens JPEG, PNG, TIFF, BMP and WebP images containing two equal-sized vie
 - **Parallel viewing + cross-eyed viewing:** both pairs in two rows.
 - **L–R–L:** three views in one row; the left pair supports parallel viewing and the right pair supports cross-eyed viewing.
 
-The II/X viewing symbols occupy a frame-width strip. In L–R–L they sit above the gaps between views. Captions appear below the images; their area can grow independently of the symbol strip. Long L–R–L captions shrink to 75% of the selected size if necessary, then end with an ellipsis. The lowest caption area uses one frame width less padding.
+The II/X viewing symbols occupy a frame-width strip. In L–R–L they sit above the gaps between views. Captions appear below the images; their area can grow independently of the symbol strip. Long L–R–L captions shrink to 75% of the selected size if necessary, then end with an ellipsis. With proportional frames, the lowest caption area uses one frame width less padding.
 
 ## Web and print
 
@@ -54,7 +54,29 @@ Web widths describe the complete finished graphic, including the frame. Use a pr
 
 Print offers preset and custom dimensions, freely entered positive integer dpi and a freely entered decimal **Bleed margin in mm**. Bleed starts at 0 mm; its preview is enabled so an added margin is immediately visible. The print format is filled completely; each eye image’s aspect ratio follows from paper size, layout, frame and captions. The crop dialog positions the image crop. Bleed uses the frame colour. Optional cutting lines and crop marks are grey. The preview fits the available space; its display scale is independent of export dpi.
 
-Frame width is adjustable from 0 to 5%, with 4% as the default. Caption font and size are adjustable, with 3.5% as the default. The caption font selection applies only to captions; II/X symbols retain the standard font. Both percentages refer to the width of one eye image and work the same way in Web and Print.
+Frame width is adjustable from 0 to 5%, with 4% as the default. Caption font and size are adjustable, with 4% as the default. The caption font selection applies only to captions; II/X symbols retain the standard font. Both percentages refer to the width of one eye image and work the same way in Web and Print. Caption padding is based on the font size: approximately 0.4 times above and 0.6 times below, with extra leading only between lines.
+
+Image windows can be rectangular, rounded at all corners, rounded only at the top or shaped as a classic shallow arch. The inner radius controls rounded corners; arch height is adjusted separately as a percentage of view width. These shapes work in Web, Print and the crop preview. The outer radius rounds the complete graphic, including bleed when present. PNG keeps transparent outer corners; JPEG fills them with black in Web and white in Print, as shown in the preview. Inner image corners reveal the selected frame colour.
+
+The 16 colour presets are arranged dark first, then light, with **Night gold** first and still the default. The original ten combinations remain available. Cream, Parchment, Honey card, Sage paper, Blue grey and Dusty rose add light card backgrounds with dark captions. Custom colours remain available.
+
+## Card templates and precise print margins
+
+Choose a **Card template** for a ready-made layout, or keep **Free layout** for proportional frames. Templates change the paper size, margins, image shape and viewing layout; they retain your colours, caption font and caption text.
+
+| Template | Finished card | Image windows | Gap between windows |
+| --- | --- | --- | --- |
+| Holmes card | 177.8 × 88.9 mm (7 × 3½ inches) | 76.2 × 76.2 mm | 1.6 mm |
+| Stereo card 18 × 9 cm | 180 × 90 mm | 76.2 × 76.2 mm | 2.6 mm |
+| Raumbild card 13 × 6 cm | 130 × 60 mm | 59 × 52 mm | 2 mm |
+
+These are editable layout suggestions, not universal standards for historical viewers. Holmes and 18 × 9 cm start with an arch; Raumbild starts rectangular. All use parallel viewing without II/X symbols. Check suitability for your viewer and the stereo content: image-centre distance alone does not determine viewing comfort.
+
+**Adjust margins and image windows** opens the precise settings. Choose **Exact margins in mm** to set the left/right outer margin, top margin, centre gap and bottom area independently. For two image rows, an additional row-gap field appears. The bottom area includes the caption and applies to each row. It does not change automatically when captions grow: Freeda reports insufficient space instead of shrinking the image windows. The displayed window dimensions and image-centre distance update immediately. Changed templates are marked as adjusted; **Reset template** restores their layout.
+
+In Print, captions can also use a freely entered size in points. Optional text padding above and below is entered in mm; empty fields use the automatic font-based spacing. Exact margins replace the percentage frame control; point sizing replaces the percentage caption control. Both settings are saved in portable presets. Existing 1.0 presets remain usable.
+
+Paper size, margins and crop aspect are calculated in millimetres before conversion to pixels, so changing dpi affects resolution rather than card geometry. Bleed is added outside the finished card in the frame colour. Print exported cards at **100% / actual size**, without automatic page fitting.
 
 For plain stereo cards, select Print, parallel or cross-eyed viewing, a 0% frame and an empty caption. The two views then meet directly without an outer frame or centre bar and fill the print format. **Show viewing symbols** independently toggles II/X; at 0% they are automatically omitted. Symbols remain enabled by default. Frame width and symbol visibility are saved in presets.
 

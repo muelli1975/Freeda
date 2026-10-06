@@ -6,7 +6,7 @@ import math
 from PIL import Image
 
 
-from .models import PrintRenderOptions
+from .models import PrintRenderOptions, OutputFormat
 
 from .geometry import mm_to_px
 
@@ -25,6 +25,14 @@ def fit_preview(image: Image.Image, width: int, height: int) -> Image.Image:
             max(1, min(height, round(image.height * scale))))
 
     return image.resize(size, Image.Resampling.LANCZOS)
+
+
+def preview_export_image(image, options):
+    """Match JPEG's opaque outer corners without flattening PNG previews."""
+    if options.output_format == OutputFormat.PNG:
+        return image
+    from .render import flatten_for_jpeg
+    return flatten_for_jpeg(image, "#ffffff" if isinstance(options, PrintRenderOptions) else "#000000")
 
 
 

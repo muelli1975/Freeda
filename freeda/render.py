@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from functools import lru_cache
 
 from PIL import Image, ImageDraw, ImageFont
 
 from .fonts import resolve_font, available_fonts
 from .cropping import fit_linked_crop
 from .geometry import frame_geometry_for_total_width
-from .models import Crop, LayoutMode, OutputFormat, WebRenderOptions
+from .models import Crop, EyeShape, LayoutMode, OutputFormat, WebRenderOptions
+from .eye_shapes import shape_eye, round_outer_corners
 
 
 def split_full_sbs(image: Image.Image) -> tuple[Image.Image, Image.Image]:
@@ -33,14 +35,15 @@ def crop_eye(image: Image.Image, crop: Crop) -> Image.Image:
     return image.crop((left, top, right, bottom))
 
 
+@lru_cache(maxsize=128)
 def _font(family: str, size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     target = resolve_font(family)
     if target:
         try:
-            return ImageFont.truetype(target, max(8, int(size)))
+            return ImageFont.truetype(target, max(1, int(size)))
         except OSError:
             pass
-    return ImageFont.load_default(size=max(8, int(size)))
+    return ImageFont.load_default(size=max(1, int(size)))
 
 
 def _text_height(font: ImageFont.ImageFont, text: str) -> int:
@@ -111,8 +114,9 @@ def _caption_lines(text, font, width):
 
 def _caption_metrics(text, font, width):
     lines = _caption_lines(text, font, width)
-    line_height = _text_height(font, "Ag") + max(2, round(getattr(font, "size", 10) * .2))
-    return lines, line_height, len(lines) * line_height
+    glyph_height = max([_text_height(font, "Ag")] + [_text_height(font, line) for line in lines])
+    leading = max(2, round(getattr(font, "size", 10) * .2))
+    return lines, glyph_height + leading, len(lines) * glyph_height + max(0, len(lines) - 1) * leading
 
 
 def _draw_caption(draw, text, center, y, font, fill, width):
@@ -122,13 +126,7 @@ def _draw_caption(draw, text, center, y, font, fill, width):
 
 
 def _rounded_eye(image: Image.Image, radius: int) -> Image.Image:
-    image = image.convert("RGBA")
-    if radius <= 0:
-        return image
-    mask = Image.new("L", image.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, image.width - 1, image.height - 1), radius=radius, fill=255)
-    image.putalpha(mask)
-    return image
+    return shape_eye(image, radius)
 
 
 def _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color):
@@ -156,6 +154,8 @@ def _row(
     inner_radius_percent: float,
     eye_count: int = 2,
     show_symbols: bool = True,
+    eye_shape: EyeShape = EyeShape.ROUNDED,
+    arch_height_percent: float = 18.0,
 ) -> Image.Image:
     geom = frame_geometry_for_total_width(total_width, frame_percent, eye_count)
     eye_w = geom.eye_width
@@ -169,8 +169,9 @@ def _row(
         caption, caption_font = _fit_lrl_caption(caption, caption_font, font_family, eye_w)
     _, _, caption_h = _caption_metrics(caption, caption_font, eye_w)
 
-    caption_gap = max(frame, round(eye_w * 0.010)) if caption else 0
-    caption_band = caption_h + 2 * caption_gap if caption else 0
+    caption_gap = max(1, round(caption_font.size * .4)) if caption else 0
+    caption_bottom = max(1, round(caption_font.size * .6)) if caption else 0
+    caption_band = caption_h + caption_gap + caption_bottom if caption else 0
 
     height = frame + eye_h + caption_band + frame
     row = Image.new("RGBA", (total_width, height), frame_color)
@@ -185,7 +186,7 @@ def _row(
         # Fill integer rounding remainder without introducing an outer strip.
         width = total_width - x if frame == 0 and index == eye_count - 1 else eye_w
         eye = eye.resize((width, eye_h), Image.Resampling.LANCZOS)
-        row.alpha_composite(_rounded_eye(eye, radius), (x, image_y))
+        row.alpha_composite(shape_eye(eye, radius, eye_shape, arch_height_percent), (x, image_y))
     if show_symbols and frame > 0:
         _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color)
 
@@ -228,6 +229,8 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             inner_radius_percent=options.inner_radius_percent,
             eye_count=3 if options.layout == LayoutMode.LRL else 2,
             show_symbols=options.show_symbols,
+            eye_shape=options.eye_shape,
+            arch_height_percent=options.arch_height_percent,
         ))
     if options.layout in (LayoutMode.BOTH, LayoutMode.CROSS):
         rows.append(_row(
@@ -242,6 +245,8 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             caption_size_percent=options.caption_size_percent,
             inner_radius_percent=options.inner_radius_percent,
             show_symbols=options.show_symbols,
+            eye_shape=options.eye_shape,
+            arch_height_percent=options.arch_height_percent,
         ))
 
     if options.caption and rows:
@@ -264,12 +269,15 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
                 y -= frame
 
     radius = max(0, round(result.width * max(0.0, options.outer_radius_percent) / 100.0))
-    if radius > 0:
-        mask = Image.new("L", result.size, 0)
-        ImageDraw.Draw(mask).rounded_rectangle((0, 0, result.width - 1, result.height - 1), radius=radius, fill=255)
-        result.putalpha(mask)
+    return round_outer_corners(result, radius)
 
-    return result
+
+def flatten_for_jpeg(image: Image.Image, background_color: str = "#000000") -> Image.Image:
+    if image.mode == "RGBA":
+        background = Image.new("RGB", image.size, background_color)
+        background.paste(image, mask=image.getchannel("A"))
+        return background
+    return image.convert("RGB")
 
 
 def save_render(
@@ -278,7 +286,7 @@ def save_render(
     output_format: OutputFormat,
     *,
     dpi: int | None = None,
-    background_color: str = "#111111",
+    background_color: str = "#000000",
     metadata_source: Path | None = None,
 ):
     path = Path(path)
@@ -289,13 +297,9 @@ def save_render(
     if output_format == OutputFormat.PNG:
         image.save(path.with_suffix(".png"), format="PNG", optimize=True, **kwargs)
     else:
-        # 4:4:4 = subsampling 0.  Alpha is flattened onto the frame colour by
-        # the caller/rendering defaults; JPEG itself cannot carry transparency.
-        if image.mode == "RGBA":
-            background = Image.new("RGB", image.size, background_color)
-            background.paste(image, mask=image.getchannel("A"))
-            image = background
-        image.convert("RGB").save(
+        # 4:4:4 = subsampling 0. JPEG cannot carry transparency.
+        image = flatten_for_jpeg(image, background_color)
+        image.save(
             path.with_suffix(".jpg"),
             format="JPEG",
             quality=90,

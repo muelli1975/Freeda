@@ -8,6 +8,8 @@ import tarfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root))
+from freeda import __version__
 parser = argparse.ArgumentParser()
 parser.add_argument('--label', required=True)
 args = parser.parse_args()
@@ -22,7 +24,8 @@ if sys.platform == 'darwin':
 subprocess.run(command + ['Freeda.py'], cwd=root, check=True)
 release = root / 'release'
 release.mkdir(exist_ok=True)
-name = 'Freeda_1.0_' + args.label
+version = __version__.removesuffix('.0')
+name = 'Freeda_' + version + '_' + args.label
 if sys.platform == 'darwin':
     package = release / name
     package.mkdir(exist_ok=True)

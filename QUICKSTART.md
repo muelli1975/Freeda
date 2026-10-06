@@ -1,4 +1,4 @@
-# Freeda 1.0 – Kurzstart
+# Freeda 1.1 – Kurzstart
 
 1. ZIP vollständig in einen frei beschreibbaren Ordner entpacken. `Freeda.exe`, `_internal` und `tools` zusammen lassen.
 2. `Freeda.exe` starten. Freeda beginnt mit der zuletzt gewählten Sprache, im Webmodus, mit 2048 Pixeln und den Standardwerten. Beim ersten Start ist Deutsch voreingestellt.
@@ -15,6 +15,12 @@ Ausschnitte bleiben ohne Zusatzoption nur während der Sitzung erhalten. Mit „
 Eigene Presets werden in `settings.json` neben der EXE gespeichert und ausschließlich beim Auswählen angewendet. Zum Update die Datei in den neuen Programmordner übernehmen. Originalbilder, bildbezogene Untertitel und individuelle Ausschnitte gehören nicht zu den Presets.
 
 ## Vorschau und Druck
+
+Bei Print liefern Holmes-Karte, Stereokarte 18 × 9 cm und Raumbildkarte 13 × 6 cm fertige, anpassbare Layouts. Sie verwenden Parallelblick ohne Blicksymbole und lassen Farben, Schrift und Untertiteltext unverändert. „Ränder und Bildfenster anpassen …“ klappt genaue Millimeterwerte auf. Der untere Bereich umfasst den Untertitel; bei Platzmangel erscheint ein Hinweis. Bildfenstermaße und Bildmittenabstand werden angezeigt. „Vorlage zurücksetzen“ stellt die gewählte Vorlage wieder her. Die Vorlagen sind Layoutvorschläge und müssen zum eigenen Betrachter und Stereobild passen.
+
+Alternativ „Freies Layout“ für proportionale Rahmen verwenden. Exakte mm-Ränder und Prozentrahmen sind alternative Einstellungen. Untertitel starten mit 4 %; bei Print sind auch frei eingegebene Punktgrößen und Textabstände in mm möglich. Leere Textabstandsfelder verwenden automatische Abstände. Karten mit 100 % / tatsächlicher Größe drucken, ohne automatische Seitenanpassung.
+
+„Bildkontur“ bietet Rechteck, gerundete Ecken, nur oben gerundete Ecken und einen klassischen Bogen mit eigener Höheneinstellung. Der Außenradius rundet die fertige Grafik. JPEG füllt transparente Außenecken bei Web schwarz und bei Print weiß; PNG erhält die Transparenz. Die ausgesparten Ecken der Bildfenster bleiben in Rahmenfarbe. Die 16 Farbpresets stehen dunkel vor hell, Nachtgold bleibt Standard.
 
 Die Vorschau passt sich dem verfügbaren Platz an; ihre Anzeigeauflösung ist von den Export-dpi unabhängig. Bei Print startet der Beschnittrand mit 0 mm. „Beschnittrand in Vorschau zeigen“ ist eingeschaltet und zeigt einen eingegebenen zusätzlichen Rand sofort mit an. Schneidelinie und Schnittmarken sind mittelgrau.
 

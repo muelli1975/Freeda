@@ -23,6 +23,22 @@ class CuttingGuide(str, Enum):
     MARKS = "marks"
 
 
+class EyeShape(str, Enum):
+    RECTANGLE = "rectangle"
+    ROUNDED = "rounded"
+    TOP_ROUNDED = "top_rounded"
+    ARCH = "arch"
+
+
+@dataclass(frozen=True)
+class PrintMargins:
+    side_mm: float = 5.0
+    top_mm: float = 3.0
+    centre_mm: float = 2.0
+    bottom_mm: float = 8.0
+    row_gap_mm: float = 3.0
+
+
 @dataclass(frozen=True)
 class Crop:
     x: float = 0.0
@@ -50,10 +66,12 @@ class WebRenderOptions:
     inner_radius_percent: float = 0.0
     caption: str = ""
     font_family: str = "Segoe UI"
-    caption_size_percent: float = 3.5
+    caption_size_percent: float = 4.0
     output_format: OutputFormat = OutputFormat.JPEG
     crop: Crop = Crop()
     show_symbols: bool = True
+    eye_shape: EyeShape = EyeShape.ROUNDED
+    arch_height_percent: float = 18.0
 
 
 @dataclass(frozen=True)
@@ -68,13 +86,20 @@ class PrintRenderOptions:
     accent_color: str = "#c6a95e"
     caption: str = ""
     font_family: str = "Segoe UI"
-    caption_size_percent: float = 3.5
+    caption_size_percent: float = 4.0
     crop: Crop = Crop()
     manual_crop_each_image: bool = True
     inner_radius_percent: float = 0.0
     output_format: OutputFormat = OutputFormat.JPEG
     cutting_guide: CuttingGuide = CuttingGuide.NONE
     show_symbols: bool = True
+    outer_radius_percent: float = 0.0
+    eye_shape: EyeShape = EyeShape.ROUNDED
+    arch_height_percent: float = 18.0
+    margins: PrintMargins | None = None
+    caption_points: float | None = None
+    caption_gap_top_mm: float | None = None
+    caption_gap_bottom_mm: float | None = None
 
 
 @dataclass(frozen=True)

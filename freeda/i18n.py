@@ -2,6 +2,43 @@
 import re
 
 EN = {
+    "Bildkontur": "Image shape",
+    "Rechteckig": "Rectangular",
+    "Alle Ecken gerundet": "All corners rounded",
+    "Nur obere Ecken gerundet": "Top corners rounded",
+    "Klassischer Bogen": "Classic arch",
+    "Bogenhöhe % der Halbbildbreite": "Arch height % of view width",
+    "Creme": "Cream", "Pergament": "Parchment", "Honigkarton": "Honey card",
+    "Salbeipapier": "Sage paper", "Blaugrau": "Blue grey", "Altrosa": "Dusty rose",
+    "Kartenvorlage": "Card template", "Freies Layout": "Free layout", "Holmes-Karte": "Holmes card",
+    "Ränder und Bildfenster anpassen …": "Adjust margins and image windows …",
+    "Genaue Einstellungen einklappen": "Collapse precise settings",
+    "Randberechnung": "Margin calculation", "Proportional": "Proportional",
+    "Exakte Ränder in mm": "Exact margins in mm",
+    "Außenrand links/rechts mm": "Left/right margin mm", "Mittelsteg mm": "Centre gap mm",
+    "Oberer Rand mm": "Top margin mm", "Unterer Bereich mm": "Bottom area mm",
+    "Abstand der Bildzeilen mm": "Gap between image rows mm",
+    "Unterer Bereich: vom Bildrand zur Schnittkante, einschließlich Untertitel; bei zwei Bildzeilen je Zeile.":
+        "Bottom area: from image edge to trim edge, including caption; for two image rows, per row.",
+    "Textabstand oben mm": "Text padding above mm", "Textabstand unten mm": "Text padding below mm",
+    "Automatisch": "Automatic", "Vorlage zurücksetzen": "Reset template",
+    "Beim Drucken: 100 % / tatsächliche Größe.": "Print at 100 % / actual size.",
+    "Rahmen: exakte Ränder in mm": "Frame: exact margins in mm",
+    "Prozent": "Percent", "Punkt (pt)": "Points (pt)",
+    "Schriftgröße in pt": "Font size in pt",
+    "Stereokarte 7 × 3½ Zoll": "Stereo card 7 × 3½ inches",
+    "Leere Textabstände: automatisch nach Schriftgröße.": "Empty text padding: automatic, based on font size.",
+    "Kartenmaße: Bitte positive Werte in mm eingeben.": "Card dimensions: enter positive values in mm.",
+    "Ränder: Bitte endliche Werte ab 0 mm eingeben.": "Margins: enter finite values of 0 mm or greater.",
+    "Textabstände: Bitte Werte ab 0 mm eingeben.": "Text padding: enter values of 0 mm or greater.",
+    "Bogenhöhe: Bitte einen Wert von 0 bis 100 % eingeben.": "Arch height: enter a value from 0 to 100 %.",
+    "Schriftgröße: Bitte einen positiven Wert in pt eingeben.": "Font size: enter a positive value in pt.",
+    "Untertitelgröße: Bitte einen positiven Wert eingeben.": "Caption size: enter a positive value.",
+    "Rahmenbreite: Bitte einen Wert ab 0 eingeben.": "Frame width: enter a value of 0 or greater.",
+    "Die Ränder lassen keinen Platz für die Bildfenster.": "The margins leave no room for the image windows.",
+    "Die Auflösung ist für die Bildfenster zu niedrig.": "The resolution is too low for the image windows.",
+    "Der Untertitel passt nicht in den unteren Bereich. Bereich vergrößern oder Schrift/Text verkleinern.":
+        "The caption does not fit in the bottom area. Increase the area or reduce the font size/text.",
     "Drittelraster": "Rule-of-thirds grid",
     "Bildausschnitte merken": "Remember image crops",
     "Im Bilderordner speichern und beim Laden wiederherstellen.": "Save in the image folder and restore when loading.",
@@ -94,6 +131,10 @@ def translate(text: str, language: str) -> str:
     if text in EN:
         return EN[text]
     patterns = [
+        (r"Untertitelgröße: (.*) pt", lambda m: "Caption size: " + m[1].replace(",", ".") + " pt"),
+        (r"(Vorlage angepasst\n)?Bildfenster: (.*) × (.*) mm\nBildmitten: (.*) mm", lambda m:
+            ("Template adjusted\n" if m[1] else "") + "Image windows: " + m[2].replace(",", ".") + " × " +
+            m[3].replace(",", ".") + " mm\nImage centres: " + m[4].replace(",", ".") + " mm"),
         (r"Batch exportieren \((\d+) Bilder\)", lambda m: "Export batch (" + m[1] + " images)"),
         (r"Verarbeitung (\d+/\d+): (.*)", lambda m: "Processing " + m[1] + ": " + m[2]),
         (r"Ausschnitt (\d+/\d+): (.*)", lambda m: "Crop " + m[1] + ": " + m[2]),

@@ -66,7 +66,7 @@ def render_web_batch(
             source.load()
             rendered = render_web(source.convert("RGB"), current)
         metadata = save_render(rendered, target, current.output_format,
-            background_color=current.frame_color, metadata_source=item.source)
+            background_color="#000000", metadata_source=item.source)
         if not metadata.success and metadata_warnings is not None:
             metadata_warnings.append(f"{item.source.name}: {metadata.message}")
         written.append(target)

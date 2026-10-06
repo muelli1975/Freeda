@@ -16,7 +16,8 @@ if (-not (Test-Path (Join-Path $Venv "Scripts\python.exe"))) {
 }
 $Python = Join-Path $Venv "Scripts\python.exe"
 $Version = (& $Python -c "from freeda import __version__; print(__version__)").Trim()
-$PackageName = "Freeda_1.0_Windows_x64"
+$DisplayVersion = $Version -replace '\.0$', ''
+$PackageName = "Freeda_${DisplayVersion}_Windows_x64"
 $Package = Join-Path $Release $PackageName
 $Zip = Join-Path $Release "$PackageName.zip"
 

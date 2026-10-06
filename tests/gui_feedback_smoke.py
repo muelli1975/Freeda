@@ -51,6 +51,7 @@ try:
         assert app.start_button.cget("text") == "Batch exportieren (2 Bilder)"
         app.mode_var.set("Web")
         app._mode_changed("Web")
+        app.outer_radius_var.set("5")
         app.start_batch()
         import time
         deadline = time.monotonic() + 20
@@ -63,6 +64,9 @@ try:
         app.mainloop()
         assert not app._busy
         assert len(list((root / "output/web").glob("*.jpg"))) == 2
+        for output in (root / "output/web").glob("*.jpg"):
+            with Image.open(output) as web:
+                assert max(web.getpixel((0,0))) < 3
         assert app.status.cget("text") == "Fertig – 2 Dateien"
         app.input_root = None
         app.items = app.items[:1]
@@ -88,6 +92,7 @@ try:
         assert len(outputs) == 1
         with Image.open(outputs[0]) as printed:
             assert round(printed.info["dpi"][0]) == 450
+            assert min(printed.getpixel((0,0))) > 252
         app.dpi_var.set("300")
         assert app.status.cget("text") == "Fertig – 1 Datei"
         class CancelDialog(real_dialog):

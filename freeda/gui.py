@@ -25,16 +25,18 @@ from .config import (
     LAYOUTS,
     OUTPUT_FORMATS,
     PRINT_FORMAT_PRESETS,
+    CARD_TEMPLATES,
     WEB_WIDTH_PRESETS,
 )
 from .fonts import available_fonts
 from .i18n import translate
-from .models import Crop, CuttingGuide, LayoutMode, OutputFormat, PrintRenderOptions, WebRenderOptions
+from .models import Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
+from .print_layout import print_layout
 from .notifications import play_ready_sound
 from .output import export_targets
 from .print_flow import CropBatchMode, PrintBatchSession
 from .print_render import crop_for_aspect, print_eye_aspect, render_print
-from .preview import fit_preview, parse_bleed, parse_dpi, print_preview_options, print_preview_image
+from .preview import fit_preview, parse_bleed, parse_dpi, print_preview_options, print_preview_image, preview_export_image
 from .render import render_web, save_render, split_full_sbs, _font
 from .resources import resource_path, portable_settings_path
 from .window import fit_window
@@ -97,6 +99,15 @@ _CROP_MODES = {
     "Gleichen Ausschnitt verwenden": CropBatchMode.REUSE,
 }
 
+_EYE_SHAPES = {"Rechteckig": EyeShape.RECTANGLE, "Alle Ecken gerundet": EyeShape.ROUNDED,
+               "Nur obere Ecken gerundet": EyeShape.TOP_ROUNDED, "Klassischer Bogen": EyeShape.ARCH}
+
+_NEW_PRESET_VARIABLES = (
+    "eye_shape_var", "arch_height_var", "card_template_var", "margin_mode_var",
+    "margin_side_var", "margin_top_var", "margin_centre_var", "margin_bottom_var", "margin_row_gap_var",
+    "caption_unit_var", "caption_points_var", "caption_gap_top_var", "caption_gap_bottom_var",
+)
+
 _PRESET_VARIABLES = (
     "mode_var", "layout_var", "size_var", "custom_width_var", "print_format_var",
     "print_width_var", "print_height_var", "dpi_var", "bleed_var", "show_bleed_var",
@@ -105,7 +116,7 @@ _PRESET_VARIABLES = (
     "caption_size_var", "format_var", "aspect_var", "custom_aspect_var",
     "web_crop_mode_var", "web_review_var",
     "show_symbols_var",
-)
+) + _NEW_PRESET_VARIABLES
 
 
 class LocalisedUI:
@@ -399,7 +410,7 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
                 rendered = render_web(self.source, preview_options)
                 if self.grid_var.get():
                     rendered = crop_grid(rendered, self.source, preview_options)
-                rendered = fit_preview(rendered, max_w, max_h)
+                rendered = fit_preview(preview_export_image(rendered, preview_options), max_w, max_h)
             else:
                 preview_options = print_preview_options(replace(self.options, crop=self.current_crop()), max_w, max_h)
                 rendered = render_print(self.source, preview_options)
@@ -408,7 +419,7 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
                 bleed = round(preview_options.bleed_mm * preview_options.dpi / 25.4)
                 trim_w = round(preview_options.width_mm * preview_options.dpi / 25.4)
                 trim_h = round(preview_options.height_mm * preview_options.dpi / 25.4)
-                rendered = fit_preview(rendered.crop((bleed,bleed,bleed+trim_w,bleed+trim_h)), max_w, max_h)
+                rendered = fit_preview(preview_export_image(rendered.crop((bleed,bleed,bleed+trim_w,bleed+trim_h)), preview_options), max_w, max_h)
             self.preview_photo = ImageTk.PhotoImage(rendered)
             self.preview_label.configure(image=self.preview_photo, text="")
         except Exception as exc:
@@ -468,6 +479,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.preview_photo = None
         self._preview_job = None
         self._busy = False
+        self._ui_ready = False
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -505,6 +517,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.preview_note.grid(row=1, column=0, sticky="ew", padx=18, pady=(0, 10))
 
         self._build_sidebar()
+        self._ui_ready = True
+        self._preset_extension_defaults = {key: getattr(self, key).get() for key in _NEW_PRESET_VARIABLES}
+        self._refresh_layout_controls()
+        self._refresh_print_summary()
         self.bind("<Prior>", lambda e: self.navigate(-1))
         self.bind("<Next>", lambda e: self.navigate(1))
         self._remember_texts(self)
@@ -724,6 +740,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if self._busy or name not in self.presets:
             return
         values = self.presets[name]
+        # A 1.0 preset must not inherit exact margins or a contour from another preset.
+        for key, default in self._preset_extension_defaults.items():
+            if key not in values:
+                getattr(self, key).set(default)
         for key in _PRESET_VARIABLES:
             if key not in values:
                 continue
@@ -755,6 +775,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._frame_changed(self.frame_var.get())
         self._caption_size_changed(self.caption_size_var.get())
         self._aspect_changed(self.aspect_var.get(), clear=False)
+        self._refresh_layout_controls()
         self._set_text(self.status, "Preset geladen")
 
     def _set_start_button_normal(self) -> None:
@@ -877,7 +898,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._label(self.sidebar, "Ansicht").grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
         self._option(
-            self.sidebar, self.layout_var, LAYOUTS, lambda _v: self.schedule_preview()
+            self.sidebar, self.layout_var, LAYOUTS, lambda _v: self._layout_changed()
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 10))
         row += 1
 
@@ -988,6 +1009,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             tuple(_CUTTING_GUIDES.keys()),
             lambda _v: self.schedule_preview(),
         ).grid(row=8, column=0, sticky="ew", pady=(3, 12))
+        self._build_print_precision()
         self.print_controls.grid_remove()
 
         crop_buttons = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -1011,7 +1033,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.frame_label.grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
         self.frame_var = tk.DoubleVar(value=4.0)
-        ctk.CTkSlider(
+        self.frame_slider = ctk.CTkSlider(
             self.sidebar,
             from_=0.0,
             to=5.0,
@@ -1022,12 +1044,30 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             button_color=SLIDER_BUTTON,
             button_hover_color=SLIDER_BUTTON_HOVER,
             fg_color=SLIDER_TRACK,
-        ).grid(row=row, column=0, sticky="ew", padx=20, pady=(2, 10))
+        )
+        self.frame_slider.grid(row=row, column=0, sticky="ew", padx=20, pady=(2, 10))
         row += 1
 
         self.show_symbols_var = tk.BooleanVar(value=True)
         self.show_symbols_checkbox = self._checkbox(self.sidebar, "Blicksymbole anzeigen", self.show_symbols_var, self.schedule_preview)
         self.show_symbols_checkbox.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 10))
+        row += 1
+
+        self._label(self.sidebar, "Bildkontur").grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
+        self.eye_shape_var = tk.StringVar(value="Alle Ecken gerundet")
+        self._option(self.sidebar, self.eye_shape_var, tuple(_EYE_SHAPES),
+                     lambda _v: self._layout_changed()).grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 8))
+        row += 1
+        self.arch_height_var = tk.StringVar(value="18")
+        self.arch_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        self.arch_controls.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
+        self.arch_controls.grid_columnconfigure(0, weight=1)
+        self._label(self.arch_controls, "Bogenhöhe % der Halbbildbreite").grid(row=0, column=0, sticky="ew")
+        self.arch_entry = self._entry(self.arch_controls, self.arch_height_var)
+        self.arch_entry.grid(row=1, column=0, sticky="ew", pady=(3, 0))
+        self.arch_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.arch_controls.grid_remove()
         row += 1
 
         radius_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -1045,6 +1085,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             block.grid(row=0, column=col, sticky="ew", padx=(0, 4) if col == 0 else (4, 0))
             self._label(block, label).pack(fill="x")
             entry = self._entry(block, var)
+            if var is self.inner_radius_var:
+                self.inner_radius_entry = entry
+            else:
+                self.outer_radius_entry = entry
             entry.pack(fill="x", pady=(3, 0))
             entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
 
@@ -1092,14 +1136,27 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._font_picker(self.sidebar).grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
         row += 1
 
-        self.caption_size_var = tk.DoubleVar(value=3.5)
-        self.caption_size_label = self._label(self.sidebar, "Untertitelgröße: 3,50 % je Halbbild")
+        self.print_caption_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        self.print_caption_controls.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
+        self.print_caption_controls.grid_columnconfigure(0, weight=1)
+        self.caption_unit_var = tk.StringVar(value="Prozent")
+        self._option(self.print_caption_controls, self.caption_unit_var, ("Prozent", "Punkt (pt)"),
+                     lambda _v: self._layout_changed()).grid(row=0, column=0, sticky="ew")
+        self.caption_points_var = tk.StringVar(value="9")
+        self.caption_points_entry = self._entry(self.print_caption_controls, self.caption_points_var, "Schriftgröße in pt")
+        self.caption_points_entry.grid(row=1, column=0, sticky="ew", pady=(4, 0))
+        self.caption_points_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.print_caption_controls.grid_remove()
+        row += 1
+        self.caption_size_var = tk.DoubleVar(value=4.0)
+        self.caption_size_label = self._label(self.sidebar, "Untertitelgröße: 4,00 % je Halbbild")
         self.caption_size_label.grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
-        ctk.CTkSlider(self.sidebar, from_=1.0, to=8.0, number_of_steps=140,
+        self.caption_slider = ctk.CTkSlider(self.sidebar, from_=1.0, to=8.0, number_of_steps=140,
                       variable=self.caption_size_var, command=self._caption_size_changed,
                       progress_color=SLIDER_PROGRESS, button_color=SLIDER_BUTTON,
-                      button_hover_color=SLIDER_BUTTON_HOVER, fg_color=SLIDER_TRACK).grid(
+                      button_hover_color=SLIDER_BUTTON_HOVER, fg_color=SLIDER_TRACK)
+        self.caption_slider.grid(
             row=row, column=0, sticky="ew", padx=20, pady=(2, 12))
         row += 1
 
@@ -1158,6 +1215,184 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
         self._mode_changed("Web")
 
+    def _build_print_precision(self):
+        for widget in self.print_controls.winfo_children():
+            info = widget.grid_info()
+            if info:
+                widget.grid_configure(row=int(info["row"]) + 4)
+        self.custom_print.grid(row=6, column=0, sticky="ew", pady=(0, 8))
+        self.custom_print.grid_remove()
+        self.card_template_var = tk.StringVar(value="Freies Layout")
+        self.margin_mode_var = tk.StringVar(value="Proportional")
+        self._label(self.print_controls, "Kartenvorlage").grid(row=0, column=0, sticky="ew")
+        self._option(self.print_controls, self.card_template_var, tuple(CARD_TEMPLATES),
+                     self._card_template_changed).grid(row=1, column=0, sticky="ew", pady=(4, 6))
+        self.print_geometry_label = self._label(self.print_controls, "")
+        self.print_geometry_label.configure(wraplength=330, justify="left")
+        self.print_geometry_label.grid(row=2, column=0, sticky="ew", pady=(0, 6))
+        self.precision_button = self._button(self.print_controls, "Ränder und Bildfenster anpassen …", self._toggle_print_precision)
+        self.precision_button.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+        self.print_precision = ctk.CTkFrame(self.print_controls, fg_color=BG_SOFT, corner_radius=RADIUS_CONTROL)
+        self.print_precision.grid(row=13, column=0, sticky="ew", pady=(0, 12))
+        self.print_precision.grid_columnconfigure(0, weight=1)
+        self._label(self.print_precision, "Randberechnung").grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 3))
+        self._option(self.print_precision, self.margin_mode_var, ("Proportional", "Exakte Ränder in mm"),
+                     self._margin_mode_changed).grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self.margin_fields = ctk.CTkFrame(self.print_precision, fg_color="transparent")
+        self.margin_fields.grid(row=2, column=0, sticky="ew", padx=12)
+        self.margin_fields.grid_columnconfigure((0, 1), weight=1)
+        for index, (key, label, default) in enumerate((
+            ("side", "Außenrand links/rechts mm", "5"),
+            ("centre", "Mittelsteg mm", "2"),
+            ("top", "Oberer Rand mm", "3"),
+            ("bottom", "Unterer Bereich mm", "8"),
+            ("row_gap", "Abstand der Bildzeilen mm", "3"),
+        )):
+            variable = tk.StringVar(value=default)
+            setattr(self, f"margin_{key}_var", variable)
+            block = ctk.CTkFrame(self.margin_fields, fg_color="transparent")
+            block.grid(row=index // 2, column=index % 2, sticky="ew", padx=(0, 4) if index % 2 == 0 else (4, 0), pady=(0, 8))
+            label_widget = self._label(block, label)
+            label_widget.configure(wraplength=140, justify="left")
+            label_widget.pack(fill="x")
+            entry = self._entry(block, variable)
+            entry.pack(fill="x", pady=(3, 0))
+            entry.bind("<KeyRelease>", lambda _e: self._layout_changed())
+            if key == "row_gap":
+                self.row_gap_controls = block
+        hint = self._label(self.margin_fields, "Unterer Bereich: vom Bildrand zur Schnittkante, einschließlich Untertitel; bei zwei Bildzeilen je Zeile.")
+        hint.configure(wraplength=300, justify="left")
+        hint.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        self.caption_gap_top_var = tk.StringVar(value="")
+        self.caption_gap_bottom_var = tk.StringVar(value="")
+        for row, (text, variable) in enumerate((("Textabstand oben mm", self.caption_gap_top_var),
+                                                ("Textabstand unten mm", self.caption_gap_bottom_var)), 3):
+            self._label(self.print_precision, text).grid(row=row * 2 - 3, column=0, sticky="ew", padx=12)
+            entry = self._entry(self.print_precision, variable, "Automatisch")
+            entry.grid(row=row * 2 - 2, column=0, sticky="ew", padx=12, pady=(3, 8))
+            entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        automatic_hint = self._label(self.print_precision, "Leere Textabstände: automatisch nach Schriftgröße.")
+        automatic_hint.configure(wraplength=300, justify="left")
+        automatic_hint.grid(row=7, column=0, sticky="ew", padx=12, pady=(0, 8))
+        self._button(self.print_precision, "Vorlage zurücksetzen", self._reset_card_template).grid(
+            row=8, column=0, sticky="ew", padx=12, pady=(0, 12))
+        self.print_precision.grid_remove()
+        print_hint = self._label(self.print_controls, "Beim Drucken: 100 % / tatsächliche Größe.")
+        print_hint.configure(wraplength=330)
+        print_hint.grid(row=14, column=0, sticky="ew", pady=(0, 12))
+
+    def _toggle_print_precision(self):
+        if self.print_precision.winfo_manager():
+            self.print_precision.grid_remove()
+            self._set_text(self.precision_button, "Ränder und Bildfenster anpassen …")
+        else:
+            self.print_precision.grid()
+            self._set_text(self.precision_button, "Genaue Einstellungen einklappen")
+
+    @staticmethod
+    def _number(value, message, *, zero=False):
+        try:
+            number = float(value.strip().replace(",", "."))
+        except (ValueError, AttributeError):
+            raise ValueError(message) from None
+        if not math.isfinite(number) or number < 0 or (number == 0 and not zero):
+            raise ValueError(message)
+        return number
+
+    def _card_template_changed(self, name):
+        template = CARD_TEMPLATES.get(name)
+        if template:
+            paper, margins, shape = template
+            self.print_format_var.set(paper)
+            self.margin_mode_var.set("Exakte Ränder in mm")
+            for key in ("side", "top", "centre", "bottom", "row_gap"):
+                getattr(self, f"margin_{key}_var").set(str(getattr(margins, f"{key}_mm")))
+            self.layout_var.set("Parallelblick")
+            self.show_symbols_var.set(False)
+            self.eye_shape_var.set(shape)
+            self.arch_height_var.set("18")
+            self.outer_radius_var.set("0")
+        elif name == "Freies Layout":
+            self.margin_mode_var.set("Proportional")
+        elif name == "Benutzerdefiniert":
+            self._margin_mode_changed("Exakte Ränder in mm")
+        self._print_format_changed(self.print_format_var.get())
+        self._layout_changed()
+
+    def _reset_card_template(self):
+        if CARD_TEMPLATES.get(self.card_template_var.get()):
+            self._card_template_changed(self.card_template_var.get())
+        else:
+            self.margin_mode_var.set("Proportional")
+        self.caption_gap_top_var.set("")
+        self.caption_gap_bottom_var.set("")
+        self._layout_changed()
+
+    def _margin_mode_changed(self, value):
+        # Convert the visible proportional layout rather than jumping to arbitrary margins.
+        if value == "Exakte Ränder in mm":
+            try:
+                current = print_layout(replace(self._print_options(validate=False), margins=None))
+                side = current.x_mm[0]
+                bottom = current.height_mm - current.y_mm[-1] - current.eye_height_mm
+                values = {"side": side, "top": current.y_mm[0], "centre": current.centre_mm,
+                          "bottom": bottom, "row_gap": current.symbol_bands_mm[-1]}
+                for key, number in values.items():
+                    getattr(self, f"margin_{key}_var").set(f"{number:.4f}")
+            except ValueError:
+                pass
+        self.margin_mode_var.set(value)
+        self._layout_changed()
+
+    def _layout_changed(self):
+        self._refresh_layout_controls()
+        self.schedule_preview()
+
+    def _refresh_layout_controls(self):
+        if not self._ui_ready:
+            return
+        is_print = self.mode_var.get() == "Print"
+        exact = is_print and self.margin_mode_var.get() == "Exakte Ränder in mm"
+        self.margin_fields.grid() if self.margin_mode_var.get() == "Exakte Ränder in mm" else self.margin_fields.grid_remove()
+        self.row_gap_controls.grid() if self.layout_var.get() == "Parallelblick + Kreuzblick" else self.row_gap_controls.grid_remove()
+        self.arch_controls.grid() if self.eye_shape_var.get() == "Klassischer Bogen" else self.arch_controls.grid_remove()
+        self.print_caption_controls.grid() if is_print else self.print_caption_controls.grid_remove()
+        points = is_print and self.caption_unit_var.get() == "Punkt (pt)"
+        self.caption_points_entry.grid() if points else self.caption_points_entry.grid_remove()
+        for slider, disabled in ((self.frame_slider, exact or self._busy), (self.caption_slider, points or self._busy)):
+            slider.configure(state="disabled" if disabled else "normal", progress_color=BORDER if disabled else SLIDER_PROGRESS,
+                             button_color=TEXT_DISABLED if disabled else SLIDER_BUTTON,
+                             button_hover_color=TEXT_DISABLED if disabled else SLIDER_BUTTON_HOVER)
+        self.frame_label.configure(text_color=TEXT_DISABLED if exact else TEXT_MUTED)
+        self._set_text(self.frame_label, "Rahmen: exakte Ränder in mm" if exact else
+                       f"Breite: {self.frame_var.get():.2f} % je Halbbild".replace(".", ","))
+        symbol_space = self._float(self.margin_top_var.get()) > 0 if exact else self.frame_var.get() > 0
+        disabled = self._busy or not symbol_space
+        self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal", fg_color=TEXT_DISABLED if disabled else GOLD)
+        self.inner_radius_entry.configure(state="normal" if not self._busy and self.eye_shape_var.get() in
+                                          ("Alle Ecken gerundet", "Nur obere Ecken gerundet") else "disabled")
+        self.outer_radius_entry.configure(state="disabled" if self._busy else "normal")
+        self.caption_size_label.configure(text_color=TEXT_DISABLED if points else TEXT_MUTED)
+        self._set_text(self.caption_size_label, f"Untertitelgröße: {self.caption_points_var.get()} pt" if points else
+                       f"Untertitelgröße: {self.caption_size_var.get():.2f} % je Halbbild".replace(".", ","))
+
+    def _refresh_print_summary(self):
+        if not self._ui_ready or self.mode_var.get() != "Print":
+            return
+        try:
+            options = self._print_options()
+            layout = print_layout(options)
+            template = CARD_TEMPLATES.get(self.card_template_var.get())
+            adjusted = template and (options.margins != template[1] or self.print_format_var.get() != template[0]
+                                    or self.eye_shape_var.get() != template[2] or options.layout != LayoutMode.PARALLEL
+                                    or options.show_symbols or options.arch_height_percent != 18 or options.outer_radius_percent != 0)
+            text = f"Bildfenster: {layout.eye_width_mm:.2f} × {layout.eye_height_mm:.2f} mm\nBildmitten: {layout.centre_distance_mm:.2f} mm"
+            if adjusted:
+                text = "Vorlage angepasst\n" + text
+            self._set_text(self.print_geometry_label, text)
+        except ValueError as exc:
+            self._set_text(self.print_geometry_label, str(exc))
+
     def _mode_changed(self, value: str) -> None:
         is_web = value == "Web"
         if is_web:
@@ -1170,6 +1405,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._refresh_start()
         self._refresh_preview_note()
         self._set_start_button_normal()
+        self._refresh_layout_controls()
         self.schedule_preview()
 
     def _size_changed(self, value: str) -> None:
@@ -1187,10 +1423,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.schedule_preview()
 
     def _frame_changed(self, value: float) -> None:
-        self._set_text(self.frame_label, f"Breite: {value:.2f} % je Halbbild".replace(".", ","))
-        disabled = self._busy or float(value) == 0
-        self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal",
-                                              fg_color=TEXT_DISABLED if disabled else GOLD)
+        self._refresh_layout_controls()
         self.schedule_preview()
 
     def _refresh_preview_note(self):
@@ -1201,7 +1434,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             self._set_text(self.preview_note, "")
 
     def _caption_size_changed(self, value: float) -> None:
-        self._set_text(self.caption_size_label, f"Untertitelgröße: {value:.2f} % je Halbbild".replace(".", ","))
+        self._refresh_layout_controls()
         self.schedule_preview()
 
     def _color_preset_changed(self, value: str) -> None:
@@ -1448,17 +1681,35 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             font_family=self.font_var.get(),
             caption_size_percent=float(self.caption_size_var.get()),
             output_format=self._output_format(),
+            eye_shape=_EYE_SHAPES[self.eye_shape_var.get()],
+            arch_height_percent=self._arch_height(),
         )
 
-    def _print_options(self, *, preview: bool = False) -> PrintRenderOptions:
+    def _arch_height(self):
+        if self.eye_shape_var.get() != "Klassischer Bogen":
+            return 18.0
+        value = self._number(self.arch_height_var.get(), "Bogenhöhe: Bitte einen Wert von 0 bis 100 % eingeben.", zero=True)
+        if value > 100:
+            raise ValueError("Bogenhöhe: Bitte einen Wert von 0 bis 100 % eingeben.")
+        return value
+
+    def _print_options(self, *, preview: bool = False, validate: bool = True) -> PrintRenderOptions:
         preset = PRINT_FORMAT_PRESETS.get(self.print_format_var.get())
         if preset is None:
-            width_mm = max(20.0, self._float(self.print_width_var.get(), 150.0))
-            height_mm = max(20.0, self._float(self.print_height_var.get(), 100.0))
+            width_mm = self._number(self.print_width_var.get(), "Kartenmaße: Bitte positive Werte in mm eingeben.")
+            height_mm = self._number(self.print_height_var.get(), "Kartenmaße: Bitte positive Werte in mm eingeben.")
         else:
             width_mm, height_mm = preset
         dpi = 96 if preview else parse_dpi(self.dpi_var.get())
-        return PrintRenderOptions(
+        margins = None
+        if self.margin_mode_var.get() == "Exakte Ränder in mm":
+            margins = PrintMargins(**{f"{key}_mm": self._number(getattr(self, f"margin_{key}_var").get(),
+                "Ränder: Bitte endliche Werte ab 0 mm eingeben.", zero=True)
+                for key in ("side", "top", "centre", "bottom", "row_gap")})
+        gaps = {f"caption_gap_{key}_mm": self._number(getattr(self, f"caption_gap_{key}_var").get(),
+                    "Textabstände: Bitte Werte ab 0 mm eingeben.", zero=True)
+                if getattr(self, f"caption_gap_{key}_var").get().strip() else None for key in ("top", "bottom")}
+        options = PrintRenderOptions(
             layout=_LAYOUT_TO_MODE[self.layout_var.get()],
             width_mm=width_mm,
             height_mm=height_mm,
@@ -1473,11 +1724,23 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             inner_radius_percent=max(0.0, self._float(self.inner_radius_var.get())),
             output_format=self._output_format(),
             cutting_guide=_CUTTING_GUIDES[self.cutting_var.get()],
+            outer_radius_percent=max(0.0, self._float(self.outer_radius_var.get())),
             crop=self._current_crop("Print"),
             show_symbols=self.show_symbols_var.get(),
+            eye_shape=_EYE_SHAPES[self.eye_shape_var.get()],
+            arch_height_percent=self._arch_height(),
+            margins=margins,
+            caption_points=self._number(self.caption_points_var.get(), "Schriftgröße: Bitte einen positiven Wert in pt eingeben.")
+                if self.caption_unit_var.get() == "Punkt (pt)" else None,
+            **gaps,
         )
+        if validate:
+            print_layout(options)
+        return options
 
     def schedule_preview(self) -> None:
+        self._refresh_layout_controls()
+        self._refresh_print_summary()
         if self._preview_job is not None:
             try:
                 self.after_cancel(self._preview_job)
@@ -1505,7 +1768,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 else:
                     options = print_preview_options(self._print_options(), panel_w, panel_h)
                     rendered = print_preview_image(source, options, show_bleed=self.show_bleed_var.get())
-            rendered = fit_preview(rendered, panel_w, panel_h)
+            rendered = fit_preview(preview_export_image(rendered, options), panel_w, panel_h)
             self.preview_photo = ImageTk.PhotoImage(rendered)
             self.preview_label.configure(image=self.preview_photo, text="")
         except Exception as exc:
@@ -1691,7 +1954,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                     target,
                     current.output_format,
                     dpi=current.dpi,
-                    background_color=current.frame_color,
+                    background_color="#ffffff",
                     metadata_source=item.source,
                 )
                 if not metadata.success:

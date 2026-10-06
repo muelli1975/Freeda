@@ -9,6 +9,7 @@ from freeda.models import LayoutMode, PrintRenderOptions, WebRenderOptions
 from freeda.preview import fit_preview, parse_bleed, print_preview_options, print_preview_image
 from freeda.geometry import frame_geometry_for_total_width, mm_to_px
 from freeda.print_render import print_eye_aspect, render_print
+from freeda.print_layout import print_layout
 from freeda.render import render_web
 
 
@@ -67,8 +68,11 @@ class PrintControlTests(unittest.TestCase):
             options = PrintRenderOptions(width_mm=150, height_mm=100, dpi=dpi, bleed_mm=3, frame_percent=3)
             trim = print_preview_image(source, options)
             self.assertEqual(trim.size, (width, mm_to_px(100, dpi)))
-            self.assertEqual(trim.getpixel((geometry.frame_px - 1, geometry.frame_px + 10)), (17, 17, 17, 255))
-            self.assertEqual(trim.getpixel((geometry.frame_px, geometry.frame_px + 10)), (255, 0, 0, 255))
+            physical = print_layout(options)
+            self.assertAlmostEqual(physical.x_mm[0] / physical.eye_width_mm, 0.03)
+            left, top, _, _ = physical.eye_boxes(dpi)[0]
+            self.assertEqual(trim.getpixel((left - 1, top + 10)), (17, 17, 17, 255))
+            self.assertEqual(trim.getpixel((left, top + 10)), (255, 0, 0, 255))
             full = print_preview_image(source, options, show_bleed=True)
             self.assertEqual(full.size, render_print(source, options).size)
             self.assertGreater(full.width, trim.width)

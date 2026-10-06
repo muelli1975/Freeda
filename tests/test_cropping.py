@@ -36,7 +36,8 @@ class CroppingTests(unittest.TestCase):
         font = _font("Segoe UI", 25)
         lines, step, height = _caption_metrics("Ein langer Untertitel " * 8, font, 200)
         self.assertGreater(len(lines), 1)
-        self.assertEqual(height, len(lines)*step)
+        self.assertLess(height, len(lines)*step)  # No trailing line gap below the last line.
+        self.assertGreater(height, (len(lines)-1)*step)
         for line in lines:
             self.assertLessEqual(font.getlength(line), 200)
 

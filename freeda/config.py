@@ -18,14 +18,20 @@ DEFAULT_FONT_FAMILY = "Segoe UI"
 COLOR_PRESETS = {
     "Nachtgold": ("#111111", "#c6a95e"),
     "Schwarzweiß": ("#000000", "#f2f2f2"),
-    "Beige": ("#d8cbb8", "#2b2520"),
-    "Bordeauxgold": ("#2b161a", "#d8b56a"),
-    "Petrolsand": ("#102629", "#d7c39a"),
-    "Nachtblau": ("#101826", "#d9e1eb"),
-    "Waldgrün": ("#16231b", "#ddd6c4"),
     "Anthrazitkupfer": ("#1e1e1e", "#c9895b"),
-    "Rosé": ("#3a2328", "#e8c9cc"),
     "Sepia": ("#2b2119", "#e0c7a0"),
+    "Nachtblau": ("#101826", "#d9e1eb"),
+    "Petrolsand": ("#102629", "#d7c39a"),
+    "Waldgrün": ("#16231b", "#ddd6c4"),
+    "Bordeauxgold": ("#2b161a", "#d8b56a"),
+    "Rosé": ("#3a2328", "#e8c9cc"),
+    "Creme": ("#eee5d3", "#3d3328"),
+    "Pergament": ("#e3d2ac", "#4a3525"),
+    "Beige": ("#d8cbb8", "#2b2520"),
+    "Honigkarton": ("#d8ae66", "#38271a"),
+    "Salbeipapier": ("#ccd2bb", "#29392c"),
+    "Blaugrau": ("#d0d7da", "#273942"),
+    "Altrosa": ("#e2c4bc", "#50333a"),
     "Benutzerdefiniert": None,
 }
 DEFAULT_COLOR_PRESET = "Nachtgold"
@@ -44,5 +50,16 @@ PRINT_FORMAT_PRESETS = {
     "Stereokarte 7 × 3½ Zoll": (177.8, 88.9),
     "Stereokarte 18 × 9 cm": (180.0, 90.0),
     "Raumbildkarte 13 × 6 cm": (130.0, 60.0),
+    "Benutzerdefiniert": None,
+}
+
+# Layout suggestions, not universal standards for historical viewers.
+from .models import PrintMargins
+
+CARD_TEMPLATES = {
+    "Freies Layout": None,
+    "Holmes-Karte": ("Stereokarte 7 × 3½ Zoll", PrintMargins(11.9, 3.2, 1.6, 9.5), "Klassischer Bogen"),
+    "Stereokarte 18 × 9 cm": ("Stereokarte 18 × 9 cm", PrintMargins(12.5, 3.2, 2.6, 10.6), "Klassischer Bogen"),
+    "Raumbildkarte 13 × 6 cm": ("Raumbildkarte 13 × 6 cm", PrintMargins(5.0, 3.0, 2.0, 5.0), "Rechteckig"),
     "Benutzerdefiniert": None,
 }

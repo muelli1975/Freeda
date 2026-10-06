@@ -1,4 +1,4 @@
-# Freeda 1.0
+# Freeda 1.1
 
 [English](README_EN.md)
 
@@ -10,9 +10,9 @@ Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und k
 
 ## Portable Windows-Version
 
-[Freeda 1.0 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.0)
+[Freeda 1.1 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
 
-1. `Freeda_1.0_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
+1. `Freeda_1.1_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
 2. `Freeda.exe` starten.
 3. Den Programmordner zusammenhalten; `_internal`, `tools` und die anderen mitgelieferten Dateien gehören zur Anwendung.
 
@@ -33,7 +33,7 @@ Alle vier Varianten entstehen aus demselben markierten Quellstand. Automatische 
 5. Die Vorschau prüfen. Mit Vorheriges/Nächstes weitere Bilder ansehen.
 6. Export starten. Der Einzelbildexport verarbeitet das angezeigte Bild, der Batch die gesamte Auswahl.
 
-Beim ersten Start ist Deutsch eingestellt. Über die Sprachauswahl lässt sich auf Englisch umschalten; Freeda merkt sich die zuletzt gewählte Sprache. Die übrigen Einstellungen starten mit den Standardwerten: Web, 2048 Pixel, 4 % Rahmenbreite, 3,5 % Untertitelgröße, 300 dpi und 0 mm Beschnittrand mit eingeschalteter Beschnittrandvorschau. Presets werden erst beim ausdrücklichen Auswählen angewendet.
+Beim ersten Start ist Deutsch eingestellt. Über die Sprachauswahl lässt sich auf Englisch umschalten; Freeda merkt sich die zuletzt gewählte Sprache. Die übrigen Einstellungen starten mit den Standardwerten: Web, 2048 Pixel, 4 % Rahmenbreite, 4 % Untertitelgröße, 300 dpi und 0 mm Beschnittrand mit eingeschalteter Beschnittrandvorschau. Presets werden erst beim ausdrücklichen Auswählen angewendet.
 
 ## Unterstützte Eingaben
 
@@ -46,7 +46,7 @@ Freeda öffnet JPEG-, PNG-, TIFF-, BMP- und WebP-Bilder mit zwei gleich großen 
 - **Parallelblick + Kreuzblick:** beide Bildpaare in zwei Zeilen.
 - **L–R–L:** drei Ansichten in einer Zeile; das linke Paar ermöglicht Parallelblick, das rechte Kreuzblick.
 
-Die II/X-Symbole belegen einen Streifen in Rahmenbreite. Bei L–R–L stehen sie über den Zwischenräumen. Untertitel erscheinen unter den Bildern; ihr Bereich darf unabhängig vom Symbolstreifen anwachsen. Lange L–R–L-Untertitel werden bei Bedarf bis auf 75 % der gewählten Größe verkleinert und anschließend mit Auslassungspunkten gekürzt. Der unterste Untertitelbereich hat eine Rahmenbreite weniger Abstand.
+Die II/X-Symbole belegen einen Streifen in Rahmenbreite. Bei L–R–L stehen sie über den Zwischenräumen. Untertitel erscheinen unter den Bildern; ihr Bereich darf unabhängig vom Symbolstreifen anwachsen. Lange L–R–L-Untertitel werden bei Bedarf bis auf 75 % der gewählten Größe verkleinert und anschließend mit Auslassungspunkten gekürzt. Bei proportionalen Rahmen hat der unterste Untertitelbereich eine Rahmenbreite weniger Abstand.
 
 ## Web und Druck
 
@@ -54,7 +54,29 @@ Webbreiten beziehen sich auf die gesamte fertige Grafik einschließlich Rahmen. 
 
 Print bietet vorgegebene und eigene Druckformate, frei eingegebene positive ganzzahlige dpi und einen frei einstellbaren **Beschnittrand in mm** mit Nachkommastellen. Der Beschnittrand startet bei 0 mm; seine Vorschau ist eingeschaltet, damit ein hinzugefügter Rand sofort sichtbar wird. Das Druckformat wird vollständig ausgefüllt; das Seitenverhältnis der Halbbilder ergibt sich aus Papierformat, Ansicht, Rahmen und Untertiteln. Der Ausschnittdialog legt den passenden Bildausschnitt fest. Der Beschnittrand hat dieselbe Farbe wie der Rahmen. Optionale Schneidelinien und Schnittmarken sind grau. Die Vorschau passt sich dem verfügbaren Platz an; ihre Anzeigeskalierung ist unabhängig von den Export-dpi.
 
-Die Rahmenbreite ist von 0 bis 5 % einstellbar, mit 4 % als Standard. Untertitelschrift und Untertitelgröße lassen sich anpassen; die Standardgröße beträgt 3,5 %. Die Schriftwahl betrifft ausschließlich Untertitel; die II/X-Symbole behalten ihre Standardschrift. Beide Prozentwerte beziehen sich auf die Breite eines Halbbilds und werden in Web und Print gleich berechnet.
+Die Rahmenbreite ist von 0 bis 5 % einstellbar, mit 4 % als Standard. Untertitelschrift und Untertitelgröße lassen sich anpassen; die Standardgröße beträgt 4 %. Die Schriftwahl betrifft ausschließlich Untertitel; die II/X-Symbole behalten ihre Standardschrift. Beide Prozentwerte beziehen sich auf die Breite eines Halbbilds und werden in Web und Print gleich berechnet. Die Textabstände orientieren sich an der Schriftgröße: etwa 0,4-mal oberhalb und 0,6-mal unterhalb, mit zusätzlichem Zeilenabstand nur zwischen den Zeilen.
+
+Bildfenster können rechteckig, rundum gerundet, nur oben gerundet oder mit einem klassischen flachen Bogen gestaltet werden. Der Innenradius steuert gerundete Ecken; die Bogenhöhe wird separat in Prozent der Halbbildbreite eingestellt. Diese Konturen funktionieren bei Web, Print und in der Ausschnittvorschau. Der Außenradius rundet die gesamte Grafik einschließlich eines vorhandenen Beschnittrands. PNG behält transparente Außenecken; JPEG füllt sie bei Web schwarz und bei Print weiß, wie bereits in der Vorschau zu sehen. Innere Bildecken zeigen die gewählte Rahmenfarbe.
+
+Die 16 Farbpresets stehen zuerst dunkel, dann hell; **Nachtgold** bleibt auf dem ersten Platz und Standard. Die bisherigen zehn Kombinationen bleiben erhalten. Creme, Pergament, Honigkarton, Salbeipapier, Blaugrau und Altrosa ergänzen helle Kartenhintergründe mit dunkler Schrift. Eigene Farben sind weiterhin möglich.
+
+## Kartenvorlagen und genaue Druckränder
+
+Eine **Kartenvorlage** liefert ein fertiges Layout; **Freies Layout** behält die proportionalen Rahmen. Vorlagen ändern Druckformat, Ränder, Bildkontur und Ansicht. Farben, Untertitelschrift und Untertiteltext bleiben erhalten.
+
+| Vorlage | Fertige Karte | Bildfenster | Mittelsteg |
+| --- | --- | --- | --- |
+| Holmes-Karte | 177,8 × 88,9 mm (7 × 3½ Zoll) | 76,2 × 76,2 mm | 1,6 mm |
+| Stereokarte 18 × 9 cm | 180 × 90 mm | 76,2 × 76,2 mm | 2,6 mm |
+| Raumbildkarte 13 × 6 cm | 130 × 60 mm | 59 × 52 mm | 2 mm |
+
+Das sind anpassbare Layoutvorschläge, keine universellen Normen für historische Betrachter. Holmes und 18 × 9 cm beginnen mit Bogen, Raumbild rechteckig. Alle verwenden Parallelblick ohne II/X. Die Eignung für den eigenen Betrachter und die Bildinhalte prüfen: Der Abstand der Bildmitten allein bestimmt nicht den Sehkomfort.
+
+**Ränder und Bildfenster anpassen** öffnet die genauen Einstellungen. **Exakte Ränder in mm** erlaubt unabhängige Werte für Außenrand links/rechts, oberen Rand, Mittelsteg und unteren Bereich. Bei zwei Bildzeilen erscheint zusätzlich deren Abstand. Der untere Bereich umfasst den Untertitel und gilt je Bildzeile. Er wächst nicht automatisch mit dem Text: Freeda meldet zu wenig Platz, statt die Bildfenster zu verkleinern. Angezeigte Bildfenstermaße und Bildmittenabstand werden sofort aktualisiert. Geänderte Vorlagen erscheinen als angepasst; **Vorlage zurücksetzen** stellt ihr Layout wieder her.
+
+Bei Print lässt sich die Schriftgröße auch frei in Punkt eingeben. Optionale Textabstände oben und unten werden in mm eingestellt; leere Felder verwenden die automatischen Abstände nach Schriftgröße. Exakte Ränder ersetzen den Prozentregler für den Rahmen, Punktgrößen den Prozentregler für Untertitel. Die Einstellungen gehören zu den portablen Presets. Vorhandene Presets aus 1.0 bleiben verwendbar.
+
+Kartenmaße, Ränder und Ausschnittverhältnis werden vor der Pixelumrechnung in Millimetern berechnet. Ein anderer dpi-Wert verändert dadurch die Auflösung, nicht die Kartengeometrie. Der Beschnittrand wird außen in Rahmenfarbe ergänzt. Exportierte Karten mit **100 % / tatsächlicher Größe** drucken, ohne automatische Seitenanpassung.
 
 Für schlichte Stereokarten bei Print Parallelblick oder Kreuzblick, 0 % Rahmenbreite und einen leeren Untertitel wählen. Die Halbbilder liegen dann ohne Außenrahmen und Zwischensteg direkt nebeneinander und füllen das Druckformat aus. **Blicksymbole anzeigen** schaltet II/X unabhängig vom Rahmen ein oder aus; bei 0 % entfallen sie automatisch. Standardmäßig bleibt die Option eingeschaltet. Rahmenbreite und Symbolwahl gehören zu den Presets.
 
