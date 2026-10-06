@@ -2,6 +2,21 @@
 import re
 
 EN = {
+    "Text": "Text", "Logo": "Logo", "Logo wählen": "Choose logo", "Logo wählen …": "Choose logo …",
+    "Kein Logo gewählt": "No logo selected", "Millimeter (mm)": "Millimetres (mm)",
+    "Logohöhe in mm": "Logo height in mm", "Logoabstand oben mm": "Logo padding above mm",
+    "Logoabstand unten mm": "Logo padding below mm",
+    "Leere Logoabstände: automatisch nach Logohöhe.": "Empty logo padding: automatic, based on logo height.",
+    "Seitenverhältnis bleibt erhalten; maximal 90 % der Halbbildbreite. Eine Kopie liegt im Programmordner logos.":
+        "Aspect ratio is preserved; maximum 90 % of view width. A copy is kept in the program's logos folder.",
+    "Bitte eine Logodatei wählen.": "Please choose a logo file.",
+    "Die Logodatei konnte nicht im Programmordner gespeichert werden.": "Could not save the logo file in the program folder.",
+    "Die Logodatei konnte nicht gelesen werden. Bitte eine gültige Bilddatei wählen.": "Could not read the logo file. Please choose a valid image file.",
+    "Die gespeicherte Logodatei muss im Ordner logos neben dem Programm liegen.": "The saved logo file must be in the logos folder beside the program.",
+    "Die Logodatei enthält keine sichtbaren Pixel.": "The logo file contains no visible pixels.",
+    "Logohöhe: Bitte einen positiven Wert eingeben.": "Logo height: enter a positive value.",
+    "Das Logo passt nicht in den unteren Bereich. Bereich vergrößern oder Logohöhe verkleinern.":
+        "The logo does not fit in the bottom area. Increase the area or reduce the logo height.",
     "Bildkontur": "Image shape",
     "Rechteckig": "Rectangular",
     "Alle Ecken gerundet": "All corners rounded",
@@ -131,6 +146,8 @@ def translate(text: str, language: str) -> str:
     if text in EN:
         return EN[text]
     patterns = [
+        (r"Max\. Logohöhe: (.*) mm", lambda m: "Max. logo height: " + m[1].replace(",", ".") + " mm"),
+        (r"Max\. Logohöhe: (.*) % je Halbbild", lambda m: "Max. logo height: " + m[1].replace(",", ".") + " % per view"),
         (r"Untertitelgröße: (.*) pt", lambda m: "Caption size: " + m[1].replace(",", ".") + " pt"),
         (r"(Vorlage angepasst\n)?Bildfenster: (.*) × (.*) mm\nBildmitten: (.*) mm", lambda m:
             ("Template adjusted\n" if m[1] else "") + "Image windows: " + m[2].replace(",", ".") + " × " +

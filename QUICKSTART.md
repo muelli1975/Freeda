@@ -1,4 +1,4 @@
-# Freeda 1.1 – Kurzstart
+# Freeda 1.2 – Kurzstart
 
 1. ZIP vollständig in einen frei beschreibbaren Ordner entpacken. `Freeda.exe`, `_internal` und `tools` zusammen lassen.
 2. `Freeda.exe` starten. Freeda beginnt mit der zuletzt gewählten Sprache, im Webmodus, mit 2048 Pixeln und den Standardwerten. Beim ersten Start ist Deutsch voreingestellt.
@@ -15,6 +15,8 @@ Ausschnitte bleiben ohne Zusatzoption nur während der Sitzung erhalten. Mit „
 Eigene Presets werden in `settings.json` neben der EXE gespeichert und ausschließlich beim Auswählen angewendet. Zum Update die Datei in den neuen Programmordner übernehmen. Originalbilder, bildbezogene Untertitel und individuelle Ausschnitte gehören nicht zu den Presets.
 
 ## Vorschau und Druck
+
+Unter „Beschriftung“ lassen sich Text oder Logo wählen. „Logo wählen …“ kopiert eine Bilddatei unverändert in `logos` neben dem Programm. Ein transparentes PNG eignet sich besonders gut. Das Logo erscheint identisch unter jedem Halbbild. Die Höhe ist prozentual, bei Print zusätzlich in mm einstellbar; das Seitenverhältnis bleibt erhalten und die Breite wird auf 90 % des Halbbilds begrenzt. Bei exakten Rändern muss das Logo in den unteren Bereich passen. Logo und Größe gehören zu Presets; beim Update oder Verschieben auch den Ordner `logos` mitnehmen. Der Startstandard bleibt Text.
 
 Bei Print liefern Holmes-Karte, Stereokarte 18 × 9 cm und Raumbildkarte 13 × 6 cm fertige, anpassbare Layouts. Sie verwenden Parallelblick ohne Blicksymbole und lassen Farben, Schrift und Untertiteltext unverändert. „Ränder und Bildfenster anpassen …“ klappt genaue Millimeterwerte auf. Der untere Bereich umfasst den Untertitel; bei Platzmangel erscheint ein Hinweis. Bildfenstermaße und Bildmittenabstand werden angezeigt. „Vorlage zurücksetzen“ stellt die gewählte Vorlage wieder her. Die Vorlagen sind Layoutvorschläge und müssen zum eigenen Betrachter und Stereobild passen.
 

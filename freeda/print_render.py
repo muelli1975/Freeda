@@ -8,6 +8,7 @@ from .geometry import mm_to_px, print_canvas_px
 from .models import Crop, CuttingGuide, LayoutMode, PrintRenderOptions
 from .print_layout import print_layout
 from .eye_shapes import shape_eye, round_outer_corners
+from .logos import load_logo
 from .render import (
     _draw_centered,
     _font,
@@ -121,6 +122,10 @@ def render_print(source: Image.Image, options: PrintRenderOptions) -> Image.Imag
     boxes = geometry.eye_boxes(options.dpi)
     count = len(geometry.x_mm)
     caption_font = _font(options.font_family, max(1, mm_to_px(geometry.caption_font_mm, options.dpi)))
+    logo = None
+    if geometry.logo_height_mm > 0:
+        logo = load_logo(options.logo_path).resize((max(1, mm_to_px(geometry.logo_width_mm, options.dpi)),
+                                                  max(1, mm_to_px(geometry.logo_height_mm, options.dpi))), Image.Resampling.LANCZOS)
     for row_index, y_mm in enumerate(geometry.y_mm):
         crossed = options.layout == LayoutMode.CROSS or (options.layout == LayoutMode.BOTH and row_index == 1)
         eyes = (right, left) if crossed else ((left, right, left) if count == 3 else (left, right))
@@ -143,7 +148,11 @@ def render_print(source: Image.Image, options: PrintRenderOptions) -> Image.Imag
                 if _text_height(font, mark) <= band:
                     _draw_centered(draw, mark, centre, mm_to_px(y_mm, options.dpi) - band + offset_y,
                                    font, options.accent_color)
-        if geometry.caption_lines:
+        if logo is not None:
+            text_y = mm_to_px(y_mm + geometry.eye_height_mm + geometry.caption_top_mm, options.dpi)
+            for box in row_boxes:
+                trim.alpha_composite(logo, (round((box[0]+box[2]-logo.width)/2), text_y))
+        elif geometry.caption_lines:
             for box in row_boxes:
                 for line_index, line in enumerate(geometry.caption_lines):
                     text_y = mm_to_px(y_mm + geometry.eye_height_mm + geometry.caption_top_mm

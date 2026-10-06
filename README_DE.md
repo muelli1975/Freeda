@@ -1,4 +1,4 @@
-# Freeda 1.1
+# Freeda 1.2
 
 [English](README_EN.md)
 
@@ -10,13 +10,13 @@ Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und k
 
 ## Portable Windows-Version
 
-[Freeda 1.1 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
+[Freeda 1.2 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.2)
 
-1. `Freeda_1.1_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
+1. `Freeda_1.2_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
 2. `Freeda.exe` starten.
 3. Den Programmordner zusammenhalten; `_internal`, `tools` und die anderen mitgelieferten Dateien gehören zur Anwendung.
 
-Eine separate Python-Installation ist nicht nötig. Sprache und gespeicherte Presets liegen als `settings.json` neben `Freeda.exe`. Beim Update diese Datei in den neuen Programmordner übernehmen. Die EXE ist nicht mit Authenticode signiert.
+Eine separate Python-Installation ist nicht nötig. Sprache und gespeicherte Presets liegen als `settings.json` neben `Freeda.exe`. Beim Update diese Datei und den eigenen Ordner `logos`, falls vorhanden, in den neuen Programmordner übernehmen. Die EXE ist nicht mit Authenticode signiert.
 
 ## macOS- und Linux-Builds
 
@@ -80,6 +80,16 @@ Kartenmaße, Ränder und Ausschnittverhältnis werden vor der Pixelumrechnung in
 
 Für schlichte Stereokarten bei Print Parallelblick oder Kreuzblick, 0 % Rahmenbreite und einen leeren Untertitel wählen. Die Halbbilder liegen dann ohne Außenrahmen und Zwischensteg direkt nebeneinander und füllen das Druckformat aus. **Blicksymbole anzeigen** schaltet II/X unabhängig vom Rahmen ein oder aus; bei 0 % entfallen sie automatisch. Standardmäßig bleibt die Option eingeschaltet. Rahmenbreite und Symbolwahl gehören zu den Presets.
 
+## Logos statt Untertiteltext
+
+Unter **Beschriftung** zwischen **Text** und **Logo** wählen. **Logo wählen** importiert eine Bilddatei; transparente PNG-Dateien eignen sich besonders gut. Logos erscheinen zentriert und identisch unter jedem Halbbild, auch bei allen drei L–R–L-Ansichten und beiden Zeilen der kombinierten Ansicht. Beim Umschalten bleiben Text und Logoauswahl während der Sitzung erhalten.
+
+Das Seitenverhältnis bleibt erhalten; die Breite ist auf 90 % eines Halbbilds begrenzt. Die Höhe startet mit 6 % der Halbbildbreite und ist von 1–20 % einstellbar. Print erlaubt zusätzlich eine positive Höhe in mm. Die eingestellte Höhe ist ein Maximum: Sehr breite Logos werden weiter verkleinert, damit sie hineinpassen. Automatische Abstände betragen 15 % der tatsächlichen Logohöhe oberhalb und 25 % unterhalb. Bei Print lassen sie sich über dieselben genauen Abstandsfelder in mm ersetzen.
+
+Bei exakten Druckrändern muss das Logo in den unteren Bereich passen. Freeda meldet zu wenig Platz, statt die Bildfenster zu ändern. Proportionale Layouts erweitern ihren Beschriftungsbereich wie bei Untertiteln. Logos werden mit Lanczos skaliert; transparente Pixel lassen die Rahmenfarbe durchscheinen. Das Verhalten der Außenecken bei JPEG und PNG bleibt erhalten.
+
+Freeda kopiert die gewählte Datei unverändert in `logos` neben `settings.json`. Presets speichern einen relativen Verweis und die Logogröße; dadurch bleiben sie beim Verschieben des gesamten Programmordners nutzbar. Beim Update sowohl `settings.json` als auch `logos` übernehmen. Fehlende oder unlesbare Logodateien erzeugen einen verständlichen Hinweis. Beim Ersetzen bleiben frühere Kopien für gespeicherte Presets erhalten. Beim Start bleibt Text voreingestellt; ein Logo-Preset wird erst beim Auswählen angewendet.
+
 ## Bildausschnitte
 
 **Ausschnitt anpassen** verwendet denselben relativen Ausschnitt für beide Stereoansichten. **Zurücksetzen** stellt Zoom und Position wieder her. Ein zuschaltbares Drittelraster erscheint getrennt über den beiden Ansichten und wird nie exportiert. Beim Batch lässt sich jedes Bild einzeln prüfen oder derselbe relative Ausschnitt übernehmen.
@@ -110,7 +120,7 @@ ExifTool 13.59 liegt separat unter `tools`, zusammen mit seinen ursprünglichen 
 
 ## Einstellungen und Sprache
 
-Deutsch und Englisch stehen zur Verfügung. Sprache und benannte Presets werden lokal in `settings.json` neben dem Programm gespeichert; dadurch bleibt das gesamte Programm portabel. Presets enthalten Export- und Darstellungseinstellungen. Bildpfade, Ausgabepfade, bildbezogene Untertiteltexte und individuelle Ausschnitte gehören nicht zu einem Preset.
+Deutsch und Englisch stehen zur Verfügung. Sprache und benannte Presets werden lokal in `settings.json` neben dem Programm gespeichert; dadurch bleibt das gesamte Programm portabel. Presets enthalten Export- und Darstellungseinstellungen. Eingabebildpfade, Ausgabepfade, bildbezogene Untertiteltexte und individuelle Ausschnitte gehören nicht zu einem Preset.
 
 Beim Start wird die zuletzt gewählte Sprache wiederhergestellt. Die übrigen Einstellungen verwenden die Standardwerte, bis ein Preset ausgewählt wird. Individuelle Ausschnittdateien liegen in den jeweiligen Bilderordnern, getrennt von den Programmeinstellungen.
 

@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory() as tmp:
     app.withdraw()
     real_dialog=gui.CropDialog
     try:
-        assert app.title()=='Freeda 1.1'
+        assert app.title()=='Freeda 1.2'
         assert app.frame_var.get()==4 and app.show_symbols_var.get()
         assert not hasattr(app,'print_aspect_var')
         app.apply_preset('Old Print')

@@ -30,6 +30,11 @@ class EyeShape(str, Enum):
     ARCH = "arch"
 
 
+class CaptionMode(str, Enum):
+    TEXT = "text"
+    LOGO = "logo"
+
+
 @dataclass(frozen=True)
 class PrintMargins:
     side_mm: float = 5.0
@@ -72,6 +77,9 @@ class WebRenderOptions:
     show_symbols: bool = True
     eye_shape: EyeShape = EyeShape.ROUNDED
     arch_height_percent: float = 18.0
+    caption_mode: CaptionMode = CaptionMode.TEXT
+    logo_path: Path | None = None
+    logo_height_percent: float = 6.0
 
 
 @dataclass(frozen=True)
@@ -100,6 +108,10 @@ class PrintRenderOptions:
     caption_points: float | None = None
     caption_gap_top_mm: float | None = None
     caption_gap_bottom_mm: float | None = None
+    caption_mode: CaptionMode = CaptionMode.TEXT
+    logo_path: Path | None = None
+    logo_height_percent: float = 6.0
+    logo_height_mm: float | None = None
 
 
 @dataclass(frozen=True)

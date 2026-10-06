@@ -1,4 +1,4 @@
-# Freeda 1.1
+# Freeda 1.2
 
 [Deutsch](README_DE.md)
 
@@ -10,13 +10,13 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 
 ## Portable Windows release
 
-[Download Freeda 1.1](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
+[Download Freeda 1.2](https://github.com/muelli1975/Freeda/releases/tag/v1.2)
 
-1. Extract the complete `Freeda_1.1_Windows_x64.zip` into a writable folder.
+1. Extract the complete `Freeda_1.2_Windows_x64.zip` into a writable folder.
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
 
-No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Copy this file to the new application folder when updating. The executable is not Authenticode-signed.
+No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Copy this file and your `logos` folder, if present, to the new application folder when updating. The executable is not Authenticode-signed.
 
 ## macOS and Linux builds
 
@@ -80,6 +80,16 @@ Paper size, margins and crop aspect are calculated in millimetres before convers
 
 For plain stereo cards, select Print, parallel or cross-eyed viewing, a 0% frame and an empty caption. The two views then meet directly without an outer frame or centre bar and fill the print format. **Show viewing symbols** independently toggles II/X; at 0% they are automatically omitted. Symbols remain enabled by default. Frame width and symbol visibility are saved in presets.
 
+## Logos instead of caption text
+
+Under **Caption**, choose **Text** or **Logo**. **Choose logo** imports a raster image; transparent PNG is particularly suitable. Logos appear centred and identically below every stereo view, including all three L–R–L views and both rows of the combined layout. Switching modes retains the text and logo selection during the session.
+
+The logo's aspect ratio is preserved and its width is capped at 90% of one view. Height starts at 6% of view width and is adjustable from 1–20%; Print additionally accepts a positive height in mm. The requested height is a maximum: very wide logos scale down further to fit. Automatic padding is 15% of the resulting logo height above and 25% below. In Print, the same precise padding fields can override these values in mm.
+
+With exact Print margins, the logo must fit inside the bottom area. Freeda reports insufficient space instead of changing the image windows. Proportional layouts grow their footer area as for captions. Logos are scaled with Lanczos; their transparent pixels show the chosen frame colour. JPEG/PNG outer-corner behaviour remains unchanged.
+
+Freeda copies the chosen file, without altering it, into `logos` beside `settings.json`. Presets save a relative reference and the logo size, so they remain usable when the complete program folder moves. When updating, copy both `settings.json` and `logos`. Missing or unreadable logo files produce a clear message. Replacing a logo leaves earlier copies available to saved presets. Text remains the startup default; a logo preset is applied only when selected.
+
 ## Image crops
 
 **Adjust crop** applies the same relative crop to both stereo views. **Reset** restores zoom and position. A toggleable rule-of-thirds grid appears separately over each view and is never exported. Batch cropping can inspect every image or reuse the same relative crop.
@@ -110,7 +120,7 @@ ExifTool 13.59 is supplied separately under `tools` with its original support fi
 
 ## Settings and language
 
-German and English are available. Language and named presets are stored locally in `settings.json` beside the application, keeping the complete program portable. Saved presets contain export and appearance settings; image paths, output paths, image-specific caption text and individual crops are not part of a preset.
+German and English are available. Language and named presets are stored locally in `settings.json` beside the application, keeping the complete program portable. Saved presets contain export and appearance settings; input-image paths, output paths, image-specific caption text and individual crops are not part of a preset.
 
 The last language is restored at startup. Other controls use the standard values until a preset is selected. Individual crop files stay in the respective image folders rather than in the application settings.
 

@@ -2,8 +2,9 @@
 from dataclasses import dataclass, fields
 import math
 from .geometry import mm_to_px
-from .models import LayoutMode, PrintRenderOptions
+from .models import CaptionMode, LayoutMode, PrintRenderOptions
 from .render import _font, _fit_lrl_caption, _caption_metrics
+from .logos import load_logo, logo_layout
 
 REFERENCE_DPI = 600
 
@@ -23,6 +24,8 @@ class PrintLayout:
     caption_top_mm: float
     caption_bottom_mm: float
     centre_mm: float
+    logo_width_mm: float = 0.0
+    logo_height_mm: float = 0.0
 
     @property
     def eye_aspect(self):
@@ -66,6 +69,42 @@ def print_layout(options: PrintRenderOptions) -> PrintLayout:
     if eye_width <= 0:
         raise ValueError("Die Ränder lassen keinen Platz für die Bildfenster.")
     ref_width = max(1, mm_to_px(eye_width, REFERENCE_DPI))
+    logo_width = logo_height = 0.0
+    if options.caption_mode == CaptionMode.LOGO:
+        logo = load_logo(options.logo_path)
+        footer = logo_layout(logo.size, eye_width, options.logo_height_percent, height=options.logo_height_mm,
+                            gap_top=options.caption_gap_top_mm, gap_bottom=options.caption_gap_bottom_mm)
+        logo_width, logo_height = footer.width, footer.height
+        gap_top, gap_bottom = footer.gap_top, footer.gap_bottom
+        caption_band = footer.band_height
+        lines, step, font_mm = [], 0, 0
+        has_caption = True
+    else:
+        lines, step, font_mm, gap_top, gap_bottom, caption_band = _text_layout(options, eye_width, ref_width, count)
+        has_caption = bool(options.caption)
+    if options.margins is not None:
+        if caption_band > bottom + 1e-9:
+            if options.caption_mode == CaptionMode.LOGO:
+                raise ValueError("Das Logo passt nicht in den unteren Bereich. Bereich vergrößern oder Logohöhe verkleinern.")
+            raise ValueError("Der Untertitel passt nicht in den unteren Bereich. Bereich vergrößern oder Schrift/Text verkleinern.")
+        eye_height = (height - top - rows * bottom - (rows - 1) * row_gap) / rows
+        y = tuple(top + i * (eye_height + bottom + row_gap) for i in range(rows))
+        symbols = (top,) + (row_gap,) * (rows - 1)
+    else:
+        eye_height = (height - (rows + 1) * side - rows * caption_band + (side if has_caption else 0)) / rows
+        y = tuple(side + i * (eye_height + caption_band + side) for i in range(rows))
+        symbols = (side,) * rows
+    if eye_height <= 0:
+        raise ValueError("Das gewählte Druckformat ist für Rahmen und Beschriftung zu niedrig.")
+    if min(mm_to_px(eye_width, options.dpi), mm_to_px(eye_height, options.dpi)) < 1:
+        raise ValueError("Die Auflösung ist für die Bildfenster zu niedrig.")
+    x = tuple(side + i * (eye_width + centre) for i in range(count))
+    return PrintLayout(width, height, eye_width, eye_height, x, y, symbols,
+                       tuple(lines), font_mm, step * 25.4 / REFERENCE_DPI,
+                       gap_top, gap_bottom, centre, logo_width, logo_height)
+
+
+def _text_layout(options, eye_width, ref_width, count):
     if options.caption_points is not None:
         size_mm = _positive(options.caption_points, "Schriftgröße: Bitte einen positiven Wert in pt eingeben.") * 25.4 / 72
     else:
@@ -83,22 +122,4 @@ def print_layout(options: PrintRenderOptions) -> PrintLayout:
     gap_bottom = font_mm * .6 if options.caption_gap_bottom_mm is None else _positive(
         options.caption_gap_bottom_mm, "Textabstände: Bitte Werte ab 0 mm eingeben.", zero=True)
     caption_band = caption_height_mm + gap_top + gap_bottom if text else 0
-    if options.margins is not None:
-        if caption_band > bottom + 1e-9:
-            raise ValueError("Der Untertitel passt nicht in den unteren Bereich. Bereich vergrößern oder Schrift/Text verkleinern.")
-        eye_height = (height - top - rows * bottom - (rows - 1) * row_gap) / rows
-        y = tuple(top + i * (eye_height + bottom + row_gap) for i in range(rows))
-        symbols = (top,) + (row_gap,) * (rows - 1)
-    else:
-        # The last caption ends with text padding, without another outer frame.
-        eye_height = (height - (rows + 1) * side - rows * caption_band + (side if text else 0)) / rows
-        y = tuple(side + i * (eye_height + caption_band + side) for i in range(rows))
-        symbols = (side,) * rows
-    if eye_height <= 0:
-        raise ValueError("Das gewählte Druckformat ist für Rahmen und Beschriftung zu niedrig.")
-    if min(mm_to_px(eye_width, options.dpi), mm_to_px(eye_height, options.dpi)) < 1:
-        raise ValueError("Die Auflösung ist für die Bildfenster zu niedrig.")
-    x = tuple(side + i * (eye_width + centre) for i in range(count))
-    return PrintLayout(width, height, eye_width, eye_height, x, y, symbols,
-                       tuple(lines), font_mm, step * 25.4 / REFERENCE_DPI,
-                       gap_top, gap_bottom, centre)
+    return lines, step, font_mm, gap_top, gap_bottom, caption_band

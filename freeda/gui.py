@@ -30,7 +30,8 @@ from .config import (
 )
 from .fonts import available_fonts
 from .i18n import translate
-from .models import Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
+from .models import CaptionMode, Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
+from .logos import import_logo, resolve_logo, load_logo
 from .print_layout import print_layout
 from .notifications import play_ready_sound
 from .output import export_targets
@@ -106,6 +107,7 @@ _NEW_PRESET_VARIABLES = (
     "eye_shape_var", "arch_height_var", "card_template_var", "margin_mode_var",
     "margin_side_var", "margin_top_var", "margin_centre_var", "margin_bottom_var", "margin_row_gap_var",
     "caption_unit_var", "caption_points_var", "caption_gap_top_var", "caption_gap_bottom_var",
+    "caption_mode_var", "logo_var", "logo_name_var", "logo_height_var", "logo_unit_var", "logo_mm_var",
 )
 
 _PRESET_VARIABLES = (
@@ -761,6 +763,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                     continue
                 if key == "caption_size_var" and not 1 <= value <= 8:
                     continue
+                if key == "logo_height_var" and not 1 <= value <= 20:
+                    continue
             elif isinstance(variable, tk.BooleanVar):
                 if not isinstance(value, bool):
                     continue
@@ -1124,6 +1128,11 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
         self._label(self.sidebar, "Beschriftung", section=True).grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
+        self.caption_mode_var = tk.StringVar(value="Text")
+        self._option(self.sidebar, self.caption_mode_var, ("Text", "Logo"),
+                     lambda _v: self._layout_changed()).grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 6))
+        row += 1
+        caption_start_row = row
         self.caption_var = tk.StringVar(value="")
         caption = self._entry(self.sidebar, self.caption_var, "Optionaler Untertitel")
         caption.grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 6))
@@ -1160,6 +1169,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             row=row, column=0, sticky="ew", padx=20, pady=(2, 12))
         row += 1
 
+        self.caption_text_widgets = [widget for widget in self.sidebar.winfo_children()
+            if widget.grid_info() and caption_start_row <= int(widget.grid_info()["row"]) < row]
+        self._build_logo_controls(caption_start_row)
         self._label(self.sidebar, "Dateiformat", section=True).grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
         self.format_var = tk.StringVar(value="JPEG")
@@ -1267,11 +1279,14 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.caption_gap_bottom_var = tk.StringVar(value="")
         for row, (text, variable) in enumerate((("Textabstand oben mm", self.caption_gap_top_var),
                                                 ("Textabstand unten mm", self.caption_gap_bottom_var)), 3):
-            self._label(self.print_precision, text).grid(row=row * 2 - 3, column=0, sticky="ew", padx=12)
+            label = self._label(self.print_precision, text)
+            label.grid(row=row * 2 - 3, column=0, sticky="ew", padx=12)
+            setattr(self, "caption_gap_top_label" if row == 3 else "caption_gap_bottom_label", label)
             entry = self._entry(self.print_precision, variable, "Automatisch")
             entry.grid(row=row * 2 - 2, column=0, sticky="ew", padx=12, pady=(3, 8))
             entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
         automatic_hint = self._label(self.print_precision, "Leere Textabstände: automatisch nach Schriftgröße.")
+        self.caption_spacing_hint = automatic_hint
         automatic_hint.configure(wraplength=300, justify="left")
         automatic_hint.grid(row=7, column=0, sticky="ew", padx=12, pady=(0, 8))
         self._button(self.print_precision, "Vorlage zurücksetzen", self._reset_card_template).grid(
@@ -1280,6 +1295,57 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         print_hint = self._label(self.print_controls, "Beim Drucken: 100 % / tatsächliche Größe.")
         print_hint.configure(wraplength=330)
         print_hint.grid(row=14, column=0, sticky="ew", pady=(0, 12))
+
+    def _build_logo_controls(self, row):
+        self.logo_var = tk.StringVar(value="")
+        self.logo_name_var = tk.StringVar(value="")
+        self.logo_height_var = tk.DoubleVar(value=6.0)
+        self.logo_unit_var = tk.StringVar(value="Prozent")
+        self.logo_mm_var = tk.StringVar(value="4")
+        self.logo_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        self.logo_controls.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
+        self.logo_controls.grid_columnconfigure(0, weight=1)
+        self._button(self.logo_controls, "Logo wählen …", self.choose_logo).grid(row=0, column=0, sticky="ew", pady=(0, 6))
+        self.logo_status = self._label(self.logo_controls, "Kein Logo gewählt")
+        self.logo_status.configure(width=330, wraplength=330, justify="left")
+        self.logo_status.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        self.logo_unit_menu = self._option(self.logo_controls, self.logo_unit_var, ("Prozent", "Millimeter (mm)"),
+                                          lambda _v: self._layout_changed())
+        self.logo_unit_menu.grid(row=2, column=0, sticky="ew", pady=(0, 6))
+        self.logo_mm_entry = self._entry(self.logo_controls, self.logo_mm_var, "Logohöhe in mm")
+        self.logo_mm_entry.grid(row=3, column=0, sticky="ew", pady=(0, 6))
+        self.logo_mm_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.logo_size_label = self._label(self.logo_controls, "")
+        self.logo_size_label.grid(row=4, column=0, sticky="ew")
+        self.logo_slider = ctk.CTkSlider(self.logo_controls, from_=1, to=20, number_of_steps=190,
+            variable=self.logo_height_var, command=lambda _v: self.schedule_preview(),
+            progress_color=SLIDER_PROGRESS, button_color=SLIDER_BUTTON,
+            button_hover_color=SLIDER_BUTTON_HOVER, fg_color=SLIDER_TRACK)
+        self.logo_slider.grid(row=5, column=0, sticky="ew", pady=(2, 8))
+        hint = self._label(self.logo_controls, "Seitenverhältnis bleibt erhalten; maximal 90 % der Halbbildbreite. Eine Kopie liegt im Programmordner logos.")
+        hint.configure(wraplength=330, justify="left")
+        hint.grid(row=6, column=0, sticky="ew")
+        self.logo_controls.grid_remove()
+
+    def choose_logo(self):
+        if self._busy:
+            return
+        path = filedialog.askopenfilename(title=self.tr("Logo wählen"),
+            filetypes=[(self.tr("Bilder"), "*.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp"), (self.tr("Alle Dateien"), "*.*")])
+        if not path:
+            return
+        try:
+            relative = import_logo(path, self.settings_path.parent)
+        except OSError:
+            messagebox.showerror("Freeda", self.tr("Die Logodatei konnte nicht im Programmordner gespeichert werden."), parent=self)
+            return
+        except ValueError as exc:
+            messagebox.showerror("Freeda", self.tr(str(exc)), parent=self)
+            return
+        self.logo_var.set(relative)
+        self.logo_name_var.set(Path(path).name)
+        self.caption_mode_var.set("Logo")
+        self._layout_changed()
 
     def _toggle_print_precision(self):
         if self.print_precision.winfo_manager():
@@ -1352,14 +1418,30 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if not self._ui_ready:
             return
         is_print = self.mode_var.get() == "Print"
+        is_logo = self.caption_mode_var.get() == "Logo"
+        for widget in self.caption_text_widgets:
+            widget.grid_remove() if is_logo else widget.grid()
+        self.logo_controls.grid() if is_logo else self.logo_controls.grid_remove()
+        self.logo_unit_menu.grid() if is_print else self.logo_unit_menu.grid_remove()
+        logo_mm = is_print and self.logo_unit_var.get() == "Millimeter (mm)"
+        self.logo_mm_entry.grid() if logo_mm else self.logo_mm_entry.grid_remove()
+        self.logo_status.configure(text=self.logo_name_var.get() or self.tr("Kein Logo gewählt"))
+        logo_percent = f"{self.logo_height_var.get():.2f}".replace(".", ",")
+        self._set_text(self.logo_size_label, f"Max. Logohöhe: {self.logo_mm_var.get()} mm" if logo_mm else
+                       f"Max. Logohöhe: {logo_percent} % je Halbbild")
+        self._set_text(self.caption_gap_top_label, "Logoabstand oben mm" if is_logo else "Textabstand oben mm")
+        self._set_text(self.caption_gap_bottom_label, "Logoabstand unten mm" if is_logo else "Textabstand unten mm")
+        self._set_text(self.caption_spacing_hint, "Leere Logoabstände: automatisch nach Logohöhe." if is_logo else
+                       "Leere Textabstände: automatisch nach Schriftgröße.")
         exact = is_print and self.margin_mode_var.get() == "Exakte Ränder in mm"
         self.margin_fields.grid() if self.margin_mode_var.get() == "Exakte Ränder in mm" else self.margin_fields.grid_remove()
         self.row_gap_controls.grid() if self.layout_var.get() == "Parallelblick + Kreuzblick" else self.row_gap_controls.grid_remove()
         self.arch_controls.grid() if self.eye_shape_var.get() == "Klassischer Bogen" else self.arch_controls.grid_remove()
-        self.print_caption_controls.grid() if is_print else self.print_caption_controls.grid_remove()
+        self.print_caption_controls.grid() if is_print and not is_logo else self.print_caption_controls.grid_remove()
         points = is_print and self.caption_unit_var.get() == "Punkt (pt)"
         self.caption_points_entry.grid() if points else self.caption_points_entry.grid_remove()
-        for slider, disabled in ((self.frame_slider, exact or self._busy), (self.caption_slider, points or self._busy)):
+        for slider, disabled in ((self.frame_slider, exact or self._busy), (self.caption_slider, points or self._busy),
+                                 (self.logo_slider, logo_mm or self._busy)):
             slider.configure(state="disabled" if disabled else "normal", progress_color=BORDER if disabled else SLIDER_PROGRESS,
                              button_color=TEXT_DISABLED if disabled else SLIDER_BUTTON,
                              button_hover_color=TEXT_DISABLED if disabled else SLIDER_BUTTON_HOVER)
@@ -1683,7 +1765,16 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             output_format=self._output_format(),
             eye_shape=_EYE_SHAPES[self.eye_shape_var.get()],
             arch_height_percent=self._arch_height(),
+            **self._logo_options(),
         )
+
+    def _logo_options(self):
+        mode = CaptionMode.LOGO if self.caption_mode_var.get() == "Logo" else CaptionMode.TEXT
+        path = None
+        if mode == CaptionMode.LOGO:
+            path = resolve_logo(self.settings_path.parent, self.logo_var.get())
+            load_logo(path)
+        return {"caption_mode": mode, "logo_path": path, "logo_height_percent": self.logo_height_var.get()}
 
     def _arch_height(self):
         if self.eye_shape_var.get() != "Klassischer Bogen":
@@ -1731,7 +1822,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             arch_height_percent=self._arch_height(),
             margins=margins,
             caption_points=self._number(self.caption_points_var.get(), "Schriftgröße: Bitte einen positiven Wert in pt eingeben.")
-                if self.caption_unit_var.get() == "Punkt (pt)" else None,
+                if self.caption_unit_var.get() == "Punkt (pt)" and self.caption_mode_var.get() == "Text" else None,
+            logo_height_mm=self._number(self.logo_mm_var.get(), "Logohöhe: Bitte einen positiven Wert eingeben.")
+                if self.caption_mode_var.get() == "Logo" and self.logo_unit_var.get() == "Millimeter (mm)" else None,
+            **self._logo_options(),
             **gaps,
         )
         if validate:

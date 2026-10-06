@@ -9,8 +9,9 @@ from PIL import Image, ImageDraw, ImageFont
 from .fonts import resolve_font, available_fonts
 from .cropping import fit_linked_crop
 from .geometry import frame_geometry_for_total_width
-from .models import Crop, EyeShape, LayoutMode, OutputFormat, WebRenderOptions
+from .models import CaptionMode, Crop, EyeShape, LayoutMode, OutputFormat, WebRenderOptions
 from .eye_shapes import shape_eye, round_outer_corners
+from .logos import load_logo, logo_layout
 
 
 def split_full_sbs(image: Image.Image) -> tuple[Image.Image, Image.Image]:
@@ -156,6 +157,9 @@ def _row(
     show_symbols: bool = True,
     eye_shape: EyeShape = EyeShape.ROUNDED,
     arch_height_percent: float = 18.0,
+    caption_mode: CaptionMode = CaptionMode.TEXT,
+    logo_path: Path | None = None,
+    logo_height_percent: float = 6.0,
 ) -> Image.Image:
     geom = frame_geometry_for_total_width(total_width, frame_percent, eye_count)
     eye_w = geom.eye_width
@@ -172,6 +176,14 @@ def _row(
     caption_gap = max(1, round(caption_font.size * .4)) if caption else 0
     caption_bottom = max(1, round(caption_font.size * .6)) if caption else 0
     caption_band = caption_h + caption_gap + caption_bottom if caption else 0
+    logo = None
+    if caption_mode == CaptionMode.LOGO:
+        logo = load_logo(logo_path)
+        footer = logo_layout(logo.size, eye_w, logo_height_percent)
+        logo = logo.resize((max(1, round(footer.width)), max(1, round(footer.height))), Image.Resampling.LANCZOS)
+        caption_gap = max(1, round(footer.gap_top))
+        caption_bottom = max(1, round(footer.gap_bottom))
+        caption_band = logo.height + caption_gap + caption_bottom
 
     height = frame + eye_h + caption_band + frame
     row = Image.new("RGBA", (total_width, height), frame_color)
@@ -190,7 +202,10 @@ def _row(
     if show_symbols and frame > 0:
         _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color)
 
-    if caption:
+    if logo is not None:
+        for x in positions:
+            row.alpha_composite(logo, (x + (eye_w - logo.width) // 2, image_y + eye_h + caption_gap))
+    elif caption:
         caption_y = image_y + eye_h + caption_gap
         for x in positions:
             _draw_caption(draw, caption, x + eye_w // 2, caption_y, caption_font, accent_color, eye_w)
@@ -231,6 +246,9 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             show_symbols=options.show_symbols,
             eye_shape=options.eye_shape,
             arch_height_percent=options.arch_height_percent,
+            caption_mode=options.caption_mode,
+            logo_path=options.logo_path,
+            logo_height_percent=options.logo_height_percent,
         ))
     if options.layout in (LayoutMode.BOTH, LayoutMode.CROSS):
         rows.append(_row(
@@ -247,9 +265,12 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             show_symbols=options.show_symbols,
             eye_shape=options.eye_shape,
             arch_height_percent=options.arch_height_percent,
+            caption_mode=options.caption_mode,
+            logo_path=options.logo_path,
+            logo_height_percent=options.logo_height_percent,
         ))
 
-    if options.caption and rows:
+    if (options.caption_mode == CaptionMode.LOGO or options.caption) and rows:
         frame = frame_geometry_for_total_width(target_width, options.frame_percent,
             3 if options.layout == LayoutMode.LRL else 2).frame_px
         last = rows[-1]
