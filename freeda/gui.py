@@ -691,9 +691,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if not name:
             raise ValueError(self.tr("Bitte einen Preset-Namen eingeben."))
         if self.mode_var.get() == "Print":
-            self._print_options()
+            self._print_options(allow_pending_logo=True)
         else:
-            self._web_options()
+            self._web_options(allow_pending_logo=True)
         values = {key: getattr(self, key).get() for key in _PRESET_VARIABLES}
         previous = dict(self.presets)
         self.presets[name] = values
@@ -1057,6 +1057,15 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.show_symbols_checkbox.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 10))
         row += 1
 
+        self.outer_radius_var = tk.StringVar(value="0")
+        self.outer_radius_label = self._label(self.sidebar, "Außenradius % der Gesamtbreite")
+        self.outer_radius_label.grid(row=row, column=0, sticky="ew", padx=20)
+        row += 1
+        self.outer_radius_entry = self._entry(self.sidebar, self.outer_radius_var)
+        self.outer_radius_entry.grid(row=row, column=0, sticky="ew", padx=20, pady=(3, 12))
+        self.outer_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        row += 1
+
         self._label(self.sidebar, "Bildkontur").grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
         self.eye_shape_var = tk.StringVar(value="Alle Ecken gerundet")
@@ -1074,27 +1083,16 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.arch_controls.grid_remove()
         row += 1
 
-        radius_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        radius_frame.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 10))
+        self.image_radius_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        self.image_radius_controls.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 10))
         row += 1
-        radius_frame.grid_columnconfigure(0, weight=1)
-        radius_frame.grid_columnconfigure(1, weight=1)
-        self.outer_radius_var = tk.StringVar(value="0")
+        self.image_radius_controls.grid_columnconfigure(0, weight=1)
         self.inner_radius_var = tk.StringVar(value="0")
-        for col, label, var in (
-            (0, "Außenradius %", self.outer_radius_var),
-            (1, "Innenradius %", self.inner_radius_var),
-        ):
-            block = ctk.CTkFrame(radius_frame, fg_color="transparent")
-            block.grid(row=0, column=col, sticky="ew", padx=(0, 4) if col == 0 else (4, 0))
-            self._label(block, label).pack(fill="x")
-            entry = self._entry(block, var)
-            if var is self.inner_radius_var:
-                self.inner_radius_entry = entry
-            else:
-                self.outer_radius_entry = entry
-            entry.pack(fill="x", pady=(3, 0))
-            entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.inner_radius_label = self._label(self.image_radius_controls, "Bildradius % der Halbbildbreite")
+        self.inner_radius_label.grid(row=0, column=0, sticky="ew")
+        self.inner_radius_entry = self._entry(self.image_radius_controls, self.inner_radius_var)
+        self.inner_radius_entry.grid(row=1, column=0, sticky="ew", pady=(3, 0))
+        self.inner_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
 
         self._label(self.sidebar, "Farben", section=True).grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
@@ -1272,7 +1270,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             entry.bind("<KeyRelease>", lambda _e: self._layout_changed())
             if key == "row_gap":
                 self.row_gap_controls = block
-        hint = self._label(self.margin_fields, "Unterer Bereich: vom Bildrand zur Schnittkante, einschließlich Untertitel; bei zwei Bildzeilen je Zeile.")
+        hint = self._label(self.margin_fields, "Unterer Bereich: vom Bildrand zur Schnittkante, einschließlich Text oder Logo; bei zwei Bildzeilen je Zeile.")
         hint.configure(wraplength=300, justify="left")
         hint.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 10))
         self.caption_gap_top_var = tk.StringVar(value="")
@@ -1306,7 +1304,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.logo_controls.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 12))
         self.logo_controls.grid_columnconfigure(0, weight=1)
         self._button(self.logo_controls, "Logo wählen …", self.choose_logo).grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        self.logo_status = self._label(self.logo_controls, "Kein Logo gewählt")
+        self.logo_status = self._label(self.logo_controls, "Bitte ein Logo wählen.")
         self.logo_status.configure(width=330, wraplength=330, justify="left")
         self.logo_status.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         self.logo_unit_menu = self._option(self.logo_controls, self.logo_unit_var, ("Prozent", "Millimeter (mm)"),
@@ -1398,7 +1396,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         # Convert the visible proportional layout rather than jumping to arbitrary margins.
         if value == "Exakte Ränder in mm":
             try:
-                current = print_layout(replace(self._print_options(validate=False), margins=None))
+                current = print_layout(replace(self._print_options(validate=False, allow_pending_logo=True), margins=None))
                 side = current.x_mm[0]
                 bottom = current.height_mm - current.y_mm[-1] - current.eye_height_mm
                 values = {"side": side, "top": current.y_mm[0], "centre": current.centre_mm,
@@ -1425,7 +1423,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.logo_unit_menu.grid() if is_print else self.logo_unit_menu.grid_remove()
         logo_mm = is_print and self.logo_unit_var.get() == "Millimeter (mm)"
         self.logo_mm_entry.grid() if logo_mm else self.logo_mm_entry.grid_remove()
-        self.logo_status.configure(text=self.logo_name_var.get() or self.tr("Kein Logo gewählt"))
+        self.logo_status.configure(text=(self.logo_name_var.get() or Path(self.logo_var.get()).name)
+                                   if self.logo_var.get() else self.tr("Bitte ein Logo wählen."))
         logo_percent = f"{self.logo_height_var.get():.2f}".replace(".", ",")
         self._set_text(self.logo_size_label, f"Max. Logohöhe: {self.logo_mm_var.get()} mm" if logo_mm else
                        f"Max. Logohöhe: {logo_percent} % je Halbbild")
@@ -1437,6 +1436,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.margin_fields.grid() if self.margin_mode_var.get() == "Exakte Ränder in mm" else self.margin_fields.grid_remove()
         self.row_gap_controls.grid() if self.layout_var.get() == "Parallelblick + Kreuzblick" else self.row_gap_controls.grid_remove()
         self.arch_controls.grid() if self.eye_shape_var.get() == "Klassischer Bogen" else self.arch_controls.grid_remove()
+        rounded = self.eye_shape_var.get() in ("Alle Ecken gerundet", "Nur obere Ecken gerundet")
+        self.image_radius_controls.grid() if rounded else self.image_radius_controls.grid_remove()
         self.print_caption_controls.grid() if is_print and not is_logo else self.print_caption_controls.grid_remove()
         points = is_print and self.caption_unit_var.get() == "Punkt (pt)"
         self.caption_points_entry.grid() if points else self.caption_points_entry.grid_remove()
@@ -1449,10 +1450,11 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._set_text(self.frame_label, "Rahmen: exakte Ränder in mm" if exact else
                        f"Breite: {self.frame_var.get():.2f} % je Halbbild".replace(".", ","))
         symbol_space = self._float(self.margin_top_var.get()) > 0 if exact else self.frame_var.get() > 0
+        if exact and self.layout_var.get() == "Parallelblick + Kreuzblick":
+            symbol_space = symbol_space or self._float(self.margin_row_gap_var.get()) > 0
         disabled = self._busy or not symbol_space
         self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal", fg_color=TEXT_DISABLED if disabled else GOLD)
-        self.inner_radius_entry.configure(state="normal" if not self._busy and self.eye_shape_var.get() in
-                                          ("Alle Ecken gerundet", "Nur obere Ecken gerundet") else "disabled")
+        self.inner_radius_entry.configure(state="normal" if not self._busy and rounded else "disabled")
         self.outer_radius_entry.configure(state="disabled" if self._busy else "normal")
         self.caption_size_label.configure(text_color=TEXT_DISABLED if points else TEXT_MUTED)
         self._set_text(self.caption_size_label, f"Untertitelgröße: {self.caption_points_var.get()} pt" if points else
@@ -1462,15 +1464,20 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if not self._ui_ready or self.mode_var.get() != "Print":
             return
         try:
-            options = self._print_options()
+            options = self._print_options(allow_pending_logo=True)
             layout = print_layout(options)
             template = CARD_TEMPLATES.get(self.card_template_var.get())
-            adjusted = template and (options.margins != template[1] or self.print_format_var.get() != template[0]
+            margins = options.margins
+            if template and margins and options.layout != LayoutMode.BOTH:
+                margins = replace(margins, row_gap_mm=template[1].row_gap_mm)
+            adjusted = template and (margins != template[1] or self.print_format_var.get() != template[0]
                                     or self.eye_shape_var.get() != template[2] or options.layout != LayoutMode.PARALLEL
                                     or options.show_symbols or options.arch_height_percent != 18 or options.outer_radius_percent != 0)
             text = f"Bildfenster: {layout.eye_width_mm:.2f} × {layout.eye_height_mm:.2f} mm\nBildmitten: {layout.centre_distance_mm:.2f} mm"
             if adjusted:
                 text = "Vorlage angepasst\n" + text
+            if self._logo_pending():
+                text += "\n" + self.tr("Bitte ein Logo wählen.")
             self._set_text(self.print_geometry_label, text)
         except ValueError as exc:
             self._set_text(self.print_geometry_label, str(exc))
@@ -1509,6 +1516,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.schedule_preview()
 
     def _refresh_preview_note(self):
+        if self._logo_pending():
+            self._set_text(self.preview_note, "Bitte ein Logo wählen.")
+            return
         if self.mode_var.get() == "Print":
             self._set_text(self.preview_note, "Vorschau mit Beschnittrand" if self.show_bleed_var.get()
                            else "Vorschau: fertiges Schnittformat ohne Beschnittrand")
@@ -1629,7 +1639,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         mode = self.mode_var.get()
         item = self._current_item()
         try:
-            options = self._web_options() if mode == "Web" else self._print_options()
+            options = self._web_options(allow_pending_logo=True) if mode == "Web" else self._print_options(allow_pending_logo=True)
             with Image.open(item.source) as source:
                 dialog = CropDialog(self, source.convert("RGB"), options, index=self.source_index+1,
                     total=len(self.sources) or 1, filename=item.source.name, editing=True)
@@ -1725,7 +1735,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def _refresh_start(self) -> None:
         text = f"Batch exportieren ({len(self.items)} Bilder)" if self.batch_mode else "Angezeigtes Bild exportieren"
         self._set_text(self.start_button, text)
-        self.start_button.configure(state="disabled" if self._busy or not self.items else "normal")
+        self.start_button.configure(state="disabled" if self._busy or not self.items or self._logo_pending() else "normal")
         self._refresh_navigation()
         self._set_start_button_normal()
 
@@ -1736,7 +1746,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def _output_format(self) -> OutputFormat:
         return OutputFormat.PNG if self.format_var.get() == "PNG" else OutputFormat.JPEG
 
-    def _web_options(self) -> WebRenderOptions:
+    def _web_options(self, *, allow_pending_logo=False) -> WebRenderOptions:
         size = self.size_var.get()
         if size == "Original":
             target_width = None
@@ -1757,20 +1767,38 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             frame_percent=float(self.frame_var.get()),
             frame_color=self._hex_color(self.frame_color_var.get(), DEFAULT_FRAME_COLOR),
             accent_color=self._hex_color(self.accent_color_var.get(), DEFAULT_ACCENT_COLOR),
-            outer_radius_percent=max(0.0, self._float(self.outer_radius_var.get())),
-            inner_radius_percent=max(0.0, self._float(self.inner_radius_var.get())),
-            caption=self.caption_var.get(),
+            outer_radius_percent=self._radius(self.outer_radius_var),
+            inner_radius_percent=self._image_radius(),
+            caption="" if self._logo_pending() else self.caption_var.get(),
             font_family=self.font_var.get(),
             caption_size_percent=float(self.caption_size_var.get()),
             output_format=self._output_format(),
             eye_shape=_EYE_SHAPES[self.eye_shape_var.get()],
             arch_height_percent=self._arch_height(),
-            **self._logo_options(),
+            **self._logo_options(allow_pending=allow_pending_logo),
         )
 
-    def _logo_options(self):
+    def _logo_pending(self):
+        return self.caption_mode_var.get() == "Logo" and not self.logo_var.get()
+
+    def _radius(self, variable):
+        return self._number(variable.get(), "Eckenradius: Bitte einen endlichen Wert ab 0 eingeben.", zero=True)
+
+    def _image_radius(self):
+        return self._radius(self.inner_radius_var) if self.eye_shape_var.get() in (
+            "Alle Ecken gerundet", "Nur obere Ecken gerundet") else 0
+
+    def _row_gap(self):
+        if self.layout_var.get() == "Parallelblick + Kreuzblick":
+            return self._number(self.margin_row_gap_var.get(), "Ränder: Bitte endliche Werte ab 0 mm eingeben.", zero=True)
+        value = self._float(self.margin_row_gap_var.get())
+        return max(0, value) if math.isfinite(value) else 0
+
+    def _logo_options(self, *, allow_pending=False):
         mode = CaptionMode.LOGO if self.caption_mode_var.get() == "Logo" else CaptionMode.TEXT
         path = None
+        if allow_pending and self._logo_pending():
+            mode = CaptionMode.TEXT
         if mode == CaptionMode.LOGO:
             path = resolve_logo(self.settings_path.parent, self.logo_var.get())
             load_logo(path)
@@ -1784,7 +1812,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             raise ValueError("Bogenhöhe: Bitte einen Wert von 0 bis 100 % eingeben.")
         return value
 
-    def _print_options(self, *, preview: bool = False, validate: bool = True) -> PrintRenderOptions:
+    def _print_options(self, *, preview: bool = False, validate: bool = True, allow_pending_logo=False) -> PrintRenderOptions:
         preset = PRINT_FORMAT_PRESETS.get(self.print_format_var.get())
         if preset is None:
             width_mm = self._number(self.print_width_var.get(), "Kartenmaße: Bitte positive Werte in mm eingeben.")
@@ -1796,10 +1824,11 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if self.margin_mode_var.get() == "Exakte Ränder in mm":
             margins = PrintMargins(**{f"{key}_mm": self._number(getattr(self, f"margin_{key}_var").get(),
                 "Ränder: Bitte endliche Werte ab 0 mm eingeben.", zero=True)
-                for key in ("side", "top", "centre", "bottom", "row_gap")})
+                for key in ("side", "top", "centre", "bottom")}, row_gap_mm=self._row_gap())
+        has_caption = not self._logo_pending() and (self.caption_mode_var.get() == "Logo" or bool(self.caption_var.get()))
         gaps = {f"caption_gap_{key}_mm": self._number(getattr(self, f"caption_gap_{key}_var").get(),
                     "Textabstände: Bitte Werte ab 0 mm eingeben.", zero=True)
-                if getattr(self, f"caption_gap_{key}_var").get().strip() else None for key in ("top", "bottom")}
+                if has_caption and getattr(self, f"caption_gap_{key}_var").get().strip() else None for key in ("top", "bottom")}
         options = PrintRenderOptions(
             layout=_LAYOUT_TO_MODE[self.layout_var.get()],
             width_mm=width_mm,
@@ -1809,23 +1838,23 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             frame_percent=float(self.frame_var.get()),
             frame_color=self._hex_color(self.frame_color_var.get(), DEFAULT_FRAME_COLOR),
             accent_color=self._hex_color(self.accent_color_var.get(), DEFAULT_ACCENT_COLOR),
-            caption=self.caption_var.get(),
+            caption="" if self._logo_pending() else self.caption_var.get(),
             font_family=self.font_var.get(),
             caption_size_percent=float(self.caption_size_var.get()),
-            inner_radius_percent=max(0.0, self._float(self.inner_radius_var.get())),
+            inner_radius_percent=self._image_radius(),
             output_format=self._output_format(),
             cutting_guide=_CUTTING_GUIDES[self.cutting_var.get()],
-            outer_radius_percent=max(0.0, self._float(self.outer_radius_var.get())),
+            outer_radius_percent=self._radius(self.outer_radius_var),
             crop=self._current_crop("Print"),
             show_symbols=self.show_symbols_var.get(),
             eye_shape=_EYE_SHAPES[self.eye_shape_var.get()],
             arch_height_percent=self._arch_height(),
             margins=margins,
             caption_points=self._number(self.caption_points_var.get(), "Schriftgröße: Bitte einen positiven Wert in pt eingeben.")
-                if self.caption_unit_var.get() == "Punkt (pt)" and self.caption_mode_var.get() == "Text" else None,
+                if self.caption_unit_var.get() == "Punkt (pt)" and self.caption_mode_var.get() == "Text" and has_caption else None,
             logo_height_mm=self._number(self.logo_mm_var.get(), "Logohöhe: Bitte einen positiven Wert eingeben.")
-                if self.caption_mode_var.get() == "Logo" and self.logo_unit_var.get() == "Millimeter (mm)" else None,
-            **self._logo_options(),
+                if self.caption_mode_var.get() == "Logo" and self.logo_unit_var.get() == "Millimeter (mm)" and has_caption else None,
+            **self._logo_options(allow_pending=allow_pending_logo),
             **gaps,
         )
         if validate:
@@ -1835,6 +1864,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def schedule_preview(self) -> None:
         self._refresh_layout_controls()
         self._refresh_print_summary()
+        self._refresh_start()
         if self._preview_job is not None:
             try:
                 self.after_cancel(self._preview_job)
@@ -1856,11 +1886,11 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 image.load()
                 source = image.convert("RGB")
                 if self.mode_var.get() == "Web":
-                    options = self._web_options()
+                    options = self._web_options(allow_pending_logo=True)
                     preview_width = min(panel_w, options.target_width or source.width)
                     rendered = render_web(source, replace(options, target_width=preview_width))
                 else:
-                    options = print_preview_options(self._print_options(), panel_w, panel_h)
+                    options = print_preview_options(self._print_options(allow_pending_logo=True), panel_w, panel_h)
                     rendered = print_preview_image(source, options, show_bleed=self.show_bleed_var.get())
             rendered = fit_preview(preview_export_image(rendered, options), panel_w, panel_h)
             self.preview_photo = ImageTk.PhotoImage(rendered)
@@ -1912,6 +1942,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
     def start_batch(self) -> None:
         if self._busy:
+            return
+        if self._logo_pending():
+            messagebox.showinfo("Freeda", self.tr("Bitte ein Logo wählen."))
             return
         if not self.items:
             messagebox.showinfo("Freeda", self.tr("Bitte zuerst Bilder oder einen Ordner wählen."))

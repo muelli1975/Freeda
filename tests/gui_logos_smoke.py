@@ -24,8 +24,42 @@ with tempfile.TemporaryDirectory() as tmp:
         assert not app.logo_controls.winfo_manager()
         assert app._web_options().caption_mode==CaptionMode.TEXT
         legacy={key:getattr(app,key).get() for key in gui._PRESET_VARIABLES if not key.startswith('logo_') and key!='caption_mode_var'}
+        app.items=discover_files([source/'sbs.png']);app._input_changed()
+        app.caption_var.set('Hidden text must not appear in a pending logo preview')
+        app.caption_mode_var.set('Logo');app._layout_changed()
+        assert app.logo_status.cget('text')=='Bitte ein Logo wählen.'
+        assert app.start_button.cget('state')=='disabled'
+        pending=app._web_options(allow_pending_logo=True)
+        assert pending.caption=='' and pending.logo_path is None
+        with patch.object(app.preview_label,'winfo_width',return_value=1000), patch.object(app.preview_label,'winfo_height',return_value=700):
+            app.update_preview()
+        assert app.preview_photo is not None and app.preview_label.cget('text')==''
+        assert app.preview_note.cget('text')=='Bitte ein Logo wählen.'
+        with patch('freeda.gui.messagebox.showinfo') as info, patch('freeda.gui.messagebox.showerror') as error:
+            app.start_batch()
+            assert info.call_args.args[1]=='Bitte ein Logo wählen.'
+            error.assert_not_called()
+        with patch('freeda.gui.filedialog.askopenfilename',return_value=''):
+            app.choose_logo()
+        assert app._logo_pending() and app.start_button.cget('state')=='disabled'
+        app.mode_var.set('Print');app._mode_changed('Print')
+        app.logo_unit_var.set('Millimeter (mm)');app.logo_mm_var.set('not a number');app._layout_changed()
+        assert 'Bildfenster:' in app.print_geometry_label.cget('text')
+        assert 'Bitte ein Logo wählen.' in app.print_geometry_label.cget('text')
+        app.save_preset('Waiting for logo')
+        app.caption_mode_var.set('Text');app._layout_changed()
+        assert app.start_button.cget('state')=='normal'
+        app.apply_preset('Waiting for logo')
+        app._language_changed('English')
+        app._refresh_preview_note()
+        assert app.logo_status.cget('text')=='Please choose a logo.'
+        assert app.preview_note.cget('text')=='Please choose a logo.'
+        app._language_changed('Deutsch')
+        app.mode_var.set('Web');app._mode_changed('Web')
+        app.logo_mm_var.set('4');app.caption_var.set('')
         with patch('freeda.gui.filedialog.askopenfilename',return_value=str(logo)):
             app.choose_logo()
+        assert app.start_button.cget('state')=='normal'
         assert app.caption_mode_var.get()=='Logo'
         assert app.logo_controls.winfo_manager()=='grid'
         assert all(not widget.winfo_manager() for widget in app.caption_text_widgets)

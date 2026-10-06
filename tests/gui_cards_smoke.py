@@ -17,9 +17,39 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.caption_size_var.get() == 4
         assert not app.print_precision.winfo_manager()
         assert app._web_options().eye_shape == EyeShape.ROUNDED
+        assert app.image_radius_controls.winfo_manager() == 'grid'
+        app.inner_radius_var.set('5')
+        app.outer_radius_var.set('2')
+        app.eye_shape_var.set('Rechteckig');app._layout_changed()
+        assert not app.image_radius_controls.winfo_manager()
+        assert app.outer_radius_entry.cget('state') == 'normal'
+        assert app._web_options().inner_radius_percent == 0
+        assert app._web_options().outer_radius_percent == 2
+        app.inner_radius_var.set('nan')
+        assert app._web_options().inner_radius_percent == 0
+        app.eye_shape_var.set('Nur obere Ecken gerundet');app._layout_changed()
+        assert app.image_radius_controls.winfo_manager() == 'grid'
+        try:
+            app._web_options()
+            raise AssertionError('An active NaN radius was accepted')
+        except ValueError:
+            pass
+        app.inner_radius_var.set('0');app.outer_radius_var.set('0')
+        app.eye_shape_var.set('Alle Ecken gerundet');app._layout_changed()
         old = {key: getattr(app,key).get() for key in _PRESET_VARIABLES if key not in _NEW_PRESET_VARIABLES}
         app.mode_var.set("Print")
         app._mode_changed("Print")
+        app.caption_unit_var.set('Punkt (pt)');app.caption_points_var.set('nan')
+        app.caption_gap_top_var.set('nan');app.caption_gap_bottom_var.set('nan')
+        assert not app._print_options().caption
+        app.caption_var.set('Text')
+        try:
+            app._print_options()
+            raise AssertionError('Active invalid text settings were accepted')
+        except ValueError:
+            pass
+        app.caption_unit_var.set('Prozent');app.caption_points_var.set('9')
+        app.caption_gap_top_var.set('');app.caption_gap_bottom_var.set('')
         colours = (app.frame_color_var.get(),app.accent_color_var.get())
         app.caption_var.set("Freiburg")
         app.card_template_var.set("Holmes-Karte")
@@ -32,6 +62,22 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.inner_radius_entry.cget("state") == "disabled"
         assert not app.show_symbols_var.get()
         assert "76.20" in app.print_geometry_label.cget("text")
+        assert 'Vorlage angepasst' not in app.print_geometry_label.cget('text')
+        app.margin_row_gap_var.set('nan');app._layout_changed()
+        assert app._print_options().margins.row_gap_mm == 0
+        assert not app.row_gap_controls.winfo_manager()
+        assert 'Vorlage angepasst' not in app.print_geometry_label.cget('text')
+        app.layout_var.set('Parallelblick + Kreuzblick');app._layout_changed()
+        try:
+            app._print_options()
+            raise AssertionError('An active NaN row gap was accepted')
+        except ValueError:
+            pass
+        app.margin_row_gap_var.set('3');app.margin_top_var.set('0');app._layout_changed()
+        assert app.show_symbols_checkbox.cget('state') == 'normal'
+        app.layout_var.set('Parallelblick');app._layout_changed()
+        assert app.show_symbols_checkbox.cget('state') == 'disabled'
+        app.margin_top_var.set('3.2');app._layout_changed()
         assert not app.print_precision.winfo_manager()
         app._toggle_print_precision()
         assert app.print_precision.winfo_manager() == "grid"
@@ -70,6 +116,8 @@ with tempfile.TemporaryDirectory() as tmp:
         assert abs(before.eye_width_mm-after.eye_width_mm)<.001
         assert abs(before.y_mm[-1]-after.y_mm[-1])<.001
         app._language_changed("English")
+        assert app.outer_radius_label.cget('text') == 'Outer radius % of total width'
+        assert app.inner_radius_label.cget('text') == 'Image radius % of view width'
         assert "Image windows" in app.print_geometry_label.cget("text")
         assert app.tr("Creme") == "Cream"
         # Invalid edited fields block an export and appear in the English summary.

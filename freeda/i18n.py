@@ -10,6 +10,12 @@ EN = {
     "Seitenverhältnis bleibt erhalten; maximal 90 % der Halbbildbreite. Eine Kopie liegt im Programmordner logos.":
         "Aspect ratio is preserved; maximum 90 % of view width. A copy is kept in the program's logos folder.",
     "Bitte eine Logodatei wählen.": "Please choose a logo file.",
+    "Bitte ein Logo wählen.": "Please choose a logo.",
+    "Außenradius % der Gesamtbreite": "Outer radius % of total width",
+    "Bildradius % der Halbbildbreite": "Image radius % of view width",
+    "Eckenradius: Bitte einen endlichen Wert ab 0 eingeben.": "Corner radius: enter a finite value of 0 or greater.",
+    "Unterer Bereich: vom Bildrand zur Schnittkante, einschließlich Text oder Logo; bei zwei Bildzeilen je Zeile.":
+        "Bottom area: from image edge to trim edge, including text or logo; for two image rows, per row.",
     "Die Logodatei konnte nicht im Programmordner gespeichert werden.": "Could not save the logo file in the program folder.",
     "Die Logodatei konnte nicht gelesen werden. Bitte eine gültige Bilddatei wählen.": "Could not read the logo file. Please choose a valid image file.",
     "Die gespeicherte Logodatei muss im Ordner logos neben dem Programm liegen.": "The saved logo file must be in the logos folder beside the program.",

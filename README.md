@@ -56,7 +56,7 @@ Print offers preset and custom dimensions, freely entered positive integer dpi a
 
 Frame width is adjustable from 0 to 5%, with 4% as the default. Caption font and size are adjustable, with 4% as the default. The caption font selection applies only to captions; II/X symbols retain the standard font. Both percentages refer to the width of one eye image and work the same way in Web and Print. Caption padding is based on the font size: approximately 0.4 times above and 0.6 times below, with extra leading only between lines.
 
-Image windows can be rectangular, rounded at all corners, rounded only at the top or shaped as a classic shallow arch. The inner radius controls rounded corners; arch height is adjusted separately as a percentage of view width. These shapes work in Web, Print and the crop preview. The outer radius rounds the complete graphic, including bleed when present. PNG keeps transparent outer corners; JPEG fills them with black in Web and white in Print, as shown in the preview. Inner image corners reveal the selected frame colour.
+Image windows can be rectangular, rounded at all corners, rounded only at the top or shaped as a classic shallow arch. Image radius controls appear only for rounded image shapes and refer to view width; arch height is adjusted separately as a percentage of view width. These shapes work in Web, Print and the crop preview. The separately placed outer radius refers to total output width and rounds the complete graphic, including bleed when present, independently of image shape. PNG keeps transparent outer corners; JPEG fills them with black in Web and white in Print, as shown in the preview. Inner image corners reveal the selected frame colour.
 
 The 16 colour presets are arranged dark first, then light, with **Night gold** first and still the default. The original ten combinations remain available. Cream, Parchment, Honey card, Sage paper, Blue grey and Dusty rose add light card backgrounds with dark captions. Custom colours remain available.
 
@@ -82,7 +82,7 @@ For plain stereo cards, select Print, parallel or cross-eyed viewing, a 0% frame
 
 ## Logos instead of caption text
 
-Under **Caption**, choose **Text** or **Logo**. **Choose logo** imports a raster image; transparent PNG is particularly suitable. Logos appear centred and identically below every stereo view, including all three L–R–L views and both rows of the combined layout. Switching modes retains the text and logo selection during the session.
+Under **Caption**, choose **Text** or **Logo**. **Choose logo** imports a raster image; transparent PNG is particularly suitable. Logos appear centred and identically below every stereo view, including all three L–R–L views and both rows of the combined layout. Switching modes retains the text and logo selection during the session. Until a logo is selected, the preview remains visible without a caption and asks for a logo; export stays disabled.
 
 The logo's aspect ratio is preserved and its width is capped at 90% of one view. Height starts at 6% of view width and is adjustable from 1–20%; Print additionally accepts a positive height in mm. The requested height is a maximum: very wide logos scale down further to fit. Automatic padding is 15% of the resulting logo height above and 25% below. In Print, the same precise padding fields can override these values in mm.
 
