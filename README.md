@@ -20,7 +20,7 @@ No separate Python installation is required. Language and saved presets are stor
 
 ## macOS and Linux builds
 
-The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package for your processor. Settings are stored beside the app bundle. ExifTool is included in `tools` beside the Linux executable and in `Freeda.app/Contents/MacOS/tools` on macOS, matching StereoFine. Linux and macOS need a working Perl interpreter for metadata transfer; the Windows package includes its own runtime.
+The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package for your processor. Settings are stored beside the app bundle. ExifTool is included in `tools` beside the Linux executable and in `Freeda.app/Contents/MacOS/tools` on macOS. Linux and macOS need a working Perl interpreter for metadata transfer; the Windows package includes its own runtime.
 
 All four variants are built from the same tagged source. Automated tests and packaged startup checks run on every platform; GUI export checks also run on Windows and Linux. Manual desktop testing on macOS and Linux is still pending. The macOS applications are ad-hoc signed and are not Apple-notarized.
 
@@ -116,7 +116,7 @@ Files use names such as `image_freeda_web.jpg` or `image_freeda_print.png`. Exis
 
 ## Metadata
 
-Where possible, Freeda copies metadata from the source image to each finished JPEG or PNG with the bundled ExifTool, following StereoFine and SplatTricia. Capture date, camera, exposure, original focal length, copyright and GPS information are retained where the output format supports them. Embedded previews, thumbnails, Orientation and MPF/MPO container data are excluded.
+Where possible, Freeda copies metadata from the source image to each finished JPEG or PNG with the bundled ExifTool. Capture date, camera, exposure, original focal length, copyright and GPS information are retained where the output format supports them. Embedded previews, thumbnails, Orientation and MPF/MPO container data are excluded.
 
 Output dimensions describe the newly rendered image, including any bleed. Source resolution values are excluded; Print retains the chosen export dpi. Metadata copying never changes source files and creates no `_original` backup files. If metadata transfer fails, the exported image remains valid and Freeda shows a nonfatal warning in the selected language.
 

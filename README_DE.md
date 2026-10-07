@@ -20,7 +20,7 @@ Eine separate Python-Installation ist nicht nötig. Sprache und gespeicherte Pre
 
 ## macOS- und Linux-Builds
 
-Auf derselben Downloadseite stehen Pakete für Linux x64, macOS Apple Silicon und macOS Intel bereit. Das vollständige Paket in einen beschreibbaren Ordner entpacken. Unter Linux `Freeda` in einer grafischen Desktop-Sitzung starten; benötigt wird glibc 2.35 oder neuer. Unter macOS `Freeda.app` aus dem zur Prozessorarchitektur passenden Paket starten. Die Einstellungen liegen neben dem App-Bundle. ExifTool liegt unter Linux im Ordner `tools` neben dem Programm und unter macOS in `Freeda.app/Contents/MacOS/tools`, wie bei StereoFine. Linux und macOS benötigen für die Metadatenübernahme einen funktionierenden Perl-Interpreter; das Windows-Paket enthält seine eigene Laufzeitumgebung.
+Auf derselben Downloadseite stehen Pakete für Linux x64, macOS Apple Silicon und macOS Intel bereit. Das vollständige Paket in einen beschreibbaren Ordner entpacken. Unter Linux `Freeda` in einer grafischen Desktop-Sitzung starten; benötigt wird glibc 2.35 oder neuer. Unter macOS `Freeda.app` aus dem zur Prozessorarchitektur passenden Paket starten. Die Einstellungen liegen neben dem App-Bundle. ExifTool liegt unter Linux im Ordner `tools` neben dem Programm und unter macOS in `Freeda.app/Contents/MacOS/tools`. Linux und macOS benötigen für die Metadatenübernahme einen funktionierenden Perl-Interpreter; das Windows-Paket enthält seine eigene Laufzeitumgebung.
 
 Alle vier Varianten entstehen aus demselben markierten Quellstand. Automatische Tests und Startprüfungen der fertigen Programme laufen auf jeder Plattform; unter Windows und Linux kommen Exportprüfungen über die Oberfläche hinzu. Manuelle Desktop-Tests unter macOS und Linux stehen noch aus. Die macOS-Anwendungen sind ad hoc signiert und nicht von Apple notarisiert.
 
@@ -116,7 +116,7 @@ Dateien heißen beispielsweise `bild_freeda_web.jpg` oder `bild_freeda_print.png
 
 ## Metadaten
 
-Soweit möglich kopiert Freeda Metadaten der Quelle mit dem gebündelten ExifTool in die fertigen JPEG- und PNG-Dateien, entsprechend StereoFine und SplatTricia. Aufnahmedatum, Kamera, Belichtung, ursprüngliche Brennweite, Copyright und GPS-Angaben bleiben erhalten, soweit das Ausgabeformat sie unterstützt. Eingebettete Vorschauen, Vorschauminiaturen, Orientation und MPF/MPO-Containerdaten werden ausgeschlossen.
+Soweit möglich kopiert Freeda Metadaten der Quelle mit dem gebündelten ExifTool in die fertigen JPEG- und PNG-Dateien. Aufnahmedatum, Kamera, Belichtung, ursprüngliche Brennweite, Copyright und GPS-Angaben bleiben erhalten, soweit das Ausgabeformat sie unterstützt. Eingebettete Vorschauen, Vorschauminiaturen, Orientation und MPF/MPO-Containerdaten werden ausgeschlossen.
 
 Die Bildabmessungen entsprechen dem neu berechneten Bild einschließlich eines etwaigen Beschnittrands. Auflösungswerte der Quelle werden ausgeschlossen; bei Print bleiben die eingestellten Export-dpi erhalten. Die Metadatenübernahme verändert keine Originaldateien und erzeugt keine `_original`-Sicherungskopien. Scheitert sie, bleibt das exportierte Bild gültig und Freeda zeigt einen nicht fatalen Hinweis in der gewählten Sprache.
 
