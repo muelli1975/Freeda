@@ -31,7 +31,7 @@ from .config import (
 from .fonts import available_fonts
 from .presets import ROUNDED_RECTANGLE, migrate_contour
 from .i18n import translate
-from .models import CaptionMode, Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
+from .models import DEFAULT_LOGO_HEIGHT_PERCENT, CaptionMode, Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
 from .logos import import_logo, resolve_logo, load_logo
 from .print_layout import print_layout
 from .notifications import play_ready_sound
@@ -39,7 +39,7 @@ from .output import export_targets
 from .print_flow import CropBatchMode, PrintBatchSession
 from .print_render import crop_for_aspect, print_eye_aspect, render_print
 from .preview import fit_preview, parse_bleed, parse_dpi, print_preview_options, print_preview_image, preview_export_image
-from .render import render_web, save_render, split_full_sbs, _font, _fit_lrl_caption
+from .render import render_web, save_render, split_full_sbs, web_geometry, _font, _fit_lrl_caption
 from .resources import resource_path, portable_settings_path
 from .window import fit_window
 from .theme import (
@@ -1086,10 +1086,11 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.arch_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         self.arch_controls.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
         self.arch_controls.grid_columnconfigure(0, weight=1)
-        self._label(self.arch_controls, "Bogenhöhe % der Halbbildbreite").grid(row=0, column=0, sticky="ew")
-        self.arch_entry = self._entry(self.arch_controls, self.arch_height_var)
-        self.arch_entry.grid(row=1, column=0, sticky="ew", pady=(3, 0))
-        self.arch_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.arch_label = self._label(self.arch_controls, "Bogenhöhe")
+        self.arch_label.grid(row=0, column=0, sticky="ew")
+        self.arch_slider = self._contour_slider(self.arch_controls, self.arch_height_var, .5)
+        self.arch_slider.grid(row=1, column=0, sticky="ew", pady=(3, 0))
+        self._label(self.arch_controls, "% der Halbbildbreite").grid(row=2, column=0, sticky="ew", pady=(4, 0))
         self.arch_controls.grid_remove()
         row += 1
 
@@ -1100,26 +1101,23 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.inner_radius_var = tk.StringVar(value="0")
         self.inner_radius_label = self._label(self.image_radius_controls, "Radius oben")
         self.inner_radius_label.grid(row=0, column=0, sticky="ew")
-        self.inner_radius_entry = self._entry(self.image_radius_controls, self.inner_radius_var)
-        self.inner_radius_entry.grid(row=1, column=0, sticky="ew", padx=(0, 4), pady=(3, 0))
-        self.inner_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.inner_radius_slider = self._contour_slider(self.image_radius_controls, self.inner_radius_var, .5)
+        self.inner_radius_slider.grid(row=1, column=0, sticky="ew", padx=(0, 4), pady=(3, 0))
         self.bottom_radius_var = tk.StringVar(value="0")
         self.bottom_radius_label = self._label(self.image_radius_controls, "Radius unten")
         self.bottom_radius_label.grid(row=0, column=1, sticky="ew", padx=(4, 0))
-        self.bottom_radius_entry = self._entry(self.image_radius_controls, self.bottom_radius_var)
-        self.bottom_radius_entry.grid(row=1, column=1, sticky="ew", padx=(4, 0), pady=(3, 0))
-        self.bottom_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
-        self._label(self.image_radius_controls, "% der Halbbildbreite · 0 oder leer: rechteckig").grid(
+        self.bottom_radius_slider = self._contour_slider(self.image_radius_controls, self.bottom_radius_var, .5)
+        self.bottom_radius_slider.grid(row=1, column=1, sticky="ew", padx=(4, 0), pady=(3, 0))
+        self._label(self.image_radius_controls, "% der Halbbildbreite · 0: rechteckig").grid(
             row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
 
         self.outer_radius_var = tk.StringVar(value="0")
-        self.outer_radius_label = self._label(self.sidebar, "Radius der äußeren Ecken")
+        self.outer_radius_label = self._label(self.sidebar, "Radius außen")
         self.outer_radius_label.configure(wraplength=330, justify="left")
         self.outer_radius_label.grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
-        self.outer_radius_entry = self._entry(self.sidebar, self.outer_radius_var)
-        self.outer_radius_entry.grid(row=row, column=0, sticky="ew", padx=20, pady=(3, 0))
-        self.outer_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.outer_radius_slider = self._contour_slider(self.sidebar, self.outer_radius_var, .1)
+        self.outer_radius_slider.grid(row=row, column=0, sticky="ew", padx=20, pady=(3, 0))
         row += 1
         self._label(self.sidebar, "% der Gesamtbreite").grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 12))
         row += 1
@@ -1330,7 +1328,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def _build_logo_controls(self, row):
         self.logo_var = tk.StringVar(value="")
         self.logo_name_var = tk.StringVar(value="")
-        self.logo_height_var = tk.DoubleVar(value=6.0)
+        self.logo_height_var = tk.DoubleVar(value=DEFAULT_LOGO_HEIGHT_PERCENT)
         self.logo_unit_var = tk.StringVar(value="Prozent")
         self.logo_mm_var = tk.StringVar(value="4")
         self.logo_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -1490,9 +1488,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             symbol_space = symbol_space or self._float(self.margin_row_gap_var.get()) > 0
         disabled = self._busy or not symbol_space
         self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal", fg_color=TEXT_DISABLED if disabled else GOLD)
-        self.inner_radius_entry.configure(state="normal" if not self._busy and rounded else "disabled")
-        self.bottom_radius_entry.configure(state="normal" if not self._busy and rounded else "disabled")
-        self.outer_radius_entry.configure(state="disabled" if self._busy else "normal")
+        self._refresh_contour_sliders(rounded)
         self.caption_size_label.configure(text_color=TEXT_DISABLED if points else TEXT_MUTED)
         self._set_text(self.caption_size_label, f"Untertitelgröße: {self.caption_points_var.get()} pt" if points else
                        f"Untertitelgröße: {self.caption_size_var.get():.2f} % je Halbbild".replace(".", ","))
@@ -1816,6 +1812,68 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             arch_height_percent=self._arch_height(),
             **self._logo_options(allow_pending=allow_pending_logo),
         )
+
+    def _contour_slider(self, parent, variable, step):
+        def changed(value):
+            variable.set(f"{round(value / step) * step:.2f}")
+            self.schedule_preview()
+        return ctk.CTkSlider(parent, from_=0, to=50, number_of_steps=round(50 / step), command=changed,
+                            progress_color=SLIDER_PROGRESS, button_color=SLIDER_BUTTON,
+                            button_hover_color=SLIDER_BUTTON_HOVER, fg_color=SLIDER_TRACK)
+
+    def _contour_limits(self):
+        try:
+            if self.mode_var.get() == "Print":
+                options = self._print_options(allow_pending_logo=True)
+                layout = print_layout(options)
+                eye_w, eye_h = layout.eye_width_mm, layout.eye_height_mm
+                width = options.width_mm + 2 * options.bleed_mm
+                height = options.height_mm + 2 * options.bleed_mm
+                arch = 100 * max(0, eye_h - 25.4 / options.dpi) / eye_w
+            else:
+                options = self._web_options(allow_pending_logo=True)
+                item = self._current_item()
+                size = (300, 200)
+                if item:
+                    with Image.open(item.source) as source:
+                        size = (source.width // 2, source.height)
+                crop = fit_linked_crop(size, options.crop, options.eye_aspect).clamped()
+                eye_size = (max(1, round((crop.x + crop.width) * size[0]) - round(crop.x * size[0])),
+                            max(1, round((crop.y + crop.height) * size[1]) - round(crop.y * size[1])))
+                geometry = web_geometry(eye_size, options)
+                eye_w, eye_h = geometry.row.geometry.eye_width, geometry.row.eye_height
+                width, height = geometry.output_size
+                arch = 100 * max(0, eye_h - 1) / eye_w
+            return 50 * min(1, eye_h / eye_w), 50 * min(1, height / width), arch
+        except (ValueError, OSError, ZeroDivisionError):
+            return 50, 50, 100
+
+    def _refresh_contour_sliders(self, rounded):
+        image_limit, outer_limit, arch_limit = self._contour_limits()
+        controls = ((self.inner_radius_slider, self.inner_radius_label, self.inner_radius_var,
+                     "Radius oben", 25, image_limit, .5, not rounded),
+                    (self.bottom_radius_slider, self.bottom_radius_label, self.bottom_radius_var,
+                     "Radius unten", 25, image_limit, .5, not rounded),
+                    (self.outer_radius_slider, self.outer_radius_label, self.outer_radius_var,
+                     "Radius außen", 5, outer_limit, .1, False),
+                    (self.arch_slider, self.arch_label, self.arch_height_var,
+                     "Bogenhöhe", 50, arch_limit, .5, rounded))
+        for slider, label, variable, name, normal, physical, step, inactive in controls:
+            value = self._float(variable.get())
+            if not math.isfinite(value) or value < 0:
+                value = 0
+            # Extend the usual range for stored presets. Moving the pointer
+            # never silently changes a preset's original numeric value.
+            upper = max(step, math.floor(min(physical, max(normal, value)) / step + 1e-9) * step)
+            disabled = self._busy or inactive or physical < step
+            slider.configure(from_=0, to=upper, number_of_steps=max(1, round(upper / step)),
+                             state="disabled" if disabled else "normal",
+                             progress_color=BORDER if disabled else SLIDER_PROGRESS,
+                             button_color=TEXT_DISABLED if disabled else SLIDER_BUTTON,
+                             button_hover_color=TEXT_DISABLED if disabled else SLIDER_BUTTON_HOVER)
+            slider.set(value)
+            label.configure(text_color=TEXT_DISABLED if disabled else TEXT_MUTED)
+            self._set_text(label, f"{name}: {value:.2f} %".replace(".", ","))
 
     def _logo_pending(self):
         return self.caption_mode_var.get() == "Logo" and not self.logo_var.get()

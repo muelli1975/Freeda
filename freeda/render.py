@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 from .fonts import resolve_font, available_fonts
 from .cropping import fit_linked_crop
 from .geometry import RowGeometry, frame_geometry_for_total_width
-from .models import CaptionMode, Crop, EyeShape, LayoutMode, OutputFormat, WebRenderOptions
+from .models import DEFAULT_LOGO_HEIGHT_PERCENT, CaptionMode, Crop, EyeShape, LayoutMode, OutputFormat, WebRenderOptions
 from .eye_shapes import shape_eye, round_outer_corners
 from .logos import load_logo, logo_layout
 
@@ -158,7 +158,7 @@ class WebRowLayout:
 
 def _web_row_layout(eye_size, *, total_width, frame_percent, caption, font_family,
                     caption_size_percent, eye_count=2, caption_mode=CaptionMode.TEXT,
-                    logo_path=None, logo_height_percent=6):
+                    logo_path=None, logo_height_percent=DEFAULT_LOGO_HEIGHT_PERCENT):
     geom = frame_geometry_for_total_width(total_width, frame_percent, eye_count)
     eye_h = max(1, round(geom.eye_width * eye_size[1] / eye_size[0]))
     font = _font(font_family, max(9, round(geom.eye_width * caption_size_percent / 100)))
@@ -266,7 +266,7 @@ def _row(
     arch_height_percent: float = 18.0,
     caption_mode: CaptionMode = CaptionMode.TEXT,
     logo_path: Path | None = None,
-    logo_height_percent: float = 6.0,
+    logo_height_percent: float = DEFAULT_LOGO_HEIGHT_PERCENT,
     bottom_radius_percent: float | None = None,
 ) -> Image.Image:
     metrics = _web_row_layout(left.size, total_width=total_width, frame_percent=frame_percent,

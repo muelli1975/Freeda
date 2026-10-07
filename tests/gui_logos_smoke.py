@@ -21,6 +21,11 @@ with tempfile.TemporaryDirectory() as tmp:
     original_dialog=gui.CropDialog
     try:
         assert app.caption_mode_var.get()=='Text'
+        assert app.logo_height_var.get() == 8
+        app.logo_height_var.set(6);app.save_preset('Previous logo height')
+        app.logo_height_var.set(8);app.apply_preset('Previous logo height')
+        assert app.logo_height_var.get() == 6
+        app.logo_height_var.set(8)
         assert not app.logo_controls.winfo_manager()
         assert app._web_options().caption_mode==CaptionMode.TEXT
         legacy={key:getattr(app,key).get() for key in gui._PRESET_VARIABLES if not key.startswith('logo_') and key!='caption_mode_var'}
@@ -66,7 +71,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.logo_var.get().startswith('logos/') and not Path(app.logo_var.get()).is_absolute()
         assert app._web_options().logo_path.read_bytes()==logo.read_bytes()
         app._language_changed('English')
-        assert app.logo_size_label.cget('text')=='Max. logo height: 6.00 % per view'
+        assert app.logo_size_label.cget('text')=='Max. logo height: 8.00 % per view'
         assert app.logo_status.cget('text')==logo.name
         app._language_changed('Deutsch')
         logo.unlink()

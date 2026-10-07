@@ -61,12 +61,28 @@ with tempfile.TemporaryDirectory() as tmp:
         assert not app.image_radius_controls.winfo_manager()
         assert app.arch_controls.winfo_manager() == 'grid'
         assert app._web_options().inner_radius_percent == app._web_options().bottom_radius_percent == 0
-        assert app.outer_radius_entry.cget('state') == 'normal'
+        assert app.outer_radius_slider.cget('state') == 'normal'
         app.inner_radius_var.set('5');app.bottom_radius_var.set('9')
         app.eye_shape_var.set('Rechteck / gerundete Ecken');app._layout_changed()
         assert app.image_radius_controls.winfo_manager() == 'grid' and not app.arch_controls.winfo_manager()
         assert (app._web_options().inner_radius_percent,app._web_options().bottom_radius_percent) == (5,9)
         app.inner_radius_var.set('0');app.bottom_radius_var.set('0');app.outer_radius_var.set('0')
+        assert not hasattr(app,'inner_radius_entry') and not hasattr(app,'arch_entry')
+        assert app.inner_radius_slider.cget('to') == 25
+        assert app.outer_radius_slider.cget('to') == 5
+        app.inner_radius_slider.cget('command')(7.5)
+        assert app._web_options().inner_radius_percent == 7.5
+        assert '7,50' in app.inner_radius_label.cget('text')
+        app.outer_radius_slider.cget('command')(1.7)
+        assert app._web_options().outer_radius_percent == 1.7
+        # Exact stored values are retained during synchronization and language changes.
+        app.inner_radius_var.set('32.7');app._layout_changed()
+        assert app.inner_radius_var.get() == '32.7' and app.inner_radius_slider.cget('to') >= 32.5
+        app._set_busy(True)
+        assert app.inner_radius_slider.cget('state') == app.outer_radius_slider.cget('state') == 'disabled'
+        app._set_busy(False)
+        assert app.inner_radius_var.get() == '32.7'
+        app.inner_radius_var.set('0');app.outer_radius_var.set('0');app._layout_changed()
         old = {key: getattr(app,key).get() for key in _PRESET_VARIABLES if key not in _NEW_PRESET_VARIABLES}
         app.mode_var.set("Print")
         app._mode_changed("Print")
@@ -90,7 +106,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert (app.frame_color_var.get(),app.accent_color_var.get()) == colours
         assert app.caption_var.get() == "Freiburg"
         assert app.frame_slider.cget("state") == "disabled"
-        assert app.inner_radius_entry.cget("state") == "disabled"
+        assert app.inner_radius_slider.cget("state") == "disabled"
         assert not app.show_symbols_var.get()
         assert "76.20" in app.print_geometry_label.cget("text")
         assert 'Vorlage angepasst' not in app.print_geometry_label.cget('text')
@@ -147,8 +163,8 @@ with tempfile.TemporaryDirectory() as tmp:
         assert abs(before.eye_width_mm-after.eye_width_mm)<.001
         assert abs(before.y_mm[-1]-after.y_mm[-1])<.001
         app._language_changed("English")
-        assert app.outer_radius_label.cget('text') == 'Radius of outer corners'
-        assert app.inner_radius_label.cget('text') == 'Top radius'
+        assert app.outer_radius_label.cget('text').startswith('Outer radius: ')
+        assert app.inner_radius_label.cget('text').startswith('Top radius: ')
         assert "Image windows" in app.print_geometry_label.cget("text")
         assert app.tr("Creme") == "Cream"
         assert app.web_size_label.cget('text') == 'Long edge (px)'
@@ -161,7 +177,7 @@ with tempfile.TemporaryDirectory() as tmp:
             raise AssertionError("Invalid margins were accepted")
         except ValueError:
             pass
-        assert app.bottom_radius_label.cget('text') == 'Bottom radius'
+        assert app.bottom_radius_label.cget('text').startswith('Bottom radius: ')
         # Legacy contours migrate, including 1.0 presets with no contour selection.
         for shape,top,bottom in (('Rechteckig','0','0'),('Alle Ecken gerundet','7','7'),
                                   ('Nur obere Ecken gerundet','7','0'),(None,'7','7')):
@@ -181,11 +197,22 @@ with tempfile.TemporaryDirectory() as tmp:
         app.mode_var.set('Print');app._mode_changed('Print')
         app.card_template_var.set('Raumbildkarte 13 × 6 cm');app._card_template_changed('Raumbildkarte 13 × 6 cm')
         assert 'Vorlage angepasst' not in app.print_geometry_label.cget('text')
-        app.bottom_radius_var.set('6');app._layout_changed()
+        app.bottom_radius_slider.cget('command')(6);app._layout_changed()
         assert 'Template adjusted' in app.print_geometry_label.cget('text')
         app._reset_card_template()
         assert (app.inner_radius_var.get(),app.bottom_radius_var.get()) == ('0','0')
         assert 'Template adjusted' not in app.print_geometry_label.cget('text')
+        app.apply_preset("Holmes")
+        app.arch_slider.cget('command')(18.5)
+        assert app._print_options().arch_height_percent == 18.5
+        assert app.arch_slider.cget('state') == 'normal' and app.inner_radius_slider.cget('state') == 'disabled'
+        # Flat image windows cap the sliders before the geometrical limit.
+        app.mode_var.set('Web');app._mode_changed('Web')
+        app.aspect_var.set('Benutzerdefiniert');app.custom_aspect_var.set('10:1');app._aspect_changed('Benutzerdefiniert')
+        limits = app._contour_limits()
+        assert app.inner_radius_slider.cget('to') <= 5
+        assert app.arch_slider.cget('to') <= 10
+        app.aspect_var.set('Original');app._aspect_changed('Original')
         app.apply_preset("Holmes")
         for shape in ("Rechteck / gerundete Ecken","Klassischer Bogen"):
             app.eye_shape_var.set(shape)

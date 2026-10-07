@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+DEFAULT_LOGO_HEIGHT_PERCENT = 8.0
+
 
 class LayoutMode(str, Enum):
     BOTH = "both"
@@ -79,7 +81,7 @@ class WebRenderOptions:
     arch_height_percent: float = 18.0
     caption_mode: CaptionMode = CaptionMode.TEXT
     logo_path: Path | None = None
-    logo_height_percent: float = 6.0
+    logo_height_percent: float = DEFAULT_LOGO_HEIGHT_PERCENT
     # None preserves the bottom corners of legacy contour options.
     bottom_radius_percent: float | None = None
 
@@ -112,7 +114,7 @@ class PrintRenderOptions:
     caption_gap_bottom_mm: float | None = None
     caption_mode: CaptionMode = CaptionMode.TEXT
     logo_path: Path | None = None
-    logo_height_percent: float = 6.0
+    logo_height_percent: float = DEFAULT_LOGO_HEIGHT_PERCENT
     logo_height_mm: float | None = None
     bottom_radius_percent: float | None = None
 

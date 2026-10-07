@@ -31,7 +31,10 @@ EN = {
     "Rechteck / gerundete Ecken": "Rectangle / rounded corners",
     "Radius oben": "Top radius",
     "Radius unten": "Bottom radius",
-    "Radius der äußeren Ecken": "Radius of outer corners",
+    "Radius außen": "Outer radius",
+    "Bogenhöhe": "Arch height",
+    "% der Halbbildbreite": "% of view width",
+    "% der Halbbildbreite · 0: rechteckig": "% of view width · 0: rectangular",
     "% der Halbbildbreite · 0 oder leer: rechteckig": "% of view width · 0 or blank: rectangular",
     "% der Gesamtbreite": "% of total width",
     "Rechteckig": "Rectangular",
@@ -162,6 +165,8 @@ def translate(text: str, language: str) -> str:
     if text in EN:
         return EN[text]
     patterns = [
+        (r"(Radius oben|Radius unten|Radius außen|Bogenhöhe): (.*) %",
+         lambda m: EN[m[1]] + ": " + m[2].replace(",", ".") + " %"),
         (r"Max\. Logohöhe: (.*) mm", lambda m: "Max. logo height: " + m[1].replace(",", ".") + " mm"),
         (r"Max\. Logohöhe: (.*) % je Halbbild", lambda m: "Max. logo height: " + m[1].replace(",", ".") + " % per view"),
         (r"Untertitelgröße: (.*) pt", lambda m: "Caption size: " + m[1].replace(",", ".") + " pt"),

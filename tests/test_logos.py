@@ -73,7 +73,7 @@ class LogoTests(unittest.TestCase):
             g = frame_geometry_for_total_width(1200,options.frame_percent,count)
             eye_h = round(g.eye_width * 200/300)
             expected_rows = 2 if mode == LayoutMode.BOTH else 1
-            footer = logo_layout((120,60),g.eye_width,6)
+            footer = logo_layout((120,60),g.eye_width,options.logo_height_percent)
             band = round(footer.height)+max(1,round(footer.gap_top))+max(1,round(footer.gap_bottom))
             for row in range(expected_rows):
                 y = g.frame_px + row*(eye_h+band+g.frame_px) + eye_h

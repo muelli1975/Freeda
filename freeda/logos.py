@@ -5,6 +5,7 @@ import hashlib
 import math
 from pathlib import Path
 from PIL import Image, ImageOps, UnidentifiedImageError
+from .models import DEFAULT_LOGO_HEIGHT_PERCENT
 
 
 @lru_cache(maxsize=8)
@@ -66,7 +67,7 @@ class LogoLayout:
         return self.gap_top + self.height + self.gap_bottom
 
 
-def logo_layout(size, eye_width, height_percent=6.0, *, height=None, gap_top=None, gap_bottom=None):
+def logo_layout(size, eye_width, height_percent=DEFAULT_LOGO_HEIGHT_PERCENT, *, height=None, gap_top=None, gap_bottom=None):
     """Use the same unit as eye_width; preserve aspect and cap width at 90%."""
     target = height if height is not None else eye_width * height_percent / 100
     if not math.isfinite(target) or target <= 0:
