@@ -29,6 +29,7 @@ from .config import (
     WEB_SIZE_PRESETS,
 )
 from .fonts import available_fonts
+from .presets import ROUNDED_RECTANGLE, migrate_contour
 from .i18n import translate
 from .models import CaptionMode, Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
 from .logos import import_logo, resolve_logo, load_logo
@@ -100,8 +101,7 @@ _CROP_MODES = {
     "Gleichen Ausschnitt verwenden": CropBatchMode.REUSE,
 }
 
-_EYE_SHAPES = {"Rechteckig": EyeShape.RECTANGLE, "Alle Ecken gerundet": EyeShape.ROUNDED,
-               "Nur obere Ecken gerundet": EyeShape.TOP_ROUNDED, "Klassischer Bogen": EyeShape.ARCH}
+_EYE_SHAPES = {ROUNDED_RECTANGLE: EyeShape.ROUNDED, "Klassischer Bogen": EyeShape.ARCH}
 
 _NEW_PRESET_VARIABLES = (
     "eye_shape_var", "arch_height_var", "card_template_var", "margin_mode_var",
@@ -109,6 +109,7 @@ _NEW_PRESET_VARIABLES = (
     "caption_unit_var", "caption_points_var", "caption_gap_top_var", "caption_gap_bottom_var",
     "caption_mode_var", "logo_var", "logo_name_var", "logo_height_var", "logo_unit_var", "logo_mm_var",
     "print_review_var",
+    "bottom_radius_var",
 )
 
 _PRESET_VARIABLES = (
@@ -752,7 +753,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def apply_preset(self, name):
         if self._busy or name not in self.presets:
             return
-        values = self.presets[name]
+        values = migrate_contour(self.presets[name])
         # A 1.0 preset must not inherit exact margins or a contour from another preset.
         for key, default in self._preset_extension_defaults.items():
             if key not in values:
@@ -1076,9 +1077,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.image_shape_heading = self._label(self.sidebar, "Bildkontur", section=True)
         self.image_shape_heading.grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 0))
         row += 1
-        self.eye_shape_var = tk.StringVar(value="Alle Ecken gerundet")
-        self._option(self.sidebar, self.eye_shape_var, tuple(_EYE_SHAPES),
-                     lambda _v: self._layout_changed()).grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 8))
+        self.eye_shape_var = tk.StringVar(value=ROUNDED_RECTANGLE)
+        self.eye_shape_menu = self._option(self.sidebar, self.eye_shape_var, tuple(_EYE_SHAPES),
+                     lambda _v: self._layout_changed())
+        self.eye_shape_menu.grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 8))
         row += 1
         self.arch_height_var = tk.StringVar(value="18")
         self.arch_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -1094,22 +1096,32 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.image_radius_controls = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         self.image_radius_controls.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 10))
         row += 1
-        self.image_radius_controls.grid_columnconfigure(0, weight=1)
+        self.image_radius_controls.grid_columnconfigure((0, 1), weight=1)
         self.inner_radius_var = tk.StringVar(value="0")
-        self.inner_radius_label = self._label(self.image_radius_controls, "Bildradius % der Halbbildbreite")
+        self.inner_radius_label = self._label(self.image_radius_controls, "Radius oben")
         self.inner_radius_label.grid(row=0, column=0, sticky="ew")
         self.inner_radius_entry = self._entry(self.image_radius_controls, self.inner_radius_var)
-        self.inner_radius_entry.grid(row=1, column=0, sticky="ew", pady=(3, 0))
+        self.inner_radius_entry.grid(row=1, column=0, sticky="ew", padx=(0, 4), pady=(3, 0))
         self.inner_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self.bottom_radius_var = tk.StringVar(value="0")
+        self.bottom_radius_label = self._label(self.image_radius_controls, "Radius unten")
+        self.bottom_radius_label.grid(row=0, column=1, sticky="ew", padx=(4, 0))
+        self.bottom_radius_entry = self._entry(self.image_radius_controls, self.bottom_radius_var)
+        self.bottom_radius_entry.grid(row=1, column=1, sticky="ew", padx=(4, 0), pady=(3, 0))
+        self.bottom_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        self._label(self.image_radius_controls, "% der Halbbildbreite · 0 oder leer: rechteckig").grid(
+            row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
 
         self.outer_radius_var = tk.StringVar(value="0")
-        self.outer_radius_label = self._label(self.sidebar, "Gesamte Ausgabe: Außenradius % der Gesamtbreite")
+        self.outer_radius_label = self._label(self.sidebar, "Radius der äußeren Ecken")
         self.outer_radius_label.configure(wraplength=330, justify="left")
         self.outer_radius_label.grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
         self.outer_radius_entry = self._entry(self.sidebar, self.outer_radius_var)
-        self.outer_radius_entry.grid(row=row, column=0, sticky="ew", padx=20, pady=(3, 12))
+        self.outer_radius_entry.grid(row=row, column=0, sticky="ew", padx=20, pady=(3, 0))
         self.outer_radius_entry.bind("<KeyRelease>", lambda _e: self.schedule_preview())
+        row += 1
+        self._label(self.sidebar, "% der Gesamtbreite").grid(row=row, column=0, sticky="ew", padx=20, pady=(4, 12))
         row += 1
 
         self._label(self.sidebar, "Farben", section=True).grid(row=row, column=0, sticky="ew", padx=20)
@@ -1394,7 +1406,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 getattr(self, f"margin_{key}_var").set(str(getattr(margins, f"{key}_mm")))
             self.layout_var.set("Parallelblick")
             self.show_symbols_var.set(False)
-            self.eye_shape_var.set(shape)
+            self.eye_shape_var.set("Klassischer Bogen" if shape == "Klassischer Bogen" else ROUNDED_RECTANGLE)
+            self.inner_radius_var.set("0")
+            self.bottom_radius_var.set("0")
             self.arch_height_var.set("18")
             self.outer_radius_var.set("0")
         elif name == "Freies Layout":
@@ -1458,7 +1472,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.margin_fields.grid() if self.margin_mode_var.get() == "Exakte Ränder in mm" else self.margin_fields.grid_remove()
         self.row_gap_controls.grid() if self.layout_var.get() == "Parallelblick + Kreuzblick" else self.row_gap_controls.grid_remove()
         self.arch_controls.grid() if self.eye_shape_var.get() == "Klassischer Bogen" else self.arch_controls.grid_remove()
-        rounded = self.eye_shape_var.get() in ("Alle Ecken gerundet", "Nur obere Ecken gerundet")
+        rounded = self.eye_shape_var.get() == ROUNDED_RECTANGLE
         self.image_radius_controls.grid() if rounded else self.image_radius_controls.grid_remove()
         self.print_caption_controls.grid() if is_print and not is_logo else self.print_caption_controls.grid_remove()
         points = is_print and self.caption_unit_var.get() == "Punkt (pt)"
@@ -1477,6 +1491,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         disabled = self._busy or not symbol_space
         self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal", fg_color=TEXT_DISABLED if disabled else GOLD)
         self.inner_radius_entry.configure(state="normal" if not self._busy and rounded else "disabled")
+        self.bottom_radius_entry.configure(state="normal" if not self._busy and rounded else "disabled")
         self.outer_radius_entry.configure(state="disabled" if self._busy else "normal")
         self.caption_size_label.configure(text_color=TEXT_DISABLED if points else TEXT_MUTED)
         self._set_text(self.caption_size_label, f"Untertitelgröße: {self.caption_points_var.get()} pt" if points else
@@ -1492,8 +1507,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             margins = options.margins
             if template and margins and options.layout != LayoutMode.BOTH:
                 margins = replace(margins, row_gap_mm=template[1].row_gap_mm)
+            expected_shape = "Klassischer Bogen" if template and template[2] == "Klassischer Bogen" else ROUNDED_RECTANGLE
             adjusted = template and (margins != template[1] or self.print_format_var.get() != template[0]
-                                    or self.eye_shape_var.get() != template[2] or options.layout != LayoutMode.PARALLEL
+                                    or self.eye_shape_var.get() != expected_shape or options.layout != LayoutMode.PARALLEL
+                                    or options.inner_radius_percent != 0 or options.bottom_radius_percent != 0
                                     or options.show_symbols or options.arch_height_percent != 18 or options.outer_radius_percent != 0)
             text = f"Bildfenster: {layout.eye_width_mm:.2f} × {layout.eye_height_mm:.2f} mm\nBildmitten: {layout.centre_distance_mm:.2f} mm"
             if adjusted:
@@ -1790,6 +1807,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             accent_color=self._hex_color(self.accent_color_var.get(), DEFAULT_ACCENT_COLOR),
             outer_radius_percent=self._radius(self.outer_radius_var),
             inner_radius_percent=self._image_radius(),
+            bottom_radius_percent=self._bottom_radius(),
             caption="" if self._logo_pending() else self.caption_var.get(),
             font_family=self.font_var.get(),
             caption_size_percent=float(self.caption_size_var.get()),
@@ -1803,11 +1821,13 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         return self.caption_mode_var.get() == "Logo" and not self.logo_var.get()
 
     def _radius(self, variable):
-        return self._number(variable.get(), "Eckenradius: Bitte einen endlichen Wert ab 0 eingeben.", zero=True)
+        return self._number(variable.get().strip() or "0", "Eckenradius: Bitte einen endlichen Wert ab 0 eingeben.", zero=True)
 
     def _image_radius(self):
-        return self._radius(self.inner_radius_var) if self.eye_shape_var.get() in (
-            "Alle Ecken gerundet", "Nur obere Ecken gerundet") else 0
+        return self._radius(self.inner_radius_var) if self.eye_shape_var.get() == ROUNDED_RECTANGLE else 0
+
+    def _bottom_radius(self):
+        return self._radius(self.bottom_radius_var) if self.eye_shape_var.get() == ROUNDED_RECTANGLE else 0
 
     def _row_gap(self):
         if self.layout_var.get() == "Parallelblick + Kreuzblick":
@@ -1863,6 +1883,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             font_family=self.font_var.get(),
             caption_size_percent=float(self.caption_size_var.get()),
             inner_radius_percent=self._image_radius(),
+            bottom_radius_percent=self._bottom_radius(),
             output_format=self._output_format(),
             cutting_guide=_CUTTING_GUIDES[self.cutting_var.get()],
             outer_radius_percent=self._radius(self.outer_radius_var),

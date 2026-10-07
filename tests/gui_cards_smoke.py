@@ -1,5 +1,6 @@
 """New 1.1 controls: templates, physical margins, migration and language."""
 import sys
+import json
 import tempfile
 from pathlib import Path
 from dataclasses import replace
@@ -37,24 +38,35 @@ with tempfile.TemporaryDirectory() as tmp:
         assert not app.print_precision.winfo_manager()
         assert app._web_options().eye_shape == EyeShape.ROUNDED
         assert app.image_radius_controls.winfo_manager() == 'grid'
-        app.inner_radius_var.set('5')
+        assert app.eye_shape_menu.cget('values') == ['Rechteck / gerundete Ecken','Klassischer Bogen']
+        app.inner_radius_var.set('5');app.bottom_radius_var.set('9')
         app.outer_radius_var.set('2')
-        app.eye_shape_var.set('Rechteckig');app._layout_changed()
-        assert not app.image_radius_controls.winfo_manager()
-        assert app.outer_radius_entry.cget('state') == 'normal'
-        assert app._web_options().inner_radius_percent == 0
+        assert app._web_options().inner_radius_percent == 5
+        assert app._web_options().bottom_radius_percent == 9
         assert app._web_options().outer_radius_percent == 2
-        app.inner_radius_var.set('nan')
-        assert app._web_options().inner_radius_percent == 0
-        app.eye_shape_var.set('Nur obere Ecken gerundet');app._layout_changed()
-        assert app.image_radius_controls.winfo_manager() == 'grid'
-        try:
+        for variable in (app.inner_radius_var,app.bottom_radius_var,app.outer_radius_var):
+            original = variable.get()
+            for value in ('nan','inf','-1','abc'):
+                variable.set(value)
+                try:
+                    app._web_options()
+                    raise AssertionError('An invalid active radius was accepted')
+                except ValueError:
+                    pass
+            variable.set('')
             app._web_options()
-            raise AssertionError('An active NaN radius was accepted')
-        except ValueError:
-            pass
-        app.inner_radius_var.set('0');app.outer_radius_var.set('0')
-        app.eye_shape_var.set('Alle Ecken gerundet');app._layout_changed()
+            variable.set(original)
+        app.eye_shape_var.set('Klassischer Bogen');app._layout_changed()
+        app.inner_radius_var.set('nan');app.bottom_radius_var.set('nan')
+        assert not app.image_radius_controls.winfo_manager()
+        assert app.arch_controls.winfo_manager() == 'grid'
+        assert app._web_options().inner_radius_percent == app._web_options().bottom_radius_percent == 0
+        assert app.outer_radius_entry.cget('state') == 'normal'
+        app.inner_radius_var.set('5');app.bottom_radius_var.set('9')
+        app.eye_shape_var.set('Rechteck / gerundete Ecken');app._layout_changed()
+        assert app.image_radius_controls.winfo_manager() == 'grid' and not app.arch_controls.winfo_manager()
+        assert (app._web_options().inner_radius_percent,app._web_options().bottom_radius_percent) == (5,9)
+        app.inner_radius_var.set('0');app.bottom_radius_var.set('0');app.outer_radius_var.set('0')
         old = {key: getattr(app,key).get() for key in _PRESET_VARIABLES if key not in _NEW_PRESET_VARIABLES}
         app.mode_var.set("Print")
         app._mode_changed("Print")
@@ -120,7 +132,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.mode_var.get() == "Web"
         assert app.margin_mode_var.get() == "Proportional"
         assert app.card_template_var.get() == "Freies Layout"
-        assert app.eye_shape_var.get() == "Alle Ecken gerundet"
+        assert app.eye_shape_var.get() == "Rechteck / gerundete Ecken"
         app.apply_preset("Holmes")
         assert app._print_options().margins == PrintMargins(11.9,3.2,1.6,9.5)
         assert app.caption_unit_var.get() == "Punkt (pt)"
@@ -135,8 +147,8 @@ with tempfile.TemporaryDirectory() as tmp:
         assert abs(before.eye_width_mm-after.eye_width_mm)<.001
         assert abs(before.y_mm[-1]-after.y_mm[-1])<.001
         app._language_changed("English")
-        assert app.outer_radius_label.cget('text') == 'Complete output: outer radius % of total width'
-        assert app.inner_radius_label.cget('text') == 'Image radius % of view width'
+        assert app.outer_radius_label.cget('text') == 'Radius of outer corners'
+        assert app.inner_radius_label.cget('text') == 'Top radius'
         assert "Image windows" in app.print_geometry_label.cget("text")
         assert app.tr("Creme") == "Cream"
         assert app.web_size_label.cget('text') == 'Long edge (px)'
@@ -149,10 +161,36 @@ with tempfile.TemporaryDirectory() as tmp:
             raise AssertionError("Invalid margins were accepted")
         except ValueError:
             pass
+        assert app.bottom_radius_label.cget('text') == 'Bottom radius'
+        # Legacy contours migrate, including 1.0 presets with no contour selection.
+        for shape,top,bottom in (('Rechteckig','0','0'),('Alle Ecken gerundet','7','7'),
+                                  ('Nur obere Ecken gerundet','7','0'),(None,'7','7')):
+            preset = dict(old,inner_radius_var='7')
+            if shape: preset['eye_shape_var'] = shape
+            app.presets['Migration'] = preset
+            app.apply_preset('Migration')
+            assert app.eye_shape_var.get() == 'Rechteck / gerundete Ecken'
+            assert (app.inner_radius_var.get(),app.bottom_radius_var.get()) == (top,bottom)
+        app.inner_radius_var.set('3');app.bottom_radius_var.set('8')
+        app.save_preset('Independent radii')
+        stored = json.loads((root/'settings.json').read_text(encoding='utf-8'))
+        assert stored['presets']['Independent radii']['bottom_radius_var'] == '8'
+        app.inner_radius_var.set('0');app.bottom_radius_var.set('0')
+        app.apply_preset('Independent radii')
+        assert (app.inner_radius_var.get(),app.bottom_radius_var.get()) == ('3','8')
+        app.mode_var.set('Print');app._mode_changed('Print')
+        app.card_template_var.set('Raumbildkarte 13 × 6 cm');app._card_template_changed('Raumbildkarte 13 × 6 cm')
+        assert 'Vorlage angepasst' not in app.print_geometry_label.cget('text')
+        app.bottom_radius_var.set('6');app._layout_changed()
+        assert 'Template adjusted' in app.print_geometry_label.cget('text')
+        app._reset_card_template()
+        assert (app.inner_radius_var.get(),app.bottom_radius_var.get()) == ('0','0')
+        assert 'Template adjusted' not in app.print_geometry_label.cget('text')
         app.apply_preset("Holmes")
-        for shape in ("Nur obere Ecken gerundet","Klassischer Bogen"):
+        for shape in ("Rechteck / gerundete Ecken","Klassischer Bogen"):
             app.eye_shape_var.set(shape)
             app.inner_radius_var.set("5")
+            app.bottom_radius_var.set("9")
             app._layout_changed()
             dialog = CropDialog(app,Image.new("RGB",(600,200),"red"),app._print_options(),index=1,total=1,filename="test.png",editing=True)
             dialog.withdraw()

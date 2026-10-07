@@ -80,6 +80,8 @@ class WebRenderOptions:
     caption_mode: CaptionMode = CaptionMode.TEXT
     logo_path: Path | None = None
     logo_height_percent: float = 6.0
+    # None preserves the bottom corners of legacy contour options.
+    bottom_radius_percent: float | None = None
 
 
 @dataclass(frozen=True)
@@ -112,6 +114,7 @@ class PrintRenderOptions:
     logo_path: Path | None = None
     logo_height_percent: float = 6.0
     logo_height_mm: float | None = None
+    bottom_radius_percent: float | None = None
 
 
 @dataclass(frozen=True)

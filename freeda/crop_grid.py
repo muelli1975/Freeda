@@ -28,7 +28,9 @@ def crop_grid(image, source, options):
                 draw.line(points, fill=(0, 0, 0, 130), width=3)
                 draw.line(points, fill=(255, 255, 255, 200), width=1)
         mask = eye_mask(overlay.size, round(width * options.inner_radius_percent / 100),
-                        options.eye_shape, options.arch_height_percent)
+                        options.eye_shape, options.arch_height_percent,
+                        bottom_radius=None if options.bottom_radius_percent is None else
+                        round(width * options.bottom_radius_percent / 100))
         overlay.putalpha(ImageChops.multiply(overlay.getchannel("A"), mask))
         canvas.alpha_composite(overlay, (x0, y0))
     if canvas.size != image.size:

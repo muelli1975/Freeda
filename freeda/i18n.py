@@ -28,6 +28,12 @@ EN = {
     "Das Logo passt nicht in den unteren Bereich. Bereich vergrößern oder Logohöhe verkleinern.":
         "The logo does not fit in the bottom area. Increase the area or reduce the logo height.",
     "Bildkontur": "Image shape",
+    "Rechteck / gerundete Ecken": "Rectangle / rounded corners",
+    "Radius oben": "Top radius",
+    "Radius unten": "Bottom radius",
+    "Radius der äußeren Ecken": "Radius of outer corners",
+    "% der Halbbildbreite · 0 oder leer: rechteckig": "% of view width · 0 or blank: rectangular",
+    "% der Gesamtbreite": "% of total width",
     "Rechteckig": "Rectangular",
     "Alle Ecken gerundet": "All corners rounded",
     "Nur obere Ecken gerundet": "Top corners rounded",

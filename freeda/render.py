@@ -267,6 +267,7 @@ def _row(
     caption_mode: CaptionMode = CaptionMode.TEXT,
     logo_path: Path | None = None,
     logo_height_percent: float = 6.0,
+    bottom_radius_percent: float | None = None,
 ) -> Image.Image:
     metrics = _web_row_layout(left.size, total_width=total_width, frame_percent=frame_percent,
         caption=caption, font_family=font_family, caption_size_percent=caption_size_percent,
@@ -287,12 +288,14 @@ def _row(
     image_y = frame
 
     radius = max(0, round(eye_w * max(0.0, inner_radius_percent) / 100.0))
+    bottom_radius = None if bottom_radius_percent is None else max(0, round(eye_w * bottom_radius_percent / 100))
     eyes = (left, right, left) if eye_count == 3 else (left, right)
     for index, (x, eye) in enumerate(zip(positions, eyes)):
         # Fill integer rounding remainder without introducing an outer strip.
         width = total_width - x if frame == 0 and index == eye_count - 1 else eye_w
         eye = eye.resize((width, eye_h), Image.Resampling.LANCZOS)
-        row.alpha_composite(shape_eye(eye, radius, eye_shape, arch_height_percent), (x, image_y))
+        row.alpha_composite(shape_eye(eye, radius, eye_shape, arch_height_percent,
+                                     bottom_radius=bottom_radius), (x, image_y))
     if show_symbols and frame > 0:
         _draw_symbols(draw, positions, eye_w, frame, symbol, accent_color)
 
@@ -329,6 +332,7 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             font_family=options.font_family,
             caption_size_percent=options.caption_size_percent,
             inner_radius_percent=options.inner_radius_percent,
+            bottom_radius_percent=options.bottom_radius_percent,
             eye_count=3 if options.layout == LayoutMode.LRL else 2,
             show_symbols=options.show_symbols,
             eye_shape=options.eye_shape,
@@ -349,6 +353,7 @@ def render_web(source: Image.Image, options: WebRenderOptions) -> Image.Image:
             font_family=options.font_family,
             caption_size_percent=options.caption_size_percent,
             inner_radius_percent=options.inner_radius_percent,
+            bottom_radius_percent=options.bottom_radius_percent,
             show_symbols=options.show_symbols,
             eye_shape=options.eye_shape,
             arch_height_percent=options.arch_height_percent,

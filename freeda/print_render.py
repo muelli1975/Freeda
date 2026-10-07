@@ -135,7 +135,10 @@ def render_print(source: Image.Image, options: PrintRenderOptions) -> Image.Imag
             cropped = _fit_crop_to_aspect(eye, options.crop, geometry.eye_aspect)
             resized = cropped.resize((x1 - x0, y1 - y0), Image.Resampling.LANCZOS)
             radius = round((x1 - x0) * max(0, options.inner_radius_percent) / 100)
-            trim.alpha_composite(shape_eye(resized, radius, options.eye_shape, options.arch_height_percent), (x0, y0))
+            bottom_radius = None if options.bottom_radius_percent is None else round(
+                (x1 - x0) * max(0, options.bottom_radius_percent) / 100)
+            trim.alpha_composite(shape_eye(resized, radius, options.eye_shape, options.arch_height_percent,
+                                          bottom_radius=bottom_radius), (x0, y0))
         band = mm_to_px(geometry.symbol_bands_mm[row_index], options.dpi)
         if options.show_symbols and band > 0:
             symbol = "X" if crossed else "II"
