@@ -12,8 +12,6 @@ Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und k
 
 [Freeda 1.1 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
 
-Die erweiterte Ordnerverarbeitung steht zunächst im Windows-Testbuild zur Verfügung. Die verlinkten veröffentlichten Pakete enthalten noch den vorherigen 1.1-Stand.
-
 1. `Freeda_1.1_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
 2. `Freeda.exe` starten.
 3. Den Programmordner zusammenhalten; `_internal`, `tools` und die anderen mitgelieferten Dateien gehören zur Anwendung.

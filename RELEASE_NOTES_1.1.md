@@ -20,4 +20,4 @@
 
 Extract the complete package into a writable folder. Keep `Freeda.exe`, `_internal` and `tools` together on Windows. To retain portable settings, copy `settings.json` and `logos` from the previous program folder. Crop records stay with their source images. Print cards at **100% / actual size**. ExifTool 13.59 remains bundled in `tools`.
 
-The Windows testbuild contains the updated folder workflow; existing published Linux/macOS packages have not yet been rebuilt with this update. Windows binaries are not Authenticode-signed.
+The updated folder workflow is included in the Windows x64, Linux x64, macOS Apple Silicon and macOS Intel packages. Windows binaries are not Authenticode-signed. macOS apps are ad-hoc signed and not Apple-notarized. Linux requires glibc 2.35 or newer; Linux/macOS metadata transfer requires Perl.

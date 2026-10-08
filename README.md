@@ -12,8 +12,6 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 
 [Download Freeda 1.1](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
 
-The updated folder workflow is initially available in the Windows testbuild. The linked published packages still contain the previous 1.1 build.
-
 1. Extract the complete `Freeda_1.1_Windows_x64.zip` into a writable folder.
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.

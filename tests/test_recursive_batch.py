@@ -24,7 +24,7 @@ class RecursiveBatchTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.base = Path(self.temporary.name)
+        self.base = Path(self.temporary.name).resolve()
         self.input = self.base / "Urlaub"
         self.output = self.base / "Freeda" / "output"
         self.source("Tag1/bild.jpg")

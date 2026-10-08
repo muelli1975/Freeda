@@ -43,7 +43,7 @@ class FeedbackTests(unittest.TestCase):
 
     def test_output_tree_and_rerun_overwrites_output_only(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp).resolve()
             source = root / "series" / "photo.png"
             source.parent.mkdir()
             self.source().save(source)
@@ -63,7 +63,7 @@ class FeedbackTests(unittest.TestCase):
 
     def test_same_name_and_different_extensions_get_unique_targets(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp).resolve()
             items = [BatchItem(root / "a/photo.jpg", Path("photo.jpg")),
                      BatchItem(root / "b/photo.jpg", Path("photo.jpg")),
                      BatchItem(root / "a/photo.png", Path("photo.png"))]
