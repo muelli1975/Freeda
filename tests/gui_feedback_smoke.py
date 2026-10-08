@@ -18,7 +18,7 @@ app = FreedaApp(language="de")
 app.withdraw()
 try:
     with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
+        root = Path(tmp).resolve()
         app.settings_path = root / "settings.json"
         app.use_input_output.set(True)
         image = Image.new("RGB", (600, 200), "red")

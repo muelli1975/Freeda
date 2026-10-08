@@ -7,7 +7,7 @@ from freeda.batch import discover_files
 from freeda.models import Crop
 from freeda.crop_storage import FILENAME, load_crops
 with tempfile.TemporaryDirectory() as tmp:
-    root=Path(tmp)
+    root=Path(tmp).resolve()
     folder=root/"pictures"
     folder.mkdir()
     source=folder/"one.png"

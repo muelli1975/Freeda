@@ -10,7 +10,7 @@ from freeda.print_render import print_eye_aspect
 from freeda.geometry import print_canvas_px
 
 with tempfile.TemporaryDirectory() as tmp:
-    root=Path(tmp)
+    root=Path(tmp).resolve()
     settings=root/'settings.json'
     settings.write_text(json.dumps({'presets': {'Old Print': {
         'mode_var':'Print', 'print_aspect_var':'Benutzerdefiniert',

@@ -5,7 +5,7 @@ from PIL import Image
 from freeda.gui import FreedaApp
 from freeda.batch import discover_files
 with tempfile.TemporaryDirectory() as tmp:
-    root=Path(tmp)
+    root=Path(tmp).resolve()
     short=root/"short.png"
     long=root/("very_long_stereo_filename_"*8+".png")
     for path in (short,long):

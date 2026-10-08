@@ -15,7 +15,7 @@ from freeda.models import Crop
 from freeda.theme import GOLD
 
 with tempfile.TemporaryDirectory() as tmp:
-    base = Path(tmp)
+    base = Path(tmp).resolve()
     folder = base / "Urlaub"
     paths = [folder / "Tag1/bild.png", folder / "Tag2/tief/bild.png"]
     for path in paths:

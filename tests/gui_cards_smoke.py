@@ -11,7 +11,7 @@ from freeda.print_layout import print_layout
 from freeda.models import EyeShape, PrintMargins
 
 with tempfile.TemporaryDirectory() as tmp:
-    root = Path(tmp)
+    root = Path(tmp).resolve()
     app = FreedaApp(language="de", settings_path=root / "settings.json")
     app.withdraw()
     try:

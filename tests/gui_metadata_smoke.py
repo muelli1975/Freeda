@@ -10,7 +10,7 @@ from freeda.batch import discover_files
 from freeda.metadata import find_exiftool_path
 
 with tempfile.TemporaryDirectory() as folder:
-    root=Path(folder)
+    root=Path(folder).resolve()
     source=root/'Aufnahme ä 測試.jpg'
     exif=Image.Exif()
     exif[271]='Test Camera'

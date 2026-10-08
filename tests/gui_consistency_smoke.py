@@ -12,7 +12,7 @@ from freeda.theme import GOLD, TEXT, TEXT_DISABLED
 
 
 with tempfile.TemporaryDirectory() as tmp:
-    root = Path(tmp)
+    root = Path(tmp).resolve()
     input_dir = root / "input"
     input_dir.mkdir()
     source = input_dir / "one.png"

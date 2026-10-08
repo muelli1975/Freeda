@@ -9,7 +9,7 @@ import freeda.gui as gui
 from freeda.models import Crop
 
 with tempfile.TemporaryDirectory() as tmp:
-    root = Path(tmp)
+    root = Path(tmp).resolve()
     folder = root / "pictures"
     folder.mkdir()
     paths = [folder / "one.png", folder / "two.png"]

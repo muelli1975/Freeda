@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image
 from freeda.gui import FreedaApp
 with tempfile.TemporaryDirectory() as tmp:
-    root = Path(tmp)
+    root = Path(tmp).resolve()
     paths = [root / f"{i}.png" for i in range(3)]
     for path in paths:
         Image.new("RGB", (600, 200), "red").save(path)
