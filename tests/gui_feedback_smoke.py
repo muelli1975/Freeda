@@ -20,7 +20,8 @@ try:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp).resolve()
         app.settings_path = root / "settings.json"
-        app.use_input_output.set(True)
+        app.output_dir = root / "output"
+        app.use_program_output.set(False)
         image = Image.new("RGB", (600, 200), "red")
         image.paste(Image.new("RGB", (300, 200), "lime"), (300, 0))
         image.save(root / "one.png")
@@ -32,7 +33,7 @@ try:
         assert app.output_checkbox.cget("border_color") == BORDER
         assert app.output_checkbox.cget("checkmark_color") == TEXT
         assert app.start_button.cget("state") == "disabled"
-        app.items = discover_files([root])
+        app.items = discover_files(sorted(root.glob("*.png")))
         app.input_root = None
         app._input_changed()
         assert app.start_button.cget("text") == "Angezeigtes Bild exportieren"
@@ -48,7 +49,7 @@ try:
         assert app.start_button.cget("text") == "Angezeigtes Bild exportieren"
         assert app.output_status.cget("text") == str(root / "output")
         image.save(root / "two.png")
-        app.items = discover_files([root])
+        app.items = discover_files(sorted(root.glob("*.png")))
         app._input_changed()
         assert app.start_button.cget("text") == "Batch exportieren (2 Bilder)"
         app.mode_var.set("Web")

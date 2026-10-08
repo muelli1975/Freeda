@@ -6,7 +6,7 @@
 4. Mit Vorheriges/Nächstes oder Bild↑/Bild↓ die Vorschau wechseln. Ein Einzelbildexport verarbeitet das angezeigte Bild; ein Batch die gesamte Auswahl.
 5. Ansicht, Rahmen, Farben und Untertitel einstellen. L–R–L bietet links Parallelblick und rechts Kreuzblick. Lange Untertitel werden dort einzeilig begrenzt und nötigenfalls mit … gekürzt.
 6. Für Web bei Bedarf das Seitenverhältnis eines Halbbilds wählen und „Ausschnitt anpassen …“ öffnen. Bei Print Druckformat, frei eingegebene dpi und Beschnittrand in mm einstellen. Beide Stereoansichten werden identisch zugeschnitten.
-7. Export starten. Standardziel ist `output` im Programmordner: Aus `Urlaub/Tag1/bild.jpg` entsteht `output/Urlaub/Tag1/bild_freeda_web.jpg`. Einzeldateien landen direkt unter `output`. Ein anderes Ziel ist wählbar. „Unterordner im Input-Ordner verwenden“ ist eine ausgeschaltete Alternative. Bestehende Ausgaben am gleichen Ziel werden überschrieben, Originale bleiben erhalten. „Abbrechen“ stoppt den Lauf; Dateifehler werden gesammelt gemeldet.
+7. Export starten. Standardziel ist `output` im Programmordner: Aus `Urlaub/Tag1/bild.jpg` entsteht `output/Urlaub/Tag1/bild_freeda_web.jpg`. Einzeldateien landen direkt unter `output`. Für ein anderes Ziel den Haken „Unterordner im Programmordner verwenden“ entfernen und unter „Eigener Ausgabeordner“ auf „Auswählen“ klicken. Den Haken wieder setzen, um zum Standard zurückzukehren; der eigene Ordner bleibt für später erhalten. Bestehende Ausgaben am gleichen Ziel werden überschrieben, Originale bleiben erhalten. „Abbrechen“ stoppt den Lauf; Dateifehler werden gesammelt gemeldet.
 
 ## Ausschnitte und Presets
 

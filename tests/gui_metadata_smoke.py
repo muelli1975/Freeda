@@ -19,7 +19,8 @@ with tempfile.TemporaryDirectory() as folder:
     original=source.read_bytes()
     app=gui.FreedaApp(settings_path=root/'settings.json')
     app.withdraw()
-    app.use_input_output.set(True)
+    app.output_dir = root / "output"
+    app.use_program_output.set(False)
     real_dialog=gui.CropDialog
     notices=[]
     errors=[]

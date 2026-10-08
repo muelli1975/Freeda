@@ -3,7 +3,7 @@
 ## Deutsch
 
 - Ein Eingabeordner mit optionaler rekursiver Verarbeitung über **Unterordner mitverarbeiten**. Gleichnamige Bilder in verschiedenen Unterordnern behalten getrennte Ziele.
-- Standardziel ist **output im Programmordner**. Ordner-Batches übernehmen den Namen des Eingabeordners und seine Unterordnerstruktur. Ein eigenes Ziel und die ausdrücklich einschaltbare Ausgabe im Input-Ordner bleiben möglich.
+- Standardziel ist **output im Programmordner**. Ordner-Batches übernehmen den Namen des Eingabeordners und seine Unterordnerstruktur. Die Checkbox **Unterordner im Programmordner verwenden** aktiviert den Standard; ohne Haken lässt sich unter **Eigener Ausgabeordner → Auswählen** ein anderes Ziel wählen. Der eigene Ordner bleibt beim Umschalten erhalten. **PNG (mit Transparenz)** benennt den Erhalt transparenter Außenecken ausdrücklich.
 - Die Suche schließt das Ausgabeziel und vorhandene Freeda-Ausgaben aus. Die Eingabeliste steht vor dem Export fest; erneute Durchläufe überschreiben ihre bisherigen Ausgaben, ohne Originale zu verändern.
 - Einlesen, Web und Print bleiben bedienbar und abbrechbar. Ausschnittdialoge pausieren den Export. Fertige Dateien bleiben erhalten; unvollständige Exporte ersetzen keine vorhandenen Ausgaben. Dateifehler werden gesammelt gemeldet, die übrigen Bilder weiterverarbeitet.
 - Ausschnitte bleiben optional in **freeda-crops.json im konkreten Quellordner**, getrennt für Web und Print. Rekursive Verarbeitung lädt und speichert sie im jeweiligen Bilderordner.
@@ -12,7 +12,7 @@
 ## English
 
 - One input folder with optional recursive processing through **Include subfolders**. Equal filenames in different subfolders retain separate destinations.
-- **output in the program folder** is the default. Folder batches preserve the input folder's name and relative tree. A custom destination and an explicitly enabled output subfolder inside the input folder remain available.
+- **output in the program folder** is the default. Folder batches preserve the input folder's name and relative tree. **Use subfolder in program folder** enables this default; uncheck it to select **Custom output folder → Choose**. Switching back retains the custom folder for later. **PNG (with transparency)** explicitly identifies transparent outer corners.
 - Discovery excludes the output destination and existing Freeda exports. The input list is frozen before export; reruns overwrite previous outputs without modifying originals.
 - Discovery, Web and Print remain responsive and cancellable. Crop dialogs pause export. Completed files remain; incomplete exports never replace previous output files. Errors are collected while healthy images continue.
 - Optional crop records remain in **freeda-crops.json in each original's source folder**, separately for Web and Print. Recursive processing loads and saves them in their respective folders.

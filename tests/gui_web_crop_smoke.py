@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.language == "de" and app.size_var.get() == "2048"
         assert app.mode_var.get() == "Web" and app.aspect_var.get() == "Original"
         assert app.frame_var.get() == 4 and not app.include_subfolders_var.get()
-        assert not app.use_input_output.get()
+        assert app.use_program_output.get()
         with patch("freeda.gui.filedialog.askdirectory", return_value=str(folder)):
             app.choose_folder()
             wait_for_job(app)

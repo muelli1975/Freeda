@@ -17,7 +17,8 @@ with tempfile.TemporaryDirectory() as tmp:
         'custom_print_aspect_var':'2:3', 'font_var':'Arial'}}}))
     app=gui.FreedaApp(settings_path=settings)
     app.withdraw()
-    app.use_input_output.set(True)
+    app.output_dir = root / "output"
+    app.use_program_output.set(False)
     real_dialog=gui.CropDialog
     try:
         assert app.title()=='Freeda 1.1'
@@ -72,7 +73,7 @@ with tempfile.TemporaryDirectory() as tmp:
         app.start_batch()
         wait_for_job(app)
         assert not app._busy and len(dialogs)==1
-        outputs=list((root/'output').glob('*.jpg'))
+        outputs=list((root/'output'/root.name).glob('*.jpg'))
         assert len(outputs)==2
         for output in outputs:
             with Image.open(output) as image:

@@ -128,6 +128,8 @@ _PRESET_VARIABLES = (
 
 class LocalisedUI:
     def tr(self, text):
+        if text == "PNG":
+            text = "PNG (mit Transparenz)"
         return translate(text, self.language)
 
     def _set_text(self, widget, text):
@@ -481,7 +483,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.source_index = 0
         self.batch_mode = False
         self.program_dir = Path(program_dir) if program_dir is not None else portable_settings_path().parent
-        self.output_dir: Path = self.program_dir / "output"
+        self.output_dir: Path | None = None
         self._events = Queue()
         self._cancel_event = threading.Event()
         self._job_id = 0
@@ -1221,13 +1223,17 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 8))
         row += 1
 
-        self.use_input_output = tk.BooleanVar(value=False)
-        self.output_checkbox = self._checkbox(self.sidebar, "Unterordner im Input-Ordner verwenden",
-                                              self.use_input_output, self._output_changed)
+        self.use_program_output = tk.BooleanVar(value=True)
+        self.output_checkbox = self._checkbox(self.sidebar, "Unterordner im Programmordner verwenden",
+                                              self.use_program_output, self._output_changed)
         self.output_checkbox.grid(
             row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
         row += 1
-        self._button(self.sidebar, "Ausgabeordner wählen …", self.choose_output).grid(
+        self.custom_output_label = self._label(self.sidebar, "Eigener Ausgabeordner")
+        self.custom_output_label.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 3))
+        row += 1
+        self.choose_output_button = self._button(self.sidebar, "Auswählen", self.choose_output)
+        self.choose_output_button.grid(
             row=row, column=0, sticky="ew", padx=20, pady=(0, 5)
         )
         row += 1
@@ -1614,8 +1620,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def _scan_exclusions(self):
         # Also exclude old program/output and every conventional source/output tree.
         paths = [self.program_dir / "output"]
-        if self.output_dir:
-            paths.append(self.output_dir)
+        output = self._effective_output()
+        if output:
+            paths.append(output)
         return tuple(paths)
 
     def _reload_folder(self):
@@ -1680,7 +1687,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                     self._scan_cancelled()
                     continue
                 self._scan_running = False
-                self._folder_scan_config = (recursive, self.output_dir, self.use_input_output.get())
+                self._folder_scan_config = (recursive, self.output_dir, self.use_program_output.get())
                 self.input_root = root
                 self.items = items
                 self._set_busy(False)
@@ -1709,10 +1716,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def _restore_scan_config(self):
         self._scan_running = False
         if self.input_root is not None and self._folder_scan_config is not None:
-            recursive, output, use_input = self._folder_scan_config
+            recursive, output, use_program = self._folder_scan_config
             self.include_subfolders_var.set(recursive)
             self.output_dir = output
-            self.use_input_output.set(use_input)
+            self.use_program_output.set(use_program)
             self._refresh_output()
 
     def _scan_cancelled(self):
@@ -1897,29 +1904,28 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.schedule_preview()
 
     def choose_output(self) -> None:
-        if self._busy:
+        if self._busy or self.use_program_output.get():
             return
         name = filedialog.askdirectory(title=self.tr("Ausgabeordner wählen"),
-                                      initialdir=str(self.output_dir) if self.output_dir else None)
+                                      initialdir=str(self.output_dir or self.program_dir / "output"))
         if name:
             self.output_dir = Path(name)
-            self.use_input_output.set(False)
             self._output_changed()
 
+    def _effective_output(self):
+        return self.program_dir / "output" if self.use_program_output.get() else self.output_dir
+
     def _refresh_output(self) -> None:
-        if self.use_input_output.get():
-            root = self.input_root or (self.items[0].source.parent if self.items else None)
-            text = str(root / "output") if root else "output im Input-Ordner"
-            if self.input_root is None and len({item.source.parent for item in self.items}) > 1:
-                text = "output im jeweiligen Eingabeordner"
-        else:
-            target = self.output_dir
-            if self.input_root:
-                target = target / self.input_root.name
-            text = str(target)
+        target = self._effective_output()
+        if target is not None and self.input_root:
+            target = target / self.input_root.name
+        text = str(target) if target is not None else "Kein eigener Ausgabeordner gewählt"
         self._set_text(self.output_status, text)
-        self._set_text(self.custom_output_status, str(self.output_dir))
-        self.custom_output_status.configure(text_color=TEXT_DISABLED if self.use_input_output.get() else TEXT)
+        self._set_text(self.custom_output_status, str(self.output_dir) if self.output_dir else "–")
+        custom_active = not self.use_program_output.get() and not self._busy
+        self.custom_output_label.configure(text_color=TEXT_MUTED if custom_active else TEXT_DISABLED)
+        self.custom_output_status.configure(text_color=TEXT if custom_active else TEXT_DISABLED)
+        self.choose_output_button.configure(state="normal" if custom_active else "disabled")
 
     def _refresh_start(self) -> None:
         text = f"Batch exportieren ({len(self.items)} Bilder)" if self.batch_mode else "Angezeigtes Bild exportieren"
@@ -1929,7 +1935,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._set_start_button_normal()
 
     def _export_targets(self, output_format):
-        return export_targets(list(self.items), None if self.use_input_output.get() else self.output_dir,
+        output = self._effective_output()
+        if output is None:
+            raise ValueError("Bitte einen Ausgabeordner auswählen.")
+        return export_targets(list(self.items), output,
                               self.input_root, self.mode_var.get().lower(), output_format)
 
     def _output_format(self) -> OutputFormat:
@@ -2192,6 +2201,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             self._control_states.clear()
             self._frame_changed(self.frame_var.get())
         self.cancel_button.configure(state="normal" if busy else "disabled")
+        self._refresh_output()
         self._refresh_start()
         if busy:
             self._set_start_button_disabled()
@@ -2208,7 +2218,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if not self.items:
             messagebox.showinfo("Freeda", self.tr("Bitte zuerst Bilder oder einen Ordner wählen."))
             return
-        if not self.use_input_output.get() and self.output_dir is None:
+        if self._effective_output() is None:
             self.choose_output()
             if self.output_dir is None:
                 return

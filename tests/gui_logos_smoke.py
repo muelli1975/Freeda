@@ -19,7 +19,8 @@ with tempfile.TemporaryDirectory() as tmp:
     mark=Image.new('RGBA',(120,60));ImageDraw.Draw(mark).rectangle((20,10,100,50),fill='magenta');mark.save(logo)
     app=gui.FreedaApp(language='de',settings_path=program/'settings.json')
     app.withdraw()
-    app.use_input_output.set(True)
+    app.output_dir = source / "output"
+    app.use_program_output.set(False)
     original_dialog=gui.CropDialog
     try:
         assert app.caption_mode_var.get()=='Text'
