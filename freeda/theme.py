@@ -63,3 +63,35 @@ TEXT_SECONDARY = TEXT_MUTED
 GOLD_DARK = GOLD
 CONTROL_RADIUS = RADIUS_CONTROL
 PANEL_RADIUS = RADIUS_PANEL
+
+
+def configure_theme():
+    """Use the Stereo-Tools palette for explicit and inherited widget colors."""
+    import customtkinter as ctk
+    ctk.set_appearance_mode("dark")
+    styles = {
+        "CTk": dict(fg_color=BG_MAIN),
+        "CTkToplevel": dict(fg_color=BG_MAIN),
+        "CTkFrame": dict(fg_color=BG_SOFT, top_fg_color=PANEL, border_color=BORDER),
+        "CTkScrollableFrame": dict(label_fg_color=BG_SOFT),
+        "CTkLabel": dict(text_color=TEXT),
+        "CTkEntry": dict(fg_color=INPUT_BG, border_color=BORDER, text_color=TEXT,
+                         placeholder_text_color=TEXT_MUTED, corner_radius=RADIUS_CONTROL),
+        "CTkButton": dict(fg_color=BUTTON_BG, hover_color=BUTTON_HOVER, border_color=BORDER,
+                          border_width=BORDER_WIDTH, text_color=TEXT,
+                          text_color_disabled=TEXT_DISABLED, corner_radius=RADIUS_CONTROL),
+        "CTkCheckBox": dict(fg_color=GOLD, hover_color=GOLD_LIGHT, border_color=BORDER,
+                            text_color=TEXT, text_color_disabled=TEXT_DISABLED, checkmark_color=TEXT),
+        "CTkOptionMenu": dict(fg_color=PANEL, button_color=PANEL_HOVER, button_hover_color=BORDER,
+                              text_color=TEXT, text_color_disabled=TEXT_DISABLED, corner_radius=RADIUS_CONTROL),
+        "DropdownMenu": dict(fg_color=BG_SOFT, hover_color=PANEL_HOVER, text_color=TEXT),
+        "CTkSegmentedButton": dict(fg_color=BORDER, selected_color=GOLD, selected_hover_color=GOLD_LIGHT,
+                                   unselected_color=BG_SOFT, unselected_hover_color=PANEL_HOVER,
+                                   text_color=TEXT, text_color_disabled=TEXT_DISABLED),
+        "CTkSlider": dict(fg_color=BORDER, progress_color=GOLD, button_color=GOLD_LIGHT,
+                          button_hover_color=GOLD_LIGHT),
+        "CTkProgressBar": dict(fg_color=BORDER, progress_color=GOLD, border_color=BORDER),
+        "CTkScrollbar": dict(button_color=BORDER, button_hover_color=PANEL_HOVER),
+    }
+    for name, style in styles.items():
+        ctk.ThemeManager.theme[name].update(style)

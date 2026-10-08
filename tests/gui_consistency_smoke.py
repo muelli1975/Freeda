@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import customtkinter as ctk
 from PIL import Image
 from freeda.gui import FreedaApp
+from gui_helpers import assert_family_palette
 from freeda.models import OutputFormat
 from freeda.theme import GOLD, TEXT, TEXT_DISABLED
 
@@ -23,6 +24,24 @@ with tempfile.TemporaryDirectory() as tmp:
     app = FreedaApp(language="de", settings_path=root / "settings.json")
     app.withdraw()
     try:
+        assert_family_palette(app)
+        # Exact reference roles, rather than merely accepting any family color.
+        assert app.sidebar.cget("fg_color") == "#181818"
+        assert app.sidebar_container.cget("fg_color") == "#181818"
+        assert app.footer.cget("fg_color") == "#181818"
+        assert app.mode_selector.cget("fg_color") == "#333333"
+        assert app.preview_panel.cget("corner_radius") == 0
+        assert app.preview_panel.cget("fg_color") == "#000000"
+        assert app.preview_label.grid_info()["padx"] == 18
+        assert app.preview_label.grid_info()["pady"] == 18
+        app.mode_var.set("Print"); app._mode_changed("Print")
+        assert_family_palette(app)
+        app.mode_var.set("Web"); app._mode_changed("Web")
+        with patch("freeda.gui.available_fonts", return_value=["Arial", "DejaVu Sans"]):
+            app._open_fonts()
+        font_dialog = next(child for child in app.winfo_children() if isinstance(child, ctk.CTkToplevel))
+        assert_family_palette(font_dialog)
+        font_dialog.destroy()
         assert app.use_program_output.get()
         assert app._effective_output() == app.program_dir / "output"
         assert app.choose_output_button.cget("state") == "normal"
@@ -69,6 +88,8 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app._control_states
         assert all(widget.cget("state") == "disabled" for widget in app._control_states
                    if not isinstance(widget, ctk.CTkSegmentedButton))
+        assert app.output_checkbox.cget("hover_color") == "#727272"
+        assert_family_palette(app)
         assert app.output_checkbox.cget("fg_color") == TEXT_DISABLED
         assert app.choose_output_button.cget("state") == "disabled"
         assert app.custom_output_status.cget("text_color") == TEXT_DISABLED

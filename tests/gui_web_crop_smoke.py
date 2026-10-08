@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image
-from gui_helpers import wait_for_job
+from gui_helpers import wait_for_job, assert_family_palette
 import freeda.gui as gui
 from freeda.models import Crop
 
@@ -28,6 +28,9 @@ with tempfile.TemporaryDirectory() as tmp:
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.withdraw()
+            assert self.preview_label.master.cget("corner_radius") == 0
+            assert self.preview_label.master.cget("fg_color") == "#000000"
+            assert_family_palette(self)
             dialogs.append(kwargs)
             self.zoom_var.set(1.4)
             self.after(50, self._accept)

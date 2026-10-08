@@ -13,6 +13,7 @@ Freeda 1.1 erweitert die Gestaltung von Stereobildern und bietet mehr Kontrolle 
 - **Einfachere Ausschnittbearbeitung:** Einzelbilder exportieren den angezeigten Ausschnitt; eine erneute Prüfung beim Export ist optional. Zurücksetzen setzt Position und Zoom zurück und behält das gewählte Web-Seitenverhältnis bei.
 - **Überarbeitete Ordnerverarbeitung:** Ein Eingabeordner lässt sich einschließlich seiner Unterordner verarbeiten. Standardziel ist `output` im Programmordner; ein eigener Ausgabeordner bleibt wählbar. Ordner-Batches erhalten den Namen des Quellordners und seine relative Struktur, sodass gleichnamige Bilder in unterschiedlichen Unterordnern getrennt bleiben.
 - **Zuverlässigere Stapelverarbeitung:** Einlesen und Export laufen im Hintergrund, mit Fortschritt, Abbruch und einer Fehlerzusammenfassung. Manuelle Ausschnittdialoge pausieren den Lauf. Die Suche schließt Ausgabeordner und vorhandene Freeda-Ausgaben aus; Ausschnitte werden weiterhin beim jeweiligen Original gespeichert. Unvollständige Exporte ersetzen keine vorhandenen Ausgabebilder.
+- **Einheitlichere Bedienoberfläche:** Farben und deaktivierte Bedienelemente entsprechen der Tool-Familie. Rechteckige Vorschaubereiche erhalten die nutzbare Vorschaufläche.
 
 Vorhandene Presets aus Freeda 1.0 bleiben verwendbar.
 
@@ -29,5 +30,6 @@ Freeda 1.1 expands stereo image styling and adds more control over printed stere
 - **Simpler cropping:** Single images export the displayed crop; reviewing it again during export is optional. Reset restores position and zoom while retaining the selected Web aspect ratio.
 - **Revised folder processing:** One input folder can be processed together with its subfolders. The default destination is `output` in the program folder; a custom output folder remains available. Folder batches retain the source folder's name and relative tree, keeping equal filenames in different subfolders separate.
 - **More reliable batch processing:** Discovery and export run in the background with progress, cancellation and an error summary. Manual crop dialogs pause the batch. Discovery excludes output folders and existing Freeda exports; crop records remain beside their respective originals. Incomplete exports never replace existing output images.
+- **More consistent interface:** Colours and disabled controls follow the tool family. Rectangular preview areas preserve the available preview space.
 
 Existing Freeda 1.0 presets remain usable.

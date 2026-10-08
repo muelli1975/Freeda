@@ -46,6 +46,7 @@ from .render import render_web, split_full_sbs, web_geometry, _font, _fit_lrl_ca
 from .resources import resource_path, portable_settings_path
 from .window import fit_window
 from .theme import (
+    configure_theme,
     BG_MAIN,
     BG_SOFT,
     BORDER,
@@ -80,7 +81,7 @@ from .theme import (
     TEXT_MUTED,
 )
 
-ctk.set_appearance_mode("dark")
+configure_theme()
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 860
@@ -227,7 +228,7 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
             fg_color=PREVIEW_BG,
             border_width=BORDER_WIDTH,
             border_color=BORDER,
-            corner_radius=RADIUS_PANEL,
+            corner_radius=0,
         )
         preview.grid(row=0, column=0, sticky="nsew", padx=(0, 14))
         preview.grid_columnconfigure(0, weight=1)
@@ -504,16 +505,16 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.sidebar_container = ctk.CTkFrame(self, width=SIDEBAR_WIDTH + 24, fg_color=PANEL, corner_radius=0)
+        self.sidebar_container = ctk.CTkFrame(self, width=SIDEBAR_WIDTH + 24, fg_color=BG_SOFT, corner_radius=0)
         self.sidebar_container.grid_propagate(False)
         self.sidebar_container.grid(row=0, column=0, sticky="nsew")
         self.sidebar_container.grid_rowconfigure(0, weight=1)
         self.sidebar_container.grid_columnconfigure(0, weight=1)
-        self.footer = ctk.CTkFrame(self.sidebar_container, fg_color=PANEL, corner_radius=0)
+        self.footer = ctk.CTkFrame(self.sidebar_container, fg_color=BG_SOFT, corner_radius=0)
         self.footer.grid(row=1, column=0, sticky="ew")
         self.footer.grid_columnconfigure(0, weight=1)
         self.sidebar = ctk.CTkScrollableFrame(
-            self.sidebar_container, width=SIDEBAR_WIDTH, fg_color=PANEL, corner_radius=0,
+            self.sidebar_container, width=SIDEBAR_WIDTH, fg_color=BG_SOFT, corner_radius=0,
             scrollbar_button_color=BORDER, scrollbar_button_hover_color=PANEL_HOVER,
         )
         self.sidebar.grid(row=0, column=0, sticky="nsew")
@@ -522,7 +523,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.preview_panel = ctk.CTkFrame(
             self,
             fg_color=PREVIEW_BG,
-            corner_radius=RADIUS_PANEL,
+            corner_radius=0,
             border_width=BORDER_WIDTH,
             border_color=BORDER,
         )
@@ -1512,7 +1513,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if exact and self.layout_var.get() == "Parallelblick + Kreuzblick":
             symbol_space = symbol_space or self._float(self.margin_row_gap_var.get()) > 0
         disabled = self._busy or not symbol_space
-        self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal", fg_color=TEXT_DISABLED if disabled else GOLD)
+        self.show_symbols_checkbox.configure(state="disabled" if disabled else "normal", fg_color=TEXT_DISABLED if disabled else GOLD,
+                                             hover_color=TEXT_DISABLED if disabled else GOLD_LIGHT)
         self._refresh_contour_sliders(rounded)
         self.caption_size_label.configure(text_color=TEXT_DISABLED if points else TEXT_MUTED)
         self._set_text(self.caption_size_label, f"Untertitelgröße: {self.caption_points_var.get()} pt" if points else
@@ -2179,7 +2181,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                             colors = {key: widget.cget(key) for key in
                                       ("progress_color", "button_color", "button_hover_color")}
                         elif isinstance(widget, ctk.CTkCheckBox):
-                            colors = {"fg_color": widget.cget("fg_color")}
+                            colors = {key: widget.cget(key) for key in ("fg_color", "hover_color")}
                         # CustomTkinter 5.2 exposes segmented state only on its buttons.
                         state = (next(child.cget("state") for child in widget.winfo_children()
                                       if isinstance(child, ctk.CTkButton))
@@ -2190,7 +2192,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                             widget.configure(progress_color=BORDER, button_color=TEXT_DISABLED,
                                              button_hover_color=TEXT_DISABLED)
                         elif isinstance(widget, ctk.CTkCheckBox):
-                            widget.configure(fg_color=TEXT_DISABLED)
+                            widget.configure(fg_color=TEXT_DISABLED, hover_color=TEXT_DISABLED)
                         continue
                     lock_controls(widget)
             lock_controls(self.sidebar_container)

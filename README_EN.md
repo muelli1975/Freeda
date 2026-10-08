@@ -30,7 +30,7 @@ All four variants are built from the same tagged source. Automated tests and pac
 2. Choose **Web** or **Print** and the viewing layout.
 3. Set the Web long edge or print dimensions, frame colours and captions.
 4. Use **Adjust crop** to position the crop. In Web mode you can also choose a per-eye aspect ratio.
-5. Check the preview. Use Previous/Next to inspect other images.
+5. Check the preview. Use Previous/Next to inspect other images. The preview area has square corners and uses the available space in both Web and Print.
 6. Start the export. Single-image export processes the displayed image; batch export processes the entire selection.
 
 The first launch uses German. Select English in the language control; Freeda remembers the last language. Other settings start at their defaults: Web, 2048 pixels, 4% frame width, 4% caption size, 300 dpi and 0 mm bleed with bleed preview enabled. Presets are applied only when explicitly selected.

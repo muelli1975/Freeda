@@ -30,7 +30,7 @@ Alle vier Varianten entstehen aus demselben markierten Quellstand. Automatische 
 2. **Web** oder **Print** und die gewünschte Ansicht wählen.
 3. Lange Seite in Pixeln beziehungsweise Druckformat, Rahmenfarben und Untertitel einstellen.
 4. Mit **Ausschnitt anpassen** den Bildausschnitt positionieren. Bei Web lässt sich zusätzlich das Seitenverhältnis der Halbbilder wählen.
-5. Die Vorschau prüfen. Mit Vorheriges/Nächstes weitere Bilder ansehen.
+5. Die Vorschau prüfen. Mit Vorheriges/Nächstes weitere Bilder ansehen. Der Vorschaubereich hat rechteckige Ecken und nutzt die verfügbare Fläche bei Web und Print.
 6. Export starten. Der Einzelbildexport verarbeitet das angezeigte Bild, der Batch die gesamte Auswahl.
 
 Beim ersten Start ist Deutsch eingestellt. Über die Sprachauswahl lässt sich auf Englisch umschalten; Freeda merkt sich die zuletzt gewählte Sprache. Die übrigen Einstellungen starten mit den Standardwerten: Web, 2048 Pixel, 4 % Rahmenbreite, 4 % Untertitelgröße, 300 dpi und 0 mm Beschnittrand mit eingeschalteter Beschnittrandvorschau. Presets werden erst beim ausdrücklichen Auswählen angewendet.
