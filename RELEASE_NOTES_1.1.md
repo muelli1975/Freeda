@@ -2,22 +2,32 @@
 
 ## Deutsch
 
-- Ein Eingabeordner mit optionaler rekursiver Verarbeitung über **Unterordner mitverarbeiten**. Gleichnamige Bilder in verschiedenen Unterordnern behalten getrennte Ziele.
-- Standardziel ist **output im Programmordner**. Ordner-Batches übernehmen den Namen des Eingabeordners und seine Unterordnerstruktur. Die Checkbox **Unterordner im Programmordner verwenden** aktiviert den Standard; ohne Haken lässt sich unter **Eigener Ausgabeordner → Auswählen** ein anderes Ziel wählen. Der eigene Ordner bleibt beim Umschalten erhalten. **PNG (mit Transparenz)** benennt den Erhalt transparenter Außenecken ausdrücklich.
-- Die Suche schließt das Ausgabeziel und vorhandene Freeda-Ausgaben aus. Die Eingabeliste steht vor dem Export fest; erneute Durchläufe überschreiben ihre bisherigen Ausgaben, ohne Originale zu verändern.
-- Einlesen, Web und Print bleiben bedienbar und abbrechbar. Ausschnittdialoge pausieren den Export. Fertige Dateien bleiben erhalten; unvollständige Exporte ersetzen keine vorhandenen Ausgaben. Dateifehler werden gesammelt gemeldet, die übrigen Bilder weiterverarbeitet.
-- Ausschnitte bleiben optional in **freeda-crops.json im konkreten Quellordner**, getrennt für Web und Print. Rekursive Verarbeitung lädt und speichert sie im jeweiligen Bilderordner.
-- Die weiteren 1.1-Funktionen bleiben erhalten: lange Seite bei Web, Kartenvorlagen und genaue mm-Ränder, unabhängige Eckenradien und klassischer Bogen, 16 Farbpresets, Untertitel oder portable Logos und Lanczos-Skalierung.
+Freeda 1.1 erweitert die Gestaltung von Stereobildern und bietet mehr Kontrolle über gedruckte Stereokarten. Die wichtigsten Neuerungen gegenüber Version 1.0:
+
+- **Klassische Kartenkonturen:** Ein klassischer Bogen sowie getrennt einstellbare Radien für die oberen und unteren Bildecken. Schieberegler steuern Bildradien, Radius außen und Bogenhöhe in Web und Print. PNG erhält transparente Außenecken; JPEG füllt sie bei Web schwarz und bei Print weiß.
+- **Genauere Drucklayouts:** Kartenvorlagen für Holmes-Karten, Stereokarten 18 × 9 cm und Raumbildkarten 13 × 6 cm. Außenränder, Mittelsteg, oberer und unterer Bereich, Zeilenabstand und Beschriftungsabstände lassen sich in Millimetern einstellen. Die Kartengeometrie bleibt unabhängig von den dpi erhalten.
+- **Logos statt Untertitel:** Eine Bilddatei kann die Textbeschriftung ersetzen. Logos werden proportional skaliert und können mit einer genauen Druckhöhe in mm ausgegeben werden. Importierte Logos und ihre Presets bleiben beim Verschieben des Programmordners portabel.
+- **Erweiterte Farbpalette:** 16 Farbpresets statt bisher zehn, mit zusätzlichen Kombinationen für klassische und Vintage-Stereokarten. Dunkle Farben stehen vor hellen; Nachtgold bleibt Standard und an erster Stelle.
+- **Verbesserte Untertitel:** Die Standardgröße steigt von 3,5 auf 4 %. Überarbeitete Abstände und bei Print einstellbare Textabstände schaffen harmonischere Beschriftungsbereiche. Die Schriftauswahl zeigt den eingegebenen Untertitel als Muster.
+- **Webgröße nach der langen Seite:** Die Pixelgröße bezieht sich auf die längste Seite der fertigen Grafik einschließlich Rahmen und Beschriftung. So gilt die gewählte Größe auch für hochformatige Ausgaben eindeutig.
+- **Einfachere Ausschnittbearbeitung:** Einzelbilder exportieren den angezeigten Ausschnitt; eine erneute Prüfung beim Export ist optional. Zurücksetzen setzt Position und Zoom zurück und behält das gewählte Web-Seitenverhältnis bei.
+- **Überarbeitete Ordnerverarbeitung:** Ein Eingabeordner lässt sich einschließlich seiner Unterordner verarbeiten. Standardziel ist `output` im Programmordner; ein eigener Ausgabeordner bleibt wählbar. Ordner-Batches erhalten den Namen des Quellordners und seine relative Struktur, sodass gleichnamige Bilder in unterschiedlichen Unterordnern getrennt bleiben.
+- **Zuverlässigere Stapelverarbeitung:** Einlesen und Export laufen im Hintergrund, mit Fortschritt, Abbruch und einer Fehlerzusammenfassung. Manuelle Ausschnittdialoge pausieren den Lauf. Die Suche schließt Ausgabeordner und vorhandene Freeda-Ausgaben aus; Ausschnitte werden weiterhin beim jeweiligen Original gespeichert. Unvollständige Exporte ersetzen keine vorhandenen Ausgabebilder.
+
+Vorhandene Presets aus Freeda 1.0 bleiben verwendbar.
 
 ## English
 
-- One input folder with optional recursive processing through **Include subfolders**. Equal filenames in different subfolders retain separate destinations.
-- **output in the program folder** is the default. Folder batches preserve the input folder's name and relative tree. **Use subfolder in program folder** enables this default; uncheck it to select **Custom output folder → Choose**. Switching back retains the custom folder for later. **PNG (with transparency)** explicitly identifies transparent outer corners.
-- Discovery excludes the output destination and existing Freeda exports. The input list is frozen before export; reruns overwrite previous outputs without modifying originals.
-- Discovery, Web and Print remain responsive and cancellable. Crop dialogs pause export. Completed files remain; incomplete exports never replace previous output files. Errors are collected while healthy images continue.
-- Optional crop records remain in **freeda-crops.json in each original's source folder**, separately for Web and Print. Recursive processing loads and saves them in their respective folders.
-- Existing 1.1 features remain: Web long-edge sizing, card templates and precise mm margins, independent corner radii and classic arches, 16 colour presets, captions or portable logos, and Lanczos scaling.
+Freeda 1.1 expands stereo image styling and adds more control over printed stereo cards. The main improvements over version 1.0:
 
-Extract the complete package into a writable folder. Keep `Freeda.exe`, `_internal` and `tools` together on Windows. To retain portable settings, copy `settings.json` and `logos` from the previous program folder. Crop records stay with their source images. Print cards at **100% / actual size**. ExifTool 13.59 remains bundled in `tools`.
+- **Classic card shapes:** A classic arch and independently adjustable top and bottom image corner radii. Sliders control image radii, outer radius and arch height in Web and Print. PNG retains transparent outer corners; JPEG fills them with black in Web and white in Print.
+- **Precise print layouts:** Templates for Holmes cards, 18 × 9 cm stereo cards and 13 × 6 cm Raumbild cards. Side margins, centre gap, top and bottom areas, row spacing and caption padding can be set in millimetres. Card geometry remains independent of dpi.
+- **Logos instead of captions:** An image file can replace the text caption. Logos retain their proportions and can use an exact print height in mm. Imported logos and their presets remain portable when the program folder is moved.
+- **Expanded colour palette:** 16 colour presets instead of ten, including additional combinations for classic and vintage stereo cards. Dark colours precede light colours; Night Gold remains the default and first preset.
+- **Improved captions:** The default size increases from 3.5 to 4%. Revised spacing and adjustable Print padding create more balanced caption areas. The font picker previews the entered caption text.
+- **Web sizing by long edge:** Pixel sizes now refer to the longest side of the finished graphic, including its frame and caption. The selected size therefore also has a clear meaning for portrait outputs.
+- **Simpler cropping:** Single images export the displayed crop; reviewing it again during export is optional. Reset restores position and zoom while retaining the selected Web aspect ratio.
+- **Revised folder processing:** One input folder can be processed together with its subfolders. The default destination is `output` in the program folder; a custom output folder remains available. Folder batches retain the source folder's name and relative tree, keeping equal filenames in different subfolders separate.
+- **More reliable batch processing:** Discovery and export run in the background with progress, cancellation and an error summary. Manual crop dialogs pause the batch. Discovery excludes output folders and existing Freeda exports; crop records remain beside their respective originals. Incomplete exports never replace existing output images.
 
-The updated folder workflow is included in the Windows x64, Linux x64, macOS Apple Silicon and macOS Intel packages. Windows binaries are not Authenticode-signed. macOS apps are ad-hoc signed and not Apple-notarized. Linux requires glibc 2.35 or newer; Linux/macOS metadata transfer requires Perl.
+Existing Freeda 1.0 presets remain usable.

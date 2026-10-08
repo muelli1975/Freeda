@@ -55,15 +55,13 @@ with tempfile.TemporaryDirectory() as tmp:
             output = folder / "fertige Karten"
             output.mkdir()
             Image.new("RGB", (600, 200)).save(output / "foreign-source.png")
-            app.use_program_output.set(False)
-            app._output_changed(); wait_for_job(app)
             with patch("freeda.gui.filedialog.askdirectory", return_value=str(output)):
                 app.choose_output(); wait_for_job(app)
             assert len(app.items) == 2
             app.use_program_output.set(True)
             app._output_changed(); wait_for_job(app)
             assert app._effective_output() == base / "program/output"
-            assert app.choose_output_button.cget("state") == "disabled"
+            assert app.choose_output_button.cget("state") == "normal"
             app.use_program_output.set(False)
             app._output_changed(); wait_for_job(app)
             assert len(app.items) == 2 and app.output_dir == output

@@ -1904,12 +1904,13 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.schedule_preview()
 
     def choose_output(self) -> None:
-        if self._busy or self.use_program_output.get():
+        if self._busy:
             return
         name = filedialog.askdirectory(title=self.tr("Ausgabeordner wählen"),
                                       initialdir=str(self.output_dir or self.program_dir / "output"))
         if name:
             self.output_dir = Path(name)
+            self.use_program_output.set(False)
             self._output_changed()
 
     def _effective_output(self):
@@ -1923,9 +1924,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._set_text(self.output_status, text)
         self._set_text(self.custom_output_status, str(self.output_dir) if self.output_dir else "–")
         custom_active = not self.use_program_output.get() and not self._busy
-        self.custom_output_label.configure(text_color=TEXT_MUTED if custom_active else TEXT_DISABLED)
+        self.custom_output_label.configure(text_color=TEXT if custom_active else TEXT_DISABLED)
         self.custom_output_status.configure(text_color=TEXT if custom_active else TEXT_DISABLED)
-        self.choose_output_button.configure(state="normal" if custom_active else "disabled")
+        self.choose_output_button.configure(state="disabled" if self._busy else "normal")
 
     def _refresh_start(self) -> None:
         text = f"Batch exportieren ({len(self.items)} Bilder)" if self.batch_mode else "Angezeigtes Bild exportieren"

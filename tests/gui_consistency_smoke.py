@@ -25,21 +25,21 @@ with tempfile.TemporaryDirectory() as tmp:
     try:
         assert app.use_program_output.get()
         assert app._effective_output() == app.program_dir / "output"
-        assert app.choose_output_button.cget("state") == "disabled"
+        assert app.choose_output_button.cget("state") == "normal"
         assert app.custom_output_label.cget("text") == "Eigener Ausgabeordner"
         assert app.choose_output_button.cget("text") == "Auswählen"
         assert app.custom_output_label.cget("text_color") == TEXT_DISABLED
         assert app.subfolders_checkbox.cget("text") == "Unterordner mitverarbeiten"
         assert app.output_checkbox.cget("text") == "Unterordner im Programmordner verwenden"
-        with patch("freeda.gui.filedialog.askdirectory") as dialog:
-            app.choose_output()
-            dialog.assert_not_called()
+        with patch("freeda.gui.filedialog.askdirectory", return_value="") as dialog:
+            app.choose_output_button.invoke()
+            dialog.assert_called_once()
+        assert app.use_program_output.get() and app.output_dir is None
         with patch("freeda.gui.filedialog.askopenfilenames", return_value=[str(source)]):
             app.choose_files()
-        app.output_checkbox.toggle()
         assert app.choose_output_button.cget("state") == "normal"
         with patch("freeda.gui.filedialog.askdirectory", return_value=str(output_dir)):
-            app.choose_output()
+            app.choose_output_button.invoke()
         assert not app.use_program_output.get()
         assert app.custom_output_status.cget("text") == str(output_dir)
         assert app.custom_output_status.cget("text_color") == TEXT
@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.custom_output_status.cget("text") == str(output_dir)
         assert app.custom_output_status.cget("text_color") == TEXT_DISABLED
         assert app.output_status.cget("text") == str(app.program_dir / "output")
-        assert app.choose_output_button.cget("state") == "disabled"
+        assert app.choose_output_button.cget("state") == "normal"
         app.output_checkbox.toggle()
         assert app._effective_output() == output_dir
         assert app.choose_output_button.cget("state") == "normal"
@@ -56,7 +56,7 @@ with tempfile.TemporaryDirectory() as tmp:
             assert dialog.call_args.kwargs["initialdir"] == str(input_dir)
         assert not app.use_program_output.get() and app.output_dir == output_dir
         with patch("freeda.gui.filedialog.askdirectory", return_value="") as dialog:
-            app.choose_output()
+            app.choose_output_button.invoke()
             assert dialog.call_args.kwargs["initialdir"] == str(output_dir)
         with patch("freeda.gui.filedialog.askdirectory", return_value="") as dialog:
             app.choose_folder()
