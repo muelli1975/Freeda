@@ -22,7 +22,7 @@ jobs:
       - name: Test desktop export and crop persistence
         shell: pwsh
         run: |
-          foreach ($test in @('gui_feedback_smoke.py', 'gui_navigation_smoke.py', 'gui_web_crop_smoke.py', 'gui_remember_crops_smoke.py', 'gui_window_smoke.py', 'gui_long_names_smoke.py', 'gui_print_fill_smoke.py', 'gui_metadata_smoke.py', 'gui_consistency_smoke.py', 'gui_cards_smoke.py', 'gui_logos_smoke.py')) {
+          foreach ($test in @('gui_feedback_smoke.py', 'gui_navigation_smoke.py', 'gui_web_crop_smoke.py', 'gui_remember_crops_smoke.py', 'gui_window_smoke.py', 'gui_long_names_smoke.py', 'gui_print_fill_smoke.py', 'gui_metadata_smoke.py', 'gui_consistency_smoke.py', 'gui_cards_smoke.py', 'gui_logos_smoke.py', 'gui_recursive_batch_smoke.py')) {
             & .\.venv-build\Scripts\python.exe "tests/$test"
             if ($LASTEXITCODE -ne 0) { throw "GUI check failed: $test" }
           }
@@ -98,6 +98,7 @@ jobs:
           xvfb-run -a python tests/gui_print_fill_smoke.py
           xvfb-run -a python tests/gui_metadata_smoke.py
           xvfb-run -a python tests/gui_consistency_smoke.py
+          xvfb-run -a python tests/gui_recursive_batch_smoke.py
           xvfb-run -a python tests/gui_cards_smoke.py
           xvfb-run -a python tests/gui_logos_smoke.py
       - name: Build native archive

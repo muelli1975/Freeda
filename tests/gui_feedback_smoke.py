@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image
+from gui_helpers import wait_for_job
 from freeda.gui import FreedaApp
 import freeda.gui as gui
 from freeda.batch import discover_files
@@ -19,6 +20,7 @@ try:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         app.settings_path = root / "settings.json"
+        app.use_input_output.set(True)
         image = Image.new("RGB", (600, 200), "red")
         image.paste(Image.new("RGB", (300, 200), "lime"), (300, 0))
         image.save(root / "one.png")
@@ -35,7 +37,7 @@ try:
         app._input_changed()
         assert app.start_button.cget("text") == "Angezeigtes Bild exportieren"
         assert app.start_button.cget("state") == "normal"
-        assert app.output_status.cget("text") == str(root / "output/web")
+        assert app.output_status.cget("text") == str(root / "output")
         app.mode_var.set("Print")
         app._mode_changed("Print")
         assert app.show_bleed_var.get()
@@ -44,7 +46,7 @@ try:
         app._refresh_preview_note()
         assert "mit Beschnittrand" in app.preview_note.cget("text")
         assert app.start_button.cget("text") == "Angezeigtes Bild exportieren"
-        assert app.output_status.cget("text") == str(root / "output/print")
+        assert app.output_status.cget("text") == str(root / "output")
         image.save(root / "two.png")
         app.items = discover_files([root])
         app._input_changed()
@@ -53,6 +55,7 @@ try:
         app._mode_changed("Web")
         app.outer_radius_var.set("5")
         app.start_batch()
+        wait_for_job(app)
         import time
         deadline = time.monotonic() + 20
         def poll():
@@ -63,8 +66,8 @@ try:
         app.after(20, poll)
         app.mainloop()
         assert not app._busy
-        assert len(list((root / "output/web").glob("*.jpg"))) == 2
-        for output in (root / "output/web").glob("*.jpg"):
+        assert len(list((root / "output").glob("*.jpg"))) == 2
+        for output in (root / "output").glob("*.jpg"):
             with Image.open(output) as web:
                 assert max(web.getpixel((0,0))) < 3
         assert app.status.cget("text") == "Fertig – 2 Dateien"
@@ -89,7 +92,8 @@ try:
         app.dpi_var.set("450")
         assert app._print_options().dpi == 450
         app.start_batch()
-        outputs = list((root / "output/print").glob("*.jpg"))
+        wait_for_job(app)
+        outputs = list((root / "output").glob("*_freeda_print.jpg"))
         assert len(outputs) == 1
         with Image.open(outputs[0]) as printed:
             assert round(printed.info["dpi"][0]) == 450
@@ -103,9 +107,10 @@ try:
                 self.after(100, self._cancel)
         gui.CropDialog = CancelDialog
         app.start_batch()
+        wait_for_job(app)
         assert not app._busy
         assert app.status.cget("text").startswith("Export abgebrochen")
-        assert len(list((root / "output/print").glob("*.jpg"))) == 1
+        assert len(list((root / "output").glob("*_freeda_print.jpg"))) == 1
         gui.CropDialog = real_dialog
         app.caption_var.set("Mein eigener Untertitel")
         app.caption_size_var.set(5.0)
@@ -137,8 +142,9 @@ try:
                 self.after(100, self._accept)
         gui.CropDialog = EnglishAcceptDialog
         app.start_batch()
+        wait_for_job(app)
         assert app.status.cget("text") == "Done – 1 file"
-        outputs = sorted((root / "output/print").glob("*.jpg"))
+        outputs = sorted((root / "output").glob("*_freeda_print.jpg"))
         assert len(outputs) == 1
         with Image.open(outputs[-1]) as printed:
             assert printed.size == print_canvas_px(150, 100, 300, 2.5)

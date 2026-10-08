@@ -123,3 +123,4 @@ class PrintRenderOptions:
 class BatchItem:
     source: Path
     relative_path: Path
+    input_root: Path | None = None

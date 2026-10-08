@@ -49,7 +49,7 @@ class FeedbackTests(unittest.TestCase):
             self.source().save(source)
             items = discover_files([root])
             targets = export_targets(items, None, root, "web", OutputFormat.PNG)
-            self.assertEqual(targets[0], root / "output/web/series/photo_freeda_web.png")
+            self.assertEqual(targets[0], root / "output/series/photo_freeda_web.png")
             render_web_batch(items, root, WebRenderOptions(target_long_edge=1280, output_format=OutputFormat.PNG), targets=targets)
             self.assertEqual(len(discover_files([root])), 1)
             second = export_targets(items, None, root, "web", OutputFormat.PNG)
@@ -70,8 +70,8 @@ class FeedbackTests(unittest.TestCase):
             targets = export_targets(items, root / "custom", None, "web", OutputFormat.JPEG)
             self.assertEqual(len(set(targets)), 3)
             automatic = export_targets(items[:2], None, None, "print", OutputFormat.PNG)
-            self.assertEqual(automatic[0].parent, root / "a/output/print")
-            self.assertEqual(automatic[1].parent, root / "b/output/print")
+            self.assertEqual(automatic[0].parent, root / "a/output")
+            self.assertEqual(automatic[1].parent, root / "b/output")
 
     def test_defaults_are_four_percent(self):
         from freeda.config import DEFAULT_FRAME_PERCENT, APP_VERSION

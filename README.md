@@ -12,6 +12,8 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 
 [Download Freeda 1.1](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
 
+The updated folder workflow is initially available in the Windows testbuild. The linked published packages still contain the previous 1.1 build.
+
 1. Extract the complete `Freeda_1.1_Windows_x64.zip` into a writable folder.
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
@@ -28,7 +30,7 @@ All four variants are built from the same tagged source. Automated tests and pac
 
 1. Open one full-SBS image, several files or an image folder.
 2. Choose **Web** or **Print** and the viewing layout.
-3. Set the output width or print dimensions, frame colours and captions.
+3. Set the Web long edge or print dimensions, frame colours and captions.
 4. Use **Adjust crop** to position the crop. In Web mode you can also choose a per-eye aspect ratio.
 5. Check the preview. Use Previous/Next to inspect other images.
 6. Start the export. Single-image export processes the displayed image; batch export processes the entire selection.
@@ -106,13 +108,21 @@ The checkbox is off at startup. Turning it off leaves saved files intact. Resett
 
 Opening a single image also makes the other supported images in its folder available for preview navigation. Previous/Next and Page Up/Page Down move through them without wrapping at the ends. Single-image export still processes only the displayed image.
 
-Selecting several files or a folder creates a batch. Navigation changes the preview; batch export processes the entire selection. Subfolders are included only when the corresponding checkbox is enabled.
+Selecting several files or a folder creates a batch. Navigation changes the preview; batch export processes the entire selection. **Include subfolders** processes the subfolders of one selected input folder. Otherwise only images directly inside that folder are processed.
 
 ## Output and folders
 
-By default, “Use subfolder in input folder” is enabled: Freeda writes to `output/web` or `output/print` inside the input folder. A custom output folder can be selected and remains visible in grey when the input subfolder option is enabled. The actual output destination is shown separately. Input and output dialogs remember separate starting folders during the session. Folder batches retain their relative folder structure. Settings are locked during export.
+The default output folder is `output` in the **program folder**. A folder batch preserves the input folder's name and relative tree underneath: `Holiday/Day1/image.jpg` becomes `<program folder>/output/Holiday/Day1/image_freeda_web.jpg`, or `image_freeda_print.jpg` in Print mode. Individually selected files are saved directly in the output folder.
 
-Files use names such as `image_freeda_web.jpg` or `image_freeda_print.png`. Existing output images at the same destination are overwritten on export. Original input images remain unchanged. Exports are JPEG or PNG; Freeda renders the images in 8-bit RGB.
+**Choose output folder …** replaces the shared destination; the structure underneath stays the same. **Use subfolder in input folder** is off at startup and is an explicit alternative: the example becomes `Holiday/output/Day1/image_freeda_web.jpg`. The shared output folder remains visible but appears grey while this option is enabled. The actual destination is shown separately. Input and output dialogs remember separate starting folders during the session.
+
+**Include subfolders** is off at startup. Enabling it reloads the selected input folder recursively; changing the output destination also refreshes the list. An output destination inside the input tree and folders named `output`, `tmp` and `_temp` are excluded before traversal. Existing Freeda exports are skipped during folder discovery. Crop records are not image files; linked subfolders are not followed. Exports deliberately selected through **Files …** can still be opened. The input list is frozen before export.
+
+Files use names such as `image_freeda_web.jpg` or `image_freeda_print.png`. Equal filenames in different subfolders retain separate destinations. When different source extensions in the same folder would produce the same output filename, an additional destination receives a number. Existing outputs do not affect this mapping: images at the same destination are overwritten on subsequent exports. Original images remain unchanged. Freeda exports JPEG or PNG and renders in 8-bit RGB.
+
+Discovery and export run in the background. Preview navigation and progress include relative source paths so equal filenames remain distinguishable. **Cancel** stops discovery or export. Crop dialogs pause export until Apply, Skip or Cancel export. With crop storage enabled, saved crops are loaded from each original's own source folder; **Review crop before export** requests another review. Confirmed changes remain saved even if export is subsequently cancelled.
+
+Completed outputs remain after cancellation. The current image is first saved to a temporary file and moved to its destination only after saving and metadata transfer. Cancellation discards the temporary file and preserves an earlier output. During an image processing step, cancellation takes effect at the next safe boundary; settings stay locked until processing stops. A file error does not stop the whole batch. Completion reports exported and skipped files and the error count; the summary identifies affected sources. Crop-storage and metadata warnings are also shown.
 
 ## Metadata
 

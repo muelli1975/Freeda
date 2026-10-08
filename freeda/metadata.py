@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import subprocess
+import time
+from .jobs import check_cancel
 from .resources import tool_path
 
 
@@ -21,7 +23,8 @@ def find_exiftool_path():
     return Path(found) if found else None
 
 
-def copy_metadata(source: Path, target: Path, size: tuple[int, int], *, dpi=None):
+def copy_metadata(source: Path, target: Path, size: tuple[int, int], *, dpi=None, cancel=None):
+    check_cancel(cancel)
     source, target = Path(source), Path(target)
     if not source.is_file():
         return MetadataCopyResult(False, "Keine gültige Metadatenquelle.")
@@ -47,11 +50,31 @@ def copy_metadata(source: Path, target: Path, size: tuple[int, int], *, dpi=None
         # Unix filenames containing a newline need the normal argument interface.
         stdin_arguments = not any("\n" in arg or "\r" in arg for arg in command[1:])
         invocation = [command[0], "-charset", "filename=UTF8", "-@", "-"] if stdin_arguments else command
-        completed = subprocess.run(invocation,
-            input="\n".join(command[1:]) + "\n" if stdin_arguments else None,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, encoding="utf-8", errors="replace", check=False, timeout=120,
+        arguments = "\n".join(command[1:]) + "\n" if stdin_arguments else None
+        kwargs = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace",
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if cancel is None:
+            completed = subprocess.run(invocation, input=arguments, check=False, timeout=120, **kwargs)
+        else:
+            with subprocess.Popen(invocation, stdin=subprocess.PIPE if arguments is not None else None, **kwargs) as process:
+                deadline = time.monotonic() + 120
+                first = True
+                try:
+                    while True:
+                        check_cancel(cancel)
+                        if time.monotonic() >= deadline:
+                            raise subprocess.TimeoutExpired(invocation, 120)
+                        try:
+                            stdout, stderr = process.communicate(input=arguments if first else None, timeout=0.05)
+                            completed = subprocess.CompletedProcess(invocation, process.returncode, stdout, stderr)
+                            break
+                        except subprocess.TimeoutExpired:
+                            first = False
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.communicate()
     except (OSError, subprocess.TimeoutExpired) as error:
         return MetadataCopyResult(False, str(error))
     if completed.returncode:

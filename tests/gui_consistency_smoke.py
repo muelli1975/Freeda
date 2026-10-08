@@ -22,6 +22,9 @@ with tempfile.TemporaryDirectory() as tmp:
     app = FreedaApp(language="de", settings_path=root / "settings.json")
     app.withdraw()
     try:
+        assert not app.use_input_output.get()
+        assert app.output_dir == app.program_dir / "output"
+        assert app.subfolders_checkbox.cget("text") == "Unterordner mitverarbeiten"
         assert app.output_checkbox.cget("text") == "Unterordner im Input-Ordner verwenden"
         with patch("freeda.gui.filedialog.askopenfilenames", return_value=[str(source)]):
             app.choose_files()
@@ -34,7 +37,7 @@ with tempfile.TemporaryDirectory() as tmp:
         app._refresh_output()
         assert app.custom_output_status.cget("text") == str(output_dir)
         assert app.custom_output_status.cget("text_color") == TEXT_DISABLED
-        assert app.output_status.cget("text") == str(input_dir / "output/web")
+        assert app.output_status.cget("text") == str(input_dir / "output")
         with patch("freeda.gui.filedialog.askopenfilenames", return_value=[str(source)]) as dialog:
             app.choose_files()
             assert dialog.call_args.kwargs["initialdir"] == str(input_dir)

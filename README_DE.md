@@ -12,6 +12,8 @@ Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und k
 
 [Freeda 1.1 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
 
+Die erweiterte Ordnerverarbeitung steht zunächst im Windows-Testbuild zur Verfügung. Die verlinkten veröffentlichten Pakete enthalten noch den vorherigen 1.1-Stand.
+
 1. `Freeda_1.1_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
 2. `Freeda.exe` starten.
 3. Den Programmordner zusammenhalten; `_internal`, `tools` und die anderen mitgelieferten Dateien gehören zur Anwendung.
@@ -28,7 +30,7 @@ Alle vier Varianten entstehen aus demselben markierten Quellstand. Automatische 
 
 1. Ein Full-SBS-Bild, mehrere Dateien oder einen Bilderordner öffnen.
 2. **Web** oder **Print** und die gewünschte Ansicht wählen.
-3. Ausgabebreite beziehungsweise Druckformat, Rahmenfarben und Untertitel einstellen.
+3. Lange Seite in Pixeln beziehungsweise Druckformat, Rahmenfarben und Untertitel einstellen.
 4. Mit **Ausschnitt anpassen** den Bildausschnitt positionieren. Bei Web lässt sich zusätzlich das Seitenverhältnis der Halbbilder wählen.
 5. Die Vorschau prüfen. Mit Vorheriges/Nächstes weitere Bilder ansehen.
 6. Export starten. Der Einzelbildexport verarbeitet das angezeigte Bild, der Batch die gesamte Auswahl.
@@ -106,13 +108,21 @@ Die Checkbox ist beim Start ausgeschaltet. Ausschalten lässt gespeicherte Datei
 
 Beim Öffnen eines Einzelbilds stehen auch die anderen unterstützten Bilder seines Ordners für die Vorschau zur Verfügung. Vorheriges/Nächstes und Bild↑/Bild↓ wechseln zwischen ihnen, ohne am Ende wieder vorne zu beginnen. Der Einzelbildexport verarbeitet weiterhin nur das angezeigte Bild.
 
-Die Auswahl mehrerer Dateien oder eines Ordners erzeugt einen Batch. Die Navigation wechselt die Vorschau; der Batch exportiert die gesamte Auswahl. Unterordner werden nur bei eingeschalteter entsprechender Checkbox einbezogen.
+Die Auswahl mehrerer Dateien oder eines Ordners erzeugt einen Batch. Die Navigation wechselt die Vorschau; der Batch exportiert die gesamte Auswahl. **Unterordner mitverarbeiten** schließt die Unterordner eines gewählten Eingabeordners ein. Ohne die Option werden nur dessen direkt enthaltene Bilder verarbeitet.
 
 ## Ausgabe und Ordner
 
-Standardmäßig ist „Unterordner im Input-Ordner verwenden“ aktiviert: Freeda schreibt nach `output/web` oder `output/print` im Input-Ordner. Ein eigener Ausgabeordner lässt sich auswählen und bleibt bei aktivierter Unterordner-Option sichtbar, erscheint aber grau. Das tatsächliche Ausgabeziel wird separat angezeigt. Input- und Outputdialoge merken sich während der Sitzung getrennte Startordner. Bei Ordner-Batches bleibt die relative Ordnerstruktur erhalten. Während des Exports sind die Einstellungen gesperrt.
+Standardmäßig ist `output` im **Programmordner** als Ausgabeordner gewählt. Ein Ordner-Batch übernimmt darunter den Namen des Eingabeordners und dessen relative Unterordnerstruktur: `Urlaub/Tag1/bild.jpg` wird zu `<Programmordner>/output/Urlaub/Tag1/bild_freeda_web.jpg`; bei Print entsprechend zu `bild_freeda_print.jpg`. Einzeln gewählte Dateien landen direkt im Ausgabeordner.
 
-Dateien heißen beispielsweise `bild_freeda_web.jpg` oder `bild_freeda_print.png`. Bestehende Ausgabebilder am selben Ziel werden beim Export überschrieben. Originaldateien bleiben unverändert. Freeda exportiert JPEG oder PNG und verarbeitet die Bilder in 8-Bit-RGB.
+**Ausgabeordner wählen …** ersetzt das gemeinsame Ziel; die Struktur darunter bleibt erhalten. **Unterordner im Input-Ordner verwenden** ist beim Start ausgeschaltet und eine ausdrückliche Alternative: Dann entsteht `Urlaub/output/Tag1/bild_freeda_web.jpg`. Der gemeinsame Ausgabeordner bleibt sichtbar, erscheint bei dieser Option aber grau. Das tatsächliche Ziel wird separat angezeigt. Input- und Outputdialoge merken sich getrennte Startordner während der Sitzung.
+
+**Unterordner mitverarbeiten** ist beim Start ausgeschaltet. Einschalten liest den gewählten Eingabeordner rekursiv neu ein; ein Wechsel des Ausgabeziels aktualisiert ebenfalls die Liste. Das gewählte Ausgabeziel innerhalb der Eingabe sowie Ordner namens `output`, `tmp` und `_temp` werden vor dem Durchsuchen ausgeschlossen. Bereits erzeugte Freeda-Dateien werden bei der Ordnersuche übersprungen. Ausschnittdateien sind keine Bilddateien; verknüpfte Unterordner werden nicht verfolgt. Bewusst über **Dateien …** gewählte Ausgaben lassen sich weiterhin öffnen. Die Eingabeliste steht vor dem Export fest.
+
+Dateien heißen beispielsweise `bild_freeda_web.jpg` oder `bild_freeda_print.png`. Gleichnamige Bilder in verschiedenen Unterordnern behalten getrennte Ziele. Wenn unterschiedliche Quelldateiendungen im selben Ordner denselben Ausgabenamen ergäben, erhält das weitere Ziel eine Nummer. Vorhandene Ausgaben beeinflussen diese Zuordnung nicht: Bestehende Bilder am gleichen Ziel werden beim erneuten Export überschrieben. Originaldateien bleiben unverändert. Freeda exportiert JPEG oder PNG und verarbeitet die Bilder in 8-Bit-RGB.
+
+Einlesen und Export laufen im Hintergrund. Vorschau und Fortschritt zeigen relative Quellpfade, damit gleichnamige Bilder unterscheidbar bleiben. **Abbrechen** stoppt das Einlesen oder den Export. Der Ausschnittdialog pausiert den Export bis zu Übernehmen, Überspringen oder Export abbrechen. Bei aktivierter Merkoption werden gespeicherte Ausschnitte aus dem konkreten Quellordner übernommen; **Bildausschnitt beim Export prüfen** fordert ihre erneute Prüfung an. Bestätigte Änderungen bleiben auch nach einem späteren Exportabbruch gespeichert.
+
+Fertige Ausgaben bleiben bei Abbruch erhalten. Das laufende Bild wird zunächst temporär gespeichert und erst nach vollständiger Speicherung und Metadatenübernahme an sein Ziel übernommen. Ein Abbruch verwirft die temporäre Datei und erhält eine frühere Ausgabe. Innerhalb eines Bildschritts wird der Abbruch an der nächsten sicheren Grenze ausgeführt; Einstellungen bleiben bis zum Ende gesperrt. Dateifehler stoppen nicht den ganzen Batch. Der Abschluss zeigt exportierte und übersprungene Bilder sowie die Fehlerzahl; die Zusammenfassung nennt betroffene Quellen. Ausschnitt- und Metadatenwarnungen werden ebenfalls angezeigt.
 
 ## Metadaten
 

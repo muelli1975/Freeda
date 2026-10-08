@@ -3,6 +3,7 @@ import sys, json, shutil, tempfile, time
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from gui_helpers import wait_for_job
 from PIL import Image,ImageDraw
 import freeda.gui as gui
 from freeda.models import CaptionMode
@@ -18,6 +19,7 @@ with tempfile.TemporaryDirectory() as tmp:
     mark=Image.new('RGBA',(120,60));ImageDraw.Draw(mark).rectangle((20,10,100,50),fill='magenta');mark.save(logo)
     app=gui.FreedaApp(language='de',settings_path=program/'settings.json')
     app.withdraw()
+    app.use_input_output.set(True)
     original_dialog=gui.CropDialog
     try:
         assert app.caption_mode_var.get()=='Text'
@@ -42,6 +44,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.preview_note.cget('text')=='Bitte ein Logo wählen.'
         with patch('freeda.gui.messagebox.showinfo') as info, patch('freeda.gui.messagebox.showerror') as error:
             app.start_batch()
+            wait_for_job(app)
             assert info.call_args.args[1]=='Bitte ein Logo wählen.'
             error.assert_not_called()
         with patch('freeda.gui.filedialog.askopenfilename',return_value=''):
@@ -80,13 +83,14 @@ with tempfile.TemporaryDirectory() as tmp:
         app.format_var.set('PNG')
         app.outer_radius_var.set('3')
         app.start_batch()
+        wait_for_job(app)
         deadline=time.monotonic()+20
         def poll():
             if not app._busy or time.monotonic()>deadline:app.quit()
             else:app.after(20,poll)
         app.after(20,poll);app.mainloop()
         assert not app._busy
-        with Image.open(source/'output/web/sbs_freeda_web.png') as output:
+        with Image.open(source/'output/sbs_freeda_web.png') as output:
             assert output.getpixel((0,0))[3]==0
             assert (255,0,255,255) in output.get_flattened_data()
         app.mode_var.set('Print');app._mode_changed('Print')
@@ -99,8 +103,9 @@ with tempfile.TemporaryDirectory() as tmp:
                 super().__init__(*a,**kw);self.withdraw();self.after(50,self._accept)
         gui.CropDialog=Accept
         app.dpi_var.set('96');app.start_batch()
+        wait_for_job(app)
         assert not app._busy
-        with Image.open(source/'output/print/sbs_freeda_print.png') as output:
+        with Image.open(source/'output/sbs_freeda_print.png') as output:
             assert (255,0,255,255) in output.get_flattened_data()
             assert abs(output.info['dpi'][0]-96)<.1
         app.save_preset('Logo card')

@@ -3,6 +3,7 @@ import json, sys, tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image
+from gui_helpers import wait_for_job
 import freeda.gui as gui
 from freeda.batch import discover_files
 from freeda.print_render import print_eye_aspect
@@ -16,6 +17,7 @@ with tempfile.TemporaryDirectory() as tmp:
         'custom_print_aspect_var':'2:3', 'font_var':'Arial'}}}))
     app=gui.FreedaApp(settings_path=settings)
     app.withdraw()
+    app.use_input_output.set(True)
     real_dialog=gui.CropDialog
     try:
         assert app.title()=='Freeda 1.1'
@@ -68,8 +70,9 @@ with tempfile.TemporaryDirectory() as tmp:
         gui.CropDialog=Accept
         app.crop_mode_var.set('Gleichen Ausschnitt verwenden')
         app.start_batch()
+        wait_for_job(app)
         assert not app._busy and len(dialogs)==1
-        outputs=list((root/'output/print').glob('*.jpg'))
+        outputs=list((root/'output').glob('*.jpg'))
         assert len(outputs)==2
         for output in outputs:
             with Image.open(output) as image:

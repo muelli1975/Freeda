@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from queue import Queue, Empty
 import json
 import math
 import tkinter as tk
@@ -12,7 +13,9 @@ import customtkinter as ctk
 from PIL import Image, ImageTk, ImageDraw
 
 from . import __version__
-from .batch import discover_files, render_web_batch
+from .batch import discover_files, run_batch
+from .jobs import Cancelled, check_cancel
+from .print_flow import CropBatchMode
 from .cropping import parse_aspect, fit_linked_crop
 from .crop_storage import load_crops, save_crop
 from .crop_grid import crop_grid
@@ -31,15 +34,15 @@ from .config import (
 from .fonts import available_fonts
 from .presets import ROUNDED_RECTANGLE, migrate_contour
 from .i18n import translate
-from .models import DEFAULT_LOGO_HEIGHT_PERCENT, CaptionMode, Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
+from .models import DEFAULT_LOGO_HEIGHT_PERCENT, BatchItem, CaptionMode, Crop, CuttingGuide, EyeShape, LayoutMode, OutputFormat, PrintMargins, PrintRenderOptions, WebRenderOptions
 from .logos import import_logo, resolve_logo, load_logo
 from .print_layout import print_layout
 from .notifications import play_ready_sound
 from .output import export_targets
-from .print_flow import CropBatchMode, PrintBatchSession
+
 from .print_render import crop_for_aspect, print_eye_aspect, render_print
 from .preview import fit_preview, parse_bleed, parse_dpi, print_preview_options, print_preview_image, preview_export_image
-from .render import render_web, save_render, split_full_sbs, web_geometry, _font, _fit_lrl_caption
+from .render import render_web, split_full_sbs, web_geometry, _font, _fit_lrl_caption
 from .resources import resource_path, portable_settings_path
 from .window import fit_window
 from .theme import (
@@ -445,7 +448,7 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
 
 
 class FreedaApp(LocalisedUI, ctk.CTk):
-    def __init__(self, *, language=None, settings_path=None) -> None:
+    def __init__(self, *, language=None, settings_path=None, program_dir=None) -> None:
         super().__init__(fg_color=BG_MAIN)
         self._texts, self._placeholders = {}, {}
         self._localized_options = []
@@ -477,7 +480,17 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.sources = []
         self.source_index = 0
         self.batch_mode = False
-        self.output_dir: Path | None = None
+        self.program_dir = Path(program_dir) if program_dir is not None else portable_settings_path().parent
+        self.output_dir: Path = self.program_dir / "output"
+        self._events = Queue()
+        self._cancel_event = threading.Event()
+        self._job_id = 0
+        self._active_crop_dialog = None
+        self._closing = False
+        self._poll_job = None
+        self.last_batch_result = None
+        self._folder_scan_config = None
+        self._scan_running = False
         self.input_root: Path | None = None
         self.last_input_dir: Path | None = None
         self._control_states = {}
@@ -530,6 +543,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.bind("<Next>", lambda e: self.navigate(1))
         self._remember_texts(self)
         self._apply_language()
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        self._poll_job = self.after(30, self._poll_events)
 
     def _label(self, parent, text, *, section=False):
         return ctk.CTkLabel(
@@ -630,7 +645,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.next_button.configure(state="normal" if not self._busy and self.source_index + 1 < count else "disabled")
         if count:
             prefix = self.tr("Batch-Vorschau") if self.batch_mode else self.tr("Einzelbild-Vorschau")
-            self.navigation_status.configure(text=f"{prefix}: {self.source_index + 1}/{count} · {self.sources[self.source_index].source.name}")
+            self.navigation_status.configure(text=f"{prefix}: {self.source_index + 1}/{count} · {self.sources[self.source_index].relative_path}")
         else:
             self.navigation_status.configure(text="")
 
@@ -885,7 +900,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             row=0, column=1, sticky="ew", padx=(4, 0)
         )
         self.include_subfolders_var = tk.BooleanVar(value=False)
-        self.subfolders_checkbox = self._checkbox(self.sidebar, "Unterordner einbeziehen", self.include_subfolders_var, self._reload_folder)
+        self.subfolders_checkbox = self._checkbox(self.sidebar, "Unterordner mitverarbeiten", self.include_subfolders_var, self._reload_folder)
         self.subfolders_checkbox.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
         row += 1
         self.input_status = self._label(self.sidebar, "Keine Bilder gewählt")
@@ -1206,13 +1221,13 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 8))
         row += 1
 
-        self.use_input_output = tk.BooleanVar(value=True)
+        self.use_input_output = tk.BooleanVar(value=False)
         self.output_checkbox = self._checkbox(self.sidebar, "Unterordner im Input-Ordner verwenden",
-                                              self.use_input_output, self._refresh_output)
+                                              self.use_input_output, self._output_changed)
         self.output_checkbox.grid(
             row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
         row += 1
-        self._button(self.sidebar, "Eigener Ausgabeordner …", self.choose_output).grid(
+        self._button(self.sidebar, "Ausgabeordner wählen …", self.choose_output).grid(
             row=row, column=0, sticky="ew", padx=20, pady=(0, 5)
         )
         row += 1
@@ -1222,7 +1237,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         row += 1
         self._label(self.sidebar, "Ausgabeziel").grid(row=row, column=0, sticky="ew", padx=20)
         row += 1
-        self.output_status = self._label(self.sidebar, "output/web im Input-Ordner")
+        self.output_status = self._label(self.sidebar, "output im Programmordner")
         self.output_status.configure(wraplength=330)
         self.output_status.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 14))
         row += 1
@@ -1240,6 +1255,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         row = 2
         self.start_button = self._button(self.footer, "Bild exportieren", self.start_batch, primary=True)
         self.start_button.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
+        row += 1
+        self.cancel_button = self._button(self.footer, "Abbrechen", self.cancel_job)
+        self.cancel_button.configure(state="disabled")
+        self.cancel_button.grid(row=row, column=0, sticky="ew", padx=20, pady=(0, 8))
         row += 1
         self.progress = ctk.CTkProgressBar(
             self.footer, progress_color=GOLD, fg_color=PROGRESS_TRACK
@@ -1592,11 +1611,146 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         except ValueError:
             return default
 
+    def _scan_exclusions(self):
+        # Also exclude old program/output and every conventional source/output tree.
+        paths = [self.program_dir / "output"]
+        if self.output_dir:
+            paths.append(self.output_dir)
+        return tuple(paths)
+
     def _reload_folder(self):
         if self._busy or self.input_root is None:
             return
-        self.items = discover_files([self.input_root], recursive=self.include_subfolders_var.get())
-        self._input_changed()
+        self._scan_folder(self.input_root)
+
+    def _scan_folder(self, root):
+        if self._busy:
+            return
+        root = Path(root).resolve()
+        recursive = self.include_subfolders_var.get()
+        exclusions = self._scan_exclusions()
+        self._scan_running = True
+        previous = self._current_item()
+        selected = previous.source.resolve() if previous else None
+        self._job_id += 1
+        identifier = self._job_id
+        self._cancel_event = threading.Event()
+        cancel = self._cancel_event
+        self._set_busy(True)
+        self.progress.set(0)
+        self._set_text(self.status, "Bilder werden eingelesen …")
+        def scan():
+            try:
+                items = discover_files([root], recursive=recursive, exclude=exclusions, cancel=cancel)
+                check_cancel(cancel)
+                self._events.put((identifier, "scan_done", (root, items, selected, recursive)))
+            except Cancelled:
+                self._events.put((identifier, "scan_cancelled", None))
+            except Exception as error:
+                self._events.put((identifier, "failed", error))
+        threading.Thread(target=scan, daemon=True).start()
+
+    def _output_changed(self):
+        self._refresh_output()
+        self._reload_folder()
+
+    def cancel_job(self):
+        if not self._busy:
+            return
+        self._cancel_event.set()
+        self.cancel_button.configure(state="disabled")
+        self._set_text(self.status, "Verarbeitung wird abgebrochen …")
+        if self._active_crop_dialog is not None and self._active_crop_dialog.winfo_exists():
+            self._active_crop_dialog._cancel()
+
+    def _poll_events(self):
+        if self._closing:
+            return
+        self._poll_job = self.after(30, self._poll_events)
+        for _ in range(100):
+            try:
+                identifier, kind, data = self._events.get_nowait()
+            except Empty:
+                break
+            if identifier != self._job_id:
+                continue
+            if kind == "scan_done":
+                root, items, selected, recursive = data
+                if self._cancel_event.is_set():
+                    self._scan_cancelled()
+                    continue
+                self._scan_running = False
+                self._folder_scan_config = (recursive, self.output_dir, self.use_input_output.get())
+                self.input_root = root
+                self.items = items
+                self._set_busy(False)
+                self._input_changed()
+                if selected:
+                    self.source_index = next((i for i, item in enumerate(self.sources)
+                        if item.source.resolve() == selected), 0)
+                    self._refresh_navigation()
+                self._set_text(self.status, "Bereit" if items else "Keine unterstützten Bilder gefunden.")
+            elif kind == "scan_cancelled":
+                self._scan_cancelled()
+            elif kind == "progress":
+                self._progress_ui(*data)
+            elif kind == "crop":
+                self._handle_crop_request(data)
+            elif kind == "crop_applied":
+                item, mode, crop = data
+                self._store_crop(item, mode, crop)
+            elif kind == "done":
+                self._batch_finished(data)
+            elif kind == "failed":
+                if self._scan_running:
+                    self._restore_scan_config()
+                self._batch_failed(data)
+
+    def _restore_scan_config(self):
+        self._scan_running = False
+        if self.input_root is not None and self._folder_scan_config is not None:
+            recursive, output, use_input = self._folder_scan_config
+            self.include_subfolders_var.set(recursive)
+            self.output_dir = output
+            self.use_input_output.set(use_input)
+            self._refresh_output()
+
+    def _scan_cancelled(self):
+        self._restore_scan_config()
+        self._set_busy(False)
+        self._set_text(self.status, "Einlesen abgebrochen")
+
+    def _handle_crop_request(self, request):
+        item, source, options, index, total, ready, response = request
+        try:
+            if self._cancel_event.is_set():
+                response["action"] = "cancel"
+                return
+            self._set_text(self.status, f"Ausschnitt {index}/{total}: {item.relative_path}")
+            dialog = CropDialog(self, source, options, index=index, total=total,
+                                filename=str(item.relative_path))
+            self._active_crop_dialog = dialog
+            self.wait_window(dialog)
+            response.update(action=dialog.action, crop=dialog.result)
+            if dialog.action == "cancel":
+                self._cancel_event.set()
+        except Exception as error:
+            response["error"] = error
+        finally:
+            self._active_crop_dialog = None
+            ready.set()
+
+    def destroy(self):
+        self._closing = True
+        if hasattr(self, "_cancel_event"):
+            self._cancel_event.set()
+        if self._preview_job is not None:
+            self.after_cancel(self._preview_job)
+            self._preview_job = None
+        if self._poll_job is not None:
+            self.after_cancel(self._poll_job)
+            self._poll_job = None
+        super().destroy()
 
     def _report_crop_storage_error(self, error):
         message = str(error)
@@ -1707,11 +1861,15 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if names:
             self.last_input_dir = Path(names[0]).parent
             self.input_root = None
+            self._folder_scan_config = None
             self.items = discover_files([Path(n) for n in names])
             self._input_changed()
             if len(self.items) == 1:
                 selected = self.items[0].source.resolve()
-                self.sources = sorted(discover_files([selected.parent], recursive=False), key=lambda i: i.source.name.casefold())
+                self.sources = [BatchItem(i.source, Path(i.source.name)) for i in
+                    discover_files([selected.parent], recursive=False, exclude=self._scan_exclusions())]
+                if not any(i.source.resolve() == selected for i in self.sources):
+                    self.sources.append(self.items[0])
                 self.source_index = next(i for i, item in enumerate(self.sources) if item.source.resolve() == selected)
                 self.batch_mode = False
                 self._refresh_navigation()
@@ -1724,9 +1882,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                                       initialdir=str(self.last_input_dir) if self.last_input_dir else None)
         if name:
             self.last_input_dir = Path(name)
-            self.input_root = Path(name)
-            self.items = discover_files([Path(name)], recursive=self.include_subfolders_var.get())
-            self._input_changed()
+            self._scan_folder(Path(name))
 
     def _input_changed(self) -> None:
         self.sources = list(self.items)
@@ -1748,20 +1904,21 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if name:
             self.output_dir = Path(name)
             self.use_input_output.set(False)
-            self._refresh_output()
+            self._output_changed()
 
     def _refresh_output(self) -> None:
-        mode = self.mode_var.get().lower()
         if self.use_input_output.get():
             root = self.input_root or (self.items[0].source.parent if self.items else None)
-            text = str(root / "output" / mode) if root else f"output/{mode} im Input-Ordner"
+            text = str(root / "output") if root else "output im Input-Ordner"
             if self.input_root is None and len({item.source.parent for item in self.items}) > 1:
-                text = f"output/{mode} im jeweiligen Eingabeordner"
+                text = "output im jeweiligen Eingabeordner"
         else:
-            text = str(self.output_dir / mode) if self.output_dir else "Bitte eigenen Ausgabeordner wählen"
+            target = self.output_dir
+            if self.input_root:
+                target = target / self.input_root.name
+            text = str(target)
         self._set_text(self.output_status, text)
-        self._set_text(self.custom_output_status,
-                       str(self.output_dir) if self.output_dir else "Kein eigener Ausgabeordner gewählt")
+        self._set_text(self.custom_output_status, str(self.output_dir))
         self.custom_output_status.configure(text_color=TEXT_DISABLED if self.use_input_output.get() else TEXT)
 
     def _refresh_start(self) -> None:
@@ -2027,12 +2184,14 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                         continue
                     lock_controls(widget)
             lock_controls(self.sidebar_container)
+            self._control_states.pop(self.cancel_button, None)
         else:
             for widget, (state, colors) in self._control_states.items():
                 if widget.winfo_exists():
                     widget.configure(state=state, **colors)
             self._control_states.clear()
             self._frame_changed(self.frame_var.get())
+        self.cancel_button.configure(state="normal" if busy else "disabled")
         self._refresh_start()
         if busy:
             self._set_start_button_disabled()
@@ -2062,159 +2221,88 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         except ValueError as exc:
             self._batch_failed(exc)
 
-    def _prepare_web_crops(self, items, options):
-        crops = dict(self.image_crops["Web"])
-        active = (self.batch_mode and options.eye_aspect is not None) or self.web_review_var.get()
-        if not active:
-            return crops, items
-        kept = []
-        shared = None
-        reuse = self.web_crop_mode_var.get() == "Gleichen Ausschnitt verwenden"
-        self._set_busy(True)
-        try:
-            for index, item in enumerate(items, 1):
-                key = item.source.resolve()
-                if reuse and shared is not None:
-                    crop = shared
-                elif key in crops and not self.web_review_var.get():
-                    crop = crops[key]
-                else:
-                    self._set_text(self.status, f"Ausschnitt {index}/{len(items)}: {item.source.name}")
-                    with Image.open(item.source) as source:
-                        dialog = CropDialog(self, source.convert("RGB"), replace(options, crop=crops.get(key, Crop())),
-                            index=index, total=len(items), filename=item.source.name)
-                    self.wait_window(dialog)
-                    if dialog.action == "cancel":
-                        self._set_text(self.status, "Export abgebrochen – 0 Dateien exportiert")
-                        return crops, []
-                    if dialog.action == "skip":
-                        continue
-                    crop = dialog.result or Crop()
-                shared = crop
-                crops[key] = crop
-                self._store_crop(item, "Web", crop)
-                kept.append(item)
-            return crops, kept
-        finally:
-            self._set_busy(False)
-            self.schedule_preview()
-
     def _start_web_batch(self) -> None:
-        options = self._web_options()
+        self._start_export(self._web_options())
+
+    def _start_print_batch(self) -> None:
+        self._start_export(self._print_options())
+
+    def _start_export(self, options):
         items = list(self.items)
-        crops, items = self._prepare_web_crops(items, options)
-        if not items:
-            return
-        all_targets = dict(zip((i.source.resolve() for i in self.items), self._export_targets(options.output_format)))
-        targets = [all_targets[i.source.resolve()] for i in items]
+        targets = self._export_targets(options.output_format)
+        mode = self.mode_var.get()
+        crops = dict(self.image_crops[mode])
+        review = self.web_review_var.get() if mode == "Web" else self.print_review_var.get()
+        manual = review or (self.batch_mode and (mode == "Print" or options.eye_aspect is not None))
+        reuse = self.batch_mode and (self.web_crop_mode_var.get() if mode == "Web" else
+                                    self.crop_mode_var.get()) == "Gleichen Ausschnitt verwenden"
+        self._job_id += 1
+        identifier = self._job_id
+        self._cancel_event = threading.Event()
+        cancel = self._cancel_event
+        self.crop_storage_errors.clear()
+        self.last_batch_result = None
         self._set_busy(True)
         self.progress.set(0)
         self._set_text(self.status, "Export läuft …")
 
+        def choose(item, source, current, index, total):
+            ready, response = threading.Event(), {}
+            self._events.put((identifier, "crop", (item, source, current, index, total, ready, response)))
+            while not ready.wait(0.05):
+                check_cancel(cancel)
+            check_cancel(cancel)
+            if "error" in response:
+                raise response["error"]
+            return response.get("action", "cancel"), response.get("crop")
+
         def progress(index, total, item):
-            self.after(0, lambda: self._progress_ui(index, total, item.source.name))
+            self._events.put((identifier, "progress", (index, total, str(item.relative_path))))
 
         def worker():
             try:
-                warnings = []
-                written = render_web_batch(items, self.output_dir or Path(), replace(options, crop=Crop()), progress=progress, targets=targets, crops=crops, metadata_warnings=warnings)
-                self.after(0, lambda: self._batch_done(len(written), warnings))
-            except Exception as exc:
-                self.after(0, lambda error=exc: self._batch_failed(error))
-
+                result = run_batch(items, targets, replace(options, crop=Crop()), cancel=cancel,
+                    crops=crops, review=review, reuse=reuse,
+                    choose_crop=choose if manual else None, progress=progress,
+                    crop_applied=lambda item, crop: self._events.put((identifier, "crop_applied", (item, mode, crop))))
+                self._events.put((identifier, "done", result))
+            except Exception as error:
+                self._events.put((identifier, "failed", error))
         threading.Thread(target=worker, daemon=True).start()
 
-    def _start_print_batch(self) -> None:
-        options = self._print_options()
-        targets = self._export_targets(options.output_format)
-        session = PrintBatchSession(
-            list(self.items),
-            mode=_CROP_MODES[self.crop_mode_var.get()],
-        )
-        written = 0
-        metadata_warnings = []
-        self._set_busy(True)
-        self.progress.set(0)
-
-        try:
-            total = len(session.items)
-            while not session.finished:
-                item = session.current
-                if item is None:
-                    break
-                index = session.index + 1
-                self._set_text(self.status, f"Verarbeitung {index}/{total}: {item.source.name}")
-                self.progress.set((index - 1) / max(1, total))
-                self.update_idletasks()
-
-                with Image.open(item.source) as image:
-                    image.load()
-                    source = image.convert("RGB")
-
-                if session.needs_manual_crop and (self.batch_mode or self.print_review_var.get()):
-                    dialog = CropDialog(
-                        self,
-                        source,
-                        replace(options, crop=self.image_crops["Print"].get(item.source.resolve(), Crop())),
-                        index=index,
-                        total=total,
-                        filename=item.source.name,
-                    )
-                    self.wait_window(dialog)
-                    if dialog.action == "cancel":
-                        self._set_text(self.status, f"Export abgebrochen – {written} Dateien exportiert")
-                        break
-                    if dialog.action == "skip":
-                        session.skip()
-                        continue
-                    crop = dialog.result or Crop()
-                else:
-                    crop = (session.suggested_crop() if self.batch_mode else
-                            self.image_crops["Print"].get(item.source.resolve(), Crop()))
-
-                self._store_crop(item, "Print", crop)
-                session.accept(crop)
-                current = replace(options, crop=crop)
-                rendered = render_print(source, current)
-                target = targets[index - 1]
-                metadata = save_render(
-                    rendered,
-                    target,
-                    current.output_format,
-                    dpi=current.dpi,
-                    background_color="#ffffff",
-                    metadata_source=item.source,
-                )
-                if not metadata.success:
-                    metadata_warnings.append(f"{item.source.name}: {metadata.message}")
-                written += 1
-                self.progress.set(session.index / max(1, total))
-                self.update_idletasks()
-
-            if session.finished:
-                self._batch_done(written, metadata_warnings)
-            else:
-                self._set_busy(False)
-                self._report_metadata_warnings(metadata_warnings)
-        except Exception as exc:
-            self._batch_failed(exc)
+    def _batch_finished(self, result):
+        self.last_batch_result = result
+        self._set_busy(False)
+        count = len(result.written)
+        if not result.cancelled:
+            self.progress.set(1)
+        status = (f"Export abgebrochen – {count} Dateien exportiert" if result.cancelled else
+                  f"Fertig – {count} Datei{'en' if count != 1 else ''}")
+        if result.errors or result.skipped:
+            status += f" · {len(result.errors)} Fehler · {result.skipped} übersprungen"
+        self._set_text(self.status, status)
+        if result.errors:
+            details = "\n".join(prefix + ": " + self.tr(reason) for prefix, reason in
+                (message.split(": ", 1) for message in result.errors[:10]))
+            if len(result.errors) > 10:
+                details += f"\n… ({len(result.errors)})"
+            messagebox.showwarning("Freeda", self.tr("Einige Bilder konnten nicht exportiert werden.") + "\n\n" + details)
+        if self.crop_storage_errors:
+            messagebox.showwarning("Freeda", self.tr("Ausschnitte konnten nicht gespeichert oder geladen werden.")
+                                   + "\n\n" + "\n".join(self.crop_storage_errors[:10]))
+        self._report_metadata_warnings(result.warnings, update_status=False)
+        if count and not result.cancelled and not result.errors:
+            play_ready_sound(resource_path("assets/ready.wav"))
 
     def _progress_ui(self, index: int, total: int, name: str) -> None:
         self.progress.set(index / max(1, total))
-        self._set_text(self.status, f"Verarbeitung {index}/{total}: {name}")
+        if not self._cancel_event.is_set():
+            self._set_text(self.status, f"Verarbeitung {index}/{total}: {name}")
 
-    def _batch_done(self, count: int, metadata_warnings=()) -> None:
-        self._set_busy(False)
-        self.progress.set(1)
-        self._set_text(self.status, f"Fertig – {count} Datei{'en' if count != 1 else ''}")
-        if self.crop_storage_errors:
-            self._set_text(self.status, "Export fertig; Ausschnitte konnten nicht gespeichert oder geladen werden.")
-        play_ready_sound(resource_path("assets/ready.wav"))
-        self._report_metadata_warnings(metadata_warnings)
-
-    def _report_metadata_warnings(self, warnings):
+    def _report_metadata_warnings(self, warnings, *, update_status=True):
         if warnings:
-            self._set_text(self.status, "Export fertig; Metadaten konnten nicht vollständig übernommen werden.")
+            if update_status:
+                self._set_text(self.status, "Export fertig; Metadaten konnten nicht vollständig übernommen werden.")
             details = "\n".join(prefix + ": " + self.tr(reason)
                 for prefix, reason in (message.split(": ", 1) for message in warnings[:5]))
             if len(warnings) > 5:

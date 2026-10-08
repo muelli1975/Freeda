@@ -404,26 +404,34 @@ def save_render(
     dpi: int | None = None,
     background_color: str = "#000000",
     metadata_source: Path | None = None,
+    cancel=None,
 ):
-    path = Path(path)
+    import os
+    import tempfile
+    from .jobs import check_cancel
+    path = Path(path).with_suffix(".png" if output_format == OutputFormat.PNG else ".jpg")
+    if metadata_source is not None and path.resolve() == Path(metadata_source).resolve():
+        raise ValueError("Originaldatei darf nicht verändert werden.")
+    check_cancel(cancel)
     path.parent.mkdir(parents=True, exist_ok=True)
-    kwargs = {}
-    if dpi:
-        kwargs["dpi"] = (dpi, dpi)
-    if output_format == OutputFormat.PNG:
-        image.save(path.with_suffix(".png"), format="PNG", optimize=True, **kwargs)
-    else:
-        # 4:4:4 = subsampling 0. JPEG cannot carry transparency.
-        image = flatten_for_jpeg(image, background_color)
-        image.save(
-            path.with_suffix(".jpg"),
-            format="JPEG",
-            quality=90,
-            subsampling=0,
-            optimize=True,
-            **kwargs,
-        )
-    if metadata_source is not None:
-        from .metadata import copy_metadata
-        suffix = ".png" if output_format == OutputFormat.PNG else ".jpg"
-        return copy_metadata(metadata_source, path.with_suffix(suffix), image.size, dpi=dpi)
+    fd, name = tempfile.mkstemp(prefix=".freeda-export-", suffix=path.suffix, dir=path.parent)
+    os.close(fd)
+    temporary = Path(name)
+    try:
+        kwargs = {"dpi": (dpi, dpi)} if dpi else {}
+        if output_format == OutputFormat.PNG:
+            image.save(temporary, format="PNG", optimize=True, **kwargs)
+        else:
+            # 4:4:4 = subsampling 0. JPEG cannot carry transparency.
+            image = flatten_for_jpeg(image, background_color)
+            image.save(temporary, format="JPEG", quality=90, subsampling=0, optimize=True, **kwargs)
+        check_cancel(cancel)
+        metadata = None
+        if metadata_source is not None:
+            from .metadata import copy_metadata
+            metadata = copy_metadata(metadata_source, temporary, image.size, dpi=dpi, cancel=cancel)
+        check_cancel(cancel)
+        os.replace(temporary, path)
+        return metadata
+    finally:
+        temporary.unlink(missing_ok=True)

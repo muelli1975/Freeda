@@ -43,7 +43,7 @@ if sys.platform == 'darwin':
     subprocess.run(['ditto', str(bundle), str(package / 'Freeda.app')], check=True)
     for signed_bundle in (bundle, package / 'Freeda.app'):
         subprocess.run(['codesign', '--verify', '--deep', '--strict', str(signed_bundle)], check=True)
-for filename in ('README.md', 'README_DE.md', 'README_EN.md', 'QUICKSTART.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
+for filename in ('README.md', 'README_DE.md', 'README_EN.md', 'QUICKSTART.md', 'RELEASE_NOTES_1.1.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
     shutil.copy2(root / filename, package / filename)
 shutil.copytree(root / 'licenses', package / 'licenses', dirs_exist_ok=True)
 shutil.copytree(root / 'docs/screenshots', package / 'docs/screenshots', dirs_exist_ok=True)

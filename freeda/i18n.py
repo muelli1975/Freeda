@@ -2,6 +2,17 @@
 import re
 
 EN = {
+    "Unterordner mitverarbeiten": "Include subfolders",
+    "Ausgabeordner wählen …": "Choose output folder …",
+    "output im Programmordner": "output in program folder",
+    "output im Input-Ordner": "output in input folder",
+    "output im jeweiligen Eingabeordner": "output in each input folder",
+    "Bilder werden eingelesen …": "Reading images …",
+    "Einlesen abgebrochen": "Reading cancelled",
+    "Verarbeitung wird abgebrochen …": "Cancelling processing …",
+    "Keine unterstützten Bilder gefunden.": "No supported images found.",
+    "Einige Bilder konnten nicht exportiert werden.": "Some images could not be exported.",
+    "Für jedes Eingabebild wird genau ein Ausgabeziel benötigt.": "Exactly one output destination is required for each input image.",
     "Lange Seite (px)": "Long edge (px)",
     "Lange Seite in Pixeln": "Long edge in pixels",
     "Lange Seite: Bitte eine ganze Zahl ab 16 px eingeben.": "Long edge: enter a whole number of 16 px or greater.",
@@ -165,6 +176,8 @@ def translate(text: str, language: str) -> str:
     if text in EN:
         return EN[text]
     patterns = [
+        (r"(.*) · (\d+) Fehler · (\d+) übersprungen", lambda m:
+            translate(m[1], "en") + " · " + m[2] + (" error · " if m[2] == "1" else " errors · ") + m[3] + " skipped"),
         (r"(Radius oben|Radius unten|Radius außen|Bogenhöhe): (.*) %",
          lambda m: EN[m[1]] + ": " + m[2].replace(",", ".") + " %"),
         (r"Max\. Logohöhe: (.*) mm", lambda m: "Max. logo height: " + m[1].replace(",", ".") + " mm"),

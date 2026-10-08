@@ -1,3 +1,5 @@
+param([switch]$TestBuild)
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
@@ -18,6 +20,7 @@ $Python = Join-Path $Venv "Scripts\python.exe"
 $Version = (& $Python -c "from freeda import __version__; print(__version__)").Trim()
 $DisplayVersion = $Version -replace '\.0$', ''
 $PackageName = "Freeda_${DisplayVersion}_Windows_x64"
+if ($TestBuild) { $PackageName += "_Testbuild" }
 $Package = Join-Path $Release $PackageName
 $Zip = Join-Path $Release "$PackageName.zip"
 
@@ -50,13 +53,15 @@ Copy-Item -Force (Join-Path $Root "README_EN.md") (Join-Path $Package "README_EN
 Copy-Item -Force (Join-Path $Root "README_DE.md") (Join-Path $Package "README_DE.md")
 Copy-Item -Recurse -Force (Join-Path $Root "docs") $Package
 Copy-Item -Force (Join-Path $Root "QUICKSTART.md") (Join-Path $Package "QUICKSTART.md")
+Copy-Item -Force (Join-Path $Root "RELEASE_NOTES_1.1.md") (Join-Path $Package "RELEASE_NOTES_1.1.md")
 Copy-Item -Force (Join-Path $Root "THIRD_PARTY_NOTICES.md") (Join-Path $Package "THIRD_PARTY_NOTICES.md")
 Copy-Item -Recurse -Force (Join-Path $Root "licenses") $Package
 Copy-Item -Force (Join-Path $Root "LICENSE") (Join-Path $Package "LICENSE")
 
 Compress-Archive -Path $Package -DestinationPath $Zip -CompressionLevel Optimal -Force
 $Hash = (Get-FileHash -Algorithm SHA256 $Zip).Hash.ToLowerInvariant()
-"$Hash  $PackageName.zip" | Set-Content -Encoding ASCII (Join-Path $Release "SHA256SUMS.txt")
+$ChecksumName = if ($TestBuild) { "${PackageName}_SHA256.txt" } else { "SHA256SUMS.txt" }
+"$Hash  $PackageName.zip" | Set-Content -Encoding ASCII (Join-Path $Release $ChecksumName)
 
 Write-Host ""
 Write-Host "Freeda release build created:"
