@@ -273,13 +273,19 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
         controls.grid(row=0, column=1, sticky="nsew")
         controls.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(
-            controls,
-            text="Ausschnitt",
-            anchor="w",
-            text_color=TEXT,
+        view_heading = ctk.CTkFrame(controls, fg_color="transparent")
+        view_heading.grid(row=0, column=0, sticky="ew", padx=18, pady=(18, 14))
+        self.view_heading = ctk.CTkLabel(
+            view_heading, text="Ansicht zur Ausschnittwahl", anchor="w", text_color=TEXT,
             font=ctk.CTkFont(family=FONT_FAMILY, size=15, weight="bold"),
-        ).grid(row=0, column=0, sticky="ew", padx=18, pady=(18, 14))
+        )
+        self.view_heading.pack(fill="x")
+        self.view_hint = ctk.CTkLabel(
+            view_heading, text="Die Ansicht beeinflusst nur die Vorschau.", anchor="w",
+            text_color=TEXT_MUTED, wraplength=240, justify="left",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+        )
+        self.view_hint.pack(fill="x", pady=(3, 0))
 
         views = ctk.CTkFrame(controls, fg_color="transparent")
         views.grid(row=1, column=0, sticky="ew", padx=18, pady=(0, 14))

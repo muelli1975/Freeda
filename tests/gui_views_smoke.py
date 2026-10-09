@@ -1,12 +1,13 @@
 """Crop viewing shortcuts, stable crop and asynchronous main/dialog previews."""
-import sys, time, tempfile
+import sys, time, tempfile, base64, io, json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageGrab
 from freeda.gui import FreedaApp, CropDialog
+import customtkinter as ctk
 from gui_helpers import assert_family_palette
 
 
@@ -52,5 +53,34 @@ with tempfile.TemporaryDirectory() as folder:
         assert dialog.view_buttons['cross'].cget('text')=='Cross view (X)'
         assert_family_palette(dialog)
         dialog._cancel();app.update()
+        for language in ('de','en'):
+            app.language=language
+            for scale in (1.,1.5):
+                ctk.set_widget_scaling(scale)
+                ctk.set_window_scaling(scale)
+                dialog=CropDialog(app,image,app._web_options(),index=1,total=1,
+                    filename='two.png',editing=True)
+                app.update()
+                dialog.grid_var.set(False)
+                dialog._set_view('anaglyph')
+                wait(app,lambda:dialog.preview_photo is not None)
+                expected_heading='Ansicht zur Ausschnittwahl' if language=='de' else 'View for crop selection'
+                expected_hint='Die Ansicht beeinflusst nur die Vorschau.' if language=='de' else 'This view only affects the preview.'
+                assert dialog.view_heading.cget('text')==expected_heading
+                assert dialog.view_hint.cget('text')==expected_hint
+                assert dialog.view_heading._text_label.winfo_reqwidth() <= dialog.view_heading.winfo_width()
+                assert dialog.view_hint._text_label.winfo_reqwidth() <= dialog.view_hint.winfo_width()
+                app.update_idletasks()
+                if language=='de':
+                    bbox=(dialog.winfo_rootx(),dialog.winfo_rooty(),
+                          dialog.winfo_rootx()+dialog.winfo_width(),dialog.winfo_rooty()+dialog.winfo_height())
+                    buffer=io.BytesIO()
+                    ImageGrab.grab(bbox=bbox).save(buffer,format='PNG')
+                    print('CROP_REVIEW_JSON '+json.dumps({'name':f'Freeda-crop-{language}-{scale}.png',
+                        'data':base64.b64encode(buffer.getvalue()).decode()}),flush=True)
+                dialog._cancel()
+                app.update()
+        ctk.set_widget_scaling(1.)
+        ctk.set_window_scaling(1.)
     finally:app.destroy()
 print('View buttons/P-X-A, stable crop, threaded previews and navigation focus guards passed')

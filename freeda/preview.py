@@ -34,24 +34,7 @@ def render_preview(source, request):
     from .crop_grid import crop_grid
     options, width, height = request.options, request.width, request.height
     if request.view == "anaglyph":
-        import numpy as np
-        from PIL import ImageDraw
-        from .anaglyph import make_anaglyph
-        left, right = split_full_sbs(source)
-        left, right = crop_eye(left, options.crop), crop_eye(right, options.crop)
-        factor = min(1., 1600/max(left.size), width/left.width, height/left.height)
-        size = (max(1, round(left.width*factor)), max(1, round(left.height*factor)))
-        left = left.resize(size, Image.Resampling.LANCZOS)
-        right = right.resize(size, Image.Resampling.LANCZOS)
-        image = Image.fromarray(make_anaglyph(np.asarray(left), np.asarray(right)))
-        if request.grid:
-            draw = ImageDraw.Draw(image)
-            for fraction in (1/3, 2/3):
-                x, y = round(image.width*fraction), round(image.height*fraction)
-                for line in ((x, 0, x, image.height-1), (0, y, image.width-1, y)):
-                    draw.line(line, fill="black", width=3)
-                    draw.line(line, fill="white", width=1)
-        return fit_preview(image, width, height)
+        return anaglyph_crop_preview(source, request)
     if request.view is not None:
         options = replace(options, layout=LayoutMode.CROSS if request.view == "cross" else LayoutMode.PARALLEL)
     if isinstance(options, PrintRenderOptions):
@@ -71,6 +54,67 @@ def render_preview(source, request):
         if request.grid:
             rendered = crop_grid(rendered, source, options)
     return fit_preview(preview_export_image(rendered, options), width, height)
+
+
+def anaglyph_crop_preview(source, request):
+    """Show one framed control image using the export's existing renderers."""
+    import numpy as np
+    from .anaglyph import make_anaglyph
+    from .models import Crop, CuttingGuide
+    from .render import split_full_sbs, crop_eye, web_geometry, render_web
+    from .cropping import fit_linked_crop
+    from .print_layout import print_layout
+    from .print_render import render_print, _fit_crop_to_aspect
+    from .eye_shapes import round_outer_corners
+    from .crop_grid import crop_grid
+
+    width, height = max(1, request.width), max(1, request.height)
+    original = request.options
+    left, right = split_full_sbs(source)
+    if isinstance(original, PrintRenderOptions):
+        physical = print_layout(original)
+        left = _fit_crop_to_aspect(left, original.crop, physical.eye_aspect)
+        right = _fit_crop_to_aspect(right, original.crop, physical.eye_aspect)
+        count, rows = len(physical.x_mm), len(physical.y_mm)
+        options = print_preview_options(original, min(3200, width * count), min(3200, height * rows))
+        options = replace(options, crop=Crop(), show_symbols=False, outer_radius_percent=0,
+                          bleed_mm=0, cutting_guide=CuttingGuide.NONE)
+        geometry = print_layout(options)
+        x0, y0, x1, y1 = geometry.eye_boxes(options.dpi)[0]
+        size = (x1 - x0, y1 - y0)
+    else:
+        crop = fit_linked_crop(left.size, original.crop, original.eye_aspect)
+        left, right = crop_eye(left, crop), crop_eye(right, crop)
+        factor = min(1., 1600 / max(left.size), width / left.width, height / left.height)
+        size = (max(1, round(left.width * factor)), max(1, round(left.height * factor)))
+        options = replace(original, crop=Crop(), eye_aspect=None, target_long_edge=None,
+                          show_symbols=False, outer_radius_percent=0)
+        geometry = web_geometry(size, options)
+        x0, y0, x1, y1 = geometry.eye_boxes[0]
+
+    left = left.resize(size, Image.Resampling.LANCZOS)
+    right = right.resize(size, Image.Resampling.LANCZOS)
+    anaglyph = Image.fromarray(make_anaglyph(np.asarray(left), np.asarray(right)))
+    paired = Image.new("RGB", (anaglyph.width * 2, anaglyph.height))
+    paired.paste(anaglyph, (0, 0))
+    paired.paste(anaglyph, (anaglyph.width, 0))
+    framed = render_print(paired, options) if isinstance(options, PrintRenderOptions) else render_web(paired, options)
+    if request.grid:
+        framed = crop_grid(framed, paired, options)
+
+    if isinstance(options, PrintRenderOptions):
+        bottom = framed.height
+        if len(geometry.y_mm) > 1:
+            boundary = geometry.y_mm[1]
+            if options.margins is not None:
+                boundary -= options.margins.row_gap_mm
+            bottom = mm_to_px(boundary, options.dpi)
+    else:
+        bottom = min(framed.height, geometry.row.height)
+    single = framed.crop((0, 0, min(framed.width, x1 + x0), bottom))
+    radius = round(framed.width * max(0., original.outer_radius_percent) / 100)
+    single = round_outer_corners(single, radius)
+    return fit_preview(preview_export_image(single, original), width, height)
 
 
 def preview_export_image(image, options):

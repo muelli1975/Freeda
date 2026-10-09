@@ -9,6 +9,8 @@ EN = {
     "Parallelblick (P)": "Parallel view (P)",
     "Kreuzblick (X)": "Cross view (X)",
     "Anaglyph (A)": "Anaglyph (A)",
+    "Ansicht zur Ausschnittwahl": "View for crop selection",
+    "Die Ansicht beeinflusst nur die Vorschau.": "This view only affects the preview.",
     "Unterordner mitverarbeiten": "Include subfolders",
     "Ausgabeordner wählen …": "Choose output folder …",
     "output im Programmordner": "output in program folder",

@@ -112,7 +112,10 @@ jobs:
           xvfb-run -a python scripts/check_gui.py tests/gui_recursive_batch_smoke.py
           xvfb-run -a python scripts/check_gui.py tests/gui_cards_smoke.py
           xvfb-run -a python scripts/check_gui.py tests/gui_logos_smoke.py
-          xvfb-run -a python scripts/check_gui.py tests/gui_views_smoke.py
+          xvfb-run -a -s "-screen 0 2560x1920x24" python scripts/check_gui.py tests/gui_views_smoke.py
+      - name: Check family UI colors, settings and scaling
+        if: runner.os == 'Linux'
+        run: xvfb-run -a -s "-screen 0 2560x1920x24" python scripts/check_family_ui.py
       - name: Build native archive
         run: python scripts/build_unix.py --label '${{ matrix.label }}'
       - name: Linux binary startup
