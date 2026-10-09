@@ -1,0 +1,100 @@
+name: Publish verified Freeda 1.2
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-verified.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-verified-v1.2
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERIFIED_RUN: '37922584441'
+      VERIFIED_COMMIT: '3935dce5455690c91d7e16eee2f4f6ace0672452'
+      RELEASE_TAG: v1.2
+    steps:
+      - name: Check verified source run and absence of an existing version tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/actions/runs/$VERIFIED_RUN" > verified-run.json
+          python3 - <<'PY'
+          import json, os
+          with open("verified-run.json", encoding="utf-8") as stream:
+              run = json.load(stream)
+          assert run["head_sha"] == os.environ["VERIFIED_COMMIT"], "Source commit differs"
+          assert run["repository"]["full_name"] == os.environ["GH_REPO"], "Repository differs"
+          assert run["head_branch"] == "main", "Source is not main"
+          assert run["event"] == "push", "Source is not a push build"
+          assert run["status"] == "completed" and run["conclusion"] == "success", "Build did not pass"
+          PY
+          gh api "repos/$GH_REPO/git/matching-refs/tags/$RELEASE_TAG" > existing-tags.json
+          python3 - <<'PY'
+          import json, os
+          with open("existing-tags.json", encoding="utf-8") as stream:
+              refs = json.load(stream)
+          assert not any(item["ref"] == "refs/tags/" + os.environ["RELEASE_TAG"] for item in refs), "Existing tag must not be replaced"
+          PY
+      - name: Read release notes from the tested commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VERIFIED_COMMIT }}
+          persist-credentials: false
+      - name: Download the verified platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          gh run download "$VERIFIED_RUN" --repo "$GH_REPO" --name 'Freeda_1.2_Windows_x64' --dir artifacts
+          gh run download "$VERIFIED_RUN" --repo "$GH_REPO" --name 'Freeda_1.2_Linux_x64' --dir artifacts
+          gh run download "$VERIFIED_RUN" --repo "$GH_REPO" --name 'Freeda_1.2_macOS_AppleSilicon' --dir artifacts
+          gh run download "$VERIFIED_RUN" --repo "$GH_REPO" --name 'Freeda_1.2_macOS_Intel' --dir artifacts
+      - name: Prepare checksums and create a draft from the tested commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd artifacts
+          packages=('Freeda_1.2_Windows_x64.zip' 'Freeda_1.2_Linux_x64.tar.gz' 'Freeda_1.2_macOS_AppleSilicon.zip' 'Freeda_1.2_macOS_Intel.zip')
+          for package in "${packages[@]}"; do
+            test -s "$package"
+          done
+          sha256sum "${packages[@]}" > SHA256SUMS.txt
+          cd ..
+          gh release create "$RELEASE_TAG" 'artifacts/Freeda_1.2_Windows_x64.zip' 'artifacts/Freeda_1.2_Linux_x64.tar.gz' 'artifacts/Freeda_1.2_macOS_AppleSilicon.zip' 'artifacts/Freeda_1.2_macOS_Intel.zip' artifacts/SHA256SUMS.txt --draft --target "$VERIFIED_COMMIT" --title 'Freeda 1.2' --notes-file 'RELEASE_NOTES_1.2.md'
+      - name: Verify release source and every uploaded asset before publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = "$VERIFIED_COMMIT"
+          gh release view "$RELEASE_TAG" --json assets,isDraft > release-verification.json
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          with open("release-verification.json", encoding="utf-8") as stream:
+              release = json.load(stream)
+          expected = ["Freeda_1.2_Windows_x64.zip","Freeda_1.2_Linux_x64.tar.gz","Freeda_1.2_macOS_AppleSilicon.zip","Freeda_1.2_macOS_Intel.zip","SHA256SUMS.txt"]
+          assert release["isDraft"], "Release must stay draft until verification"
+          assets = {asset["name"]: asset for asset in release["assets"]}
+          assert set(assets) == set(expected), "Release asset set differs"
+          for name in expected:
+              path = pathlib.Path("artifacts") / name
+              asset = assets[name]
+              assert asset["size"] == path.stat().st_size, "Asset size differs: " + name
+              digest = asset.get("digest")
+              if digest:
+                  assert digest == "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(), "Asset digest differs: " + name
+          PY
+          gh release edit "$RELEASE_TAG" --draft=false --latest
