@@ -51,5 +51,5 @@ jobs:
               assert after["body"].strip() == expected.strip()
               assert {a["name"]: a["digest"] for a in after["assets"]} == assets
               assert api("git/ref/tags/" + tag)["object"]["sha"] == source
-              print(tag, "German description published; packages and tag unchanged.", flush=True)
+              print(tag, "English description published; packages and tag unchanged.", flush=True)
           PY

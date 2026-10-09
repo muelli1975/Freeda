@@ -1,12 +1,12 @@
 # Freeda 1.2
 
-- Parallelblick, Kreuzblick und Anaglyphenkontrolle im Ausschnittdialog. P/X/A wechseln die Ansicht; Ausschnitt und Exportlayout bleiben erhalten.
-- Bildnavigation mit Links/Rechts sowie Bild auf/Bild ab.
-- Flüssigere Vorschau und behobener Fehler beim Programmstart.
-- Korrekte Ausrichtung von Hochformatbildern in Vorschau, Ausschnitt und Export.
-- Anklickbare Übersicht der Tastenkürzel unter der Vorschau.
-- Ordnerausgaben direkt im Ausgabeziel; relative Unterordner bleiben erhalten.
-- Einheitliches Button-Hover-Verhalten nach dem gemeinsamen Gestaltungsstandard.
-- Sprache und Ein-/Ausgabeordner bleiben nach Neustart erhalten; Bearbeitungswerte starten mit den Standardwerten und 2048 Pixeln lange Seite.
-- Gerahmte Anaglyphenkontrolle bei der Ausschnittwahl, ohne Blicksymbole und mit der gewählten Bildkontur.
-- Eindeutige Kennzeichnung der Ansichten als Vorschau zur Ausschnittwahl.
+- Parallel, cross-eyed and anaglyph views in the crop dialog. P/X/A switch the view while preserving the crop and export layout.
+- Image navigation with Left/Right and Page Up/Page Down.
+- Smoother preview and a fix for an error at program startup.
+- Correct orientation of portrait images in the preview, crop dialog and export.
+- Clickable keyboard-shortcut overview below the preview.
+- Folder exports are saved directly in the output folder; relative subfolders are preserved.
+- Consistent button hover behaviour following the shared design standard.
+- Language and input/output folders are remembered after restart; processing settings start with their defaults and a 2048-pixel long edge.
+- Framed anaglyph view for crop selection, with the selected image outline and without viewing symbols.
+- Clear labelling of the views as previews for crop selection.
