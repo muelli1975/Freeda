@@ -1,0 +1,41 @@
+name: Refresh verified portable packages
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/refresh-verified-packages.yml', 'scripts/refresh_verified_packages.py', 'scripts/verified-package-update.json']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: refresh-verified-portable-packages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate successful native builds, packaged source and update downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/refresh_verified_packages.py
+      - name: Keep replaced downloads for recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: previous-release-packages
+          path: previous-packages/*
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Read representative GUI captures from the tested build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download '37942232593' --repo 'muelli1975/Freeda' --name 'Freeda-family-ui' --dir ui-review
+          python - <<'PY'
+          import base64, json, pathlib
+          paths = sorted(pathlib.Path("ui-review").glob("*Deutsch*"))
+          for scale in ("1.0", "1.5"):
+              selected = next(path for path in paths if f"-{scale}-hover" in path.name)
+              print("GUI_REVIEW_JSON " + json.dumps({"name":selected.name, "data":base64.b64encode(selected.read_bytes()).decode()}), flush=True)
+          PY

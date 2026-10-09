@@ -1,0 +1,23 @@
+{
+  "repo": "muelli1975/Freeda",
+  "app": "Freeda",
+  "tag": "v1.2",
+  "release_id": 407917242,
+  "run": 37942232593,
+  "commit": "963f3235a7f02b486dff023374c3029ca03d269d",
+  "packages": [
+    "Freeda_1.2_Linux_x64.tar.gz",
+    "Freeda_1.2_macOS_AppleSilicon.zip",
+    "Freeda_1.2_macOS_Intel.zip",
+    "Freeda_1.2_Windows_x64.zip"
+  ],
+  "previous": {
+    "Freeda_1.2_Linux_x64.tar.gz": "sha256:00c675fabc89476c8076f6e68ce861e971578491e5600d13c410c29c5d06a0f9",
+    "Freeda_1.2_macOS_AppleSilicon.zip": "sha256:686f9a0788e86547747243c69343e5119868f05e56d60cf75f3e0559d015a5b7",
+    "Freeda_1.2_macOS_Intel.zip": "sha256:b1bea50728887f424c3e4efae1ce6f5c5c18100f0171be46a1ad84882ec364ee",
+    "Freeda_1.2_Windows_x64.zip": "sha256:1786420a5028ef68fe88f16af1edde959efe82628a14dc8e059ce205ab53ab1d",
+    "SHA256SUMS.txt": "sha256:3c99fda0947d9476c070b15bff20b1d46832455b9d31716bef43866f3da6f20f"
+  },
+  "gui": "freeda/gui.py",
+  "notes": "RELEASE_NOTES_1.2.md"
+}

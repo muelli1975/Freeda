@@ -22,7 +22,7 @@ No separate Python installation is required. Language and saved presets are stor
 
 The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package for your processor. Settings are stored beside the app bundle. ExifTool is included in `tools` beside the Linux executable and in `Freeda.app/Contents/MacOS/tools` on macOS. Linux and macOS need a working Perl interpreter for metadata transfer; the Windows package includes its own runtime.
 
-All four variants are built from the same tagged source. Automated tests and packaged startup checks run on every platform; GUI export checks also run on Windows and Linux. Manual desktop testing on macOS and Linux is still pending. The macOS applications are ad-hoc signed and are not Apple-notarized.
+All four variants are built from the same verified source snapshot, included in each package. Automated tests and packaged startup checks run on every platform; GUI export checks also run on Windows and Linux. Manual desktop testing on macOS and Linux is still pending. The macOS applications are ad-hoc signed and are not Apple-notarized.
 
 ## Quick start
 
