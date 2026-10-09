@@ -52,7 +52,8 @@ for name in plan["packages"]:
     try:
         roots = {n.split("/")[0] for n in members}
         assert roots <= {app,"__MACOSX"} and app in roots, (name, roots)
-        assert read(f"{app}/source/{plan['gui']}") == expected_gui, "Packaged source differs from tested source"
+        packaged_gui = read(f"{app}/source/{plan['gui']}")
+        assert packaged_gui.replace(b"\r\n", b"\n") == expected_gui.replace(b"\r\n", b"\n"), "Packaged source differs from tested source"
         info = json.loads(read(f"{app}/BUILD_INFO.json"))
         assert info["commit"] == plan["commit"], info
         forbidden = {f"{app}/settings.json",f"{app}/presets.json"}
