@@ -7,3 +7,4 @@
 - Anklickbare Übersicht der Tastenkürzel unter der Vorschau.
 - Ordnerausgaben direkt im Ausgabeziel; relative Unterordner bleiben erhalten.
 - Einheitliches Button-Hover-Verhalten nach dem gemeinsamen Gestaltungsstandard.
+- Sprache und Ein-/Ausgabeordner bleiben nach Neustart erhalten; Bearbeitungswerte starten mit den Standardwerten und 2048 Pixeln lange Seite.

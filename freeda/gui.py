@@ -552,7 +552,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.source_index = 0
         self.batch_mode = False
         self.program_dir = Path(program_dir) if program_dir is not None else portable_settings_path().parent
-        self.output_dir: Path | None = None
+        saved_output = self._settings.get("custom_output_folder", "")
+        self.output_dir: Path | None = Path(saved_output) if isinstance(saved_output, str) and saved_output else None
         self._events = Queue()
         self._preview_id = 0
         self._preview_worker = PreviewWorker(lambda identifier, image, error:
@@ -566,7 +567,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._folder_scan_config = None
         self._scan_running = False
         self.input_root: Path | None = None
-        self.last_input_dir: Path | None = None
+        saved_input = self._settings.get("last_input_dir", "")
+        self.last_input_dir: Path | None = Path(saved_input) if isinstance(saved_input, str) and saved_input else None
         self._control_states = {}
         self.preview_photo = None
         self._preview_job = None
@@ -785,6 +787,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             self._set_text(self.status, "Einstellungen konnten nicht gespeichert werden.")
 
     def _persist_settings(self):
+        self._settings.update(last_input_dir=str(self.last_input_dir or ""),
+                              custom_output_folder=str(self.output_dir or ""),
+                              use_program_output=bool(self.use_program_output.get()))
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.settings_path.with_suffix(".tmp")
         temporary.write_text(json.dumps(self._settings, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1298,7 +1303,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         ).grid(row=row, column=0, sticky="ew", padx=20, pady=(6, 8))
         row += 1
 
-        self.use_program_output = tk.BooleanVar(value=True)
+        self.use_program_output = tk.BooleanVar(value=self._settings.get("use_program_output", True) is not False)
         self.output_checkbox = self._checkbox(self.sidebar, "Unterordner im Programmordner verwenden",
                                               self.use_program_output, self._output_changed)
         self.output_checkbox.grid(
@@ -1733,7 +1738,14 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 self._events.put((identifier, "failed", error))
         threading.Thread(target=scan, daemon=True).start()
 
+    def _save_preferences(self):
+        try:
+            self._persist_settings()
+        except OSError:
+            self._set_text(self.status, "Einstellungen konnten nicht gespeichert werden.")
+
     def _output_changed(self):
+        self._save_preferences()
         self._refresh_output()
         self._reload_folder()
 
@@ -1954,6 +1966,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         )
         if names:
             self.last_input_dir = Path(names[0]).parent
+            self._save_preferences()
             self.input_root = None
             self._folder_scan_config = None
             self.items = discover_files([Path(n) for n in names])
@@ -1976,6 +1989,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                                       initialdir=str(self.last_input_dir) if self.last_input_dir else None)
         if name:
             self.last_input_dir = Path(name)
+            self._save_preferences()
             self._scan_folder(Path(name))
 
     def _input_changed(self) -> None:

@@ -112,7 +112,7 @@ Die Auswahl mehrerer Dateien oder eines Ordners erzeugt einen Batch. Die Navigat
 
 Standardmäßig ist `output` im **Programmordner** als Ausgabeordner gewählt. Ein Ordner-Batch speichert direkt in diesem Ziel und erhält die relative Unterordnerstruktur: `Urlaub/Tag1/bild.jpg` wird zu `<Programmordner>/output/Tag1/bild_freeda_web.jpg`; bei Print entsprechend zu `bild_freeda_print.jpg`. Einzeln gewählte Dateien landen direkt im Ausgabeordner.
 
-**Unterordner im Programmordner verwenden** ist beim Start aktiviert. Beschriftung und Pfad unter **Eigener Ausgabeordner** sind dann ausgegraut. **Auswählen** bleibt bedienbar: Ein eigenes gemeinsames Ziel wählen, wodurch der Haken automatisch entfernt wird; die Struktur darunter bleibt erhalten. Erneutes Aktivieren stellt `output` im Programmordner wieder her und behält den eigenen Ordner für später. Das tatsächliche Ziel wird separat angezeigt. Input- und Outputdialoge merken sich getrennte Startordner während der Sitzung.
+**Unterordner im Programmordner verwenden** ist beim ersten Start aktiviert; später werden der letzte Ausgabemodus und der eigene Zielordner wiederhergestellt. Beschriftung und Pfad unter **Eigener Ausgabeordner** sind dann ausgegraut. **Auswählen** bleibt bedienbar: Ein eigenes gemeinsames Ziel wählen, wodurch der Haken automatisch entfernt wird; die Struktur darunter bleibt erhalten. Erneutes Aktivieren stellt `output` im Programmordner wieder her und behält den eigenen Ordner für später. Das tatsächliche Ziel wird separat angezeigt. Input- und Outputdialoge merken sich getrennte Startordner auch nach einem Neustart.
 
 **Unterordner mitverarbeiten** ist beim Start ausgeschaltet. Einschalten liest den gewählten Eingabeordner rekursiv neu ein; ein Wechsel des Ausgabeziels aktualisiert ebenfalls die Liste. Das gewählte Ausgabeziel innerhalb der Eingabe sowie Ordner namens `output`, `tmp` und `_temp` werden vor dem Durchsuchen ausgeschlossen. Bereits erzeugte Freeda-Dateien werden bei der Ordnersuche übersprungen. Ausschnittdateien sind keine Bilddateien; verknüpfte Unterordner werden nicht verfolgt. Bewusst über **Dateien …** gewählte Ausgaben lassen sich weiterhin öffnen. Die Eingabeliste steht vor dem Export fest.
 
@@ -134,7 +134,7 @@ ExifTool 13.59 liegt separat unter `tools`, zusammen mit seinen ursprünglichen 
 
 Deutsch und Englisch stehen zur Verfügung. Sprache und benannte Presets werden lokal in `settings.json` neben dem Programm gespeichert; dadurch bleibt das gesamte Programm portabel. Presets enthalten Export- und Darstellungseinstellungen. Eingabebildpfade, Ausgabepfade, bildbezogene Untertiteltexte und individuelle Ausschnitte gehören nicht zu einem Preset.
 
-Beim Start wird die zuletzt gewählte Sprache wiederhergestellt. Die übrigen Einstellungen verwenden die Standardwerte, bis ein Preset ausgewählt wird. Individuelle Ausschnittdateien liegen in den jeweiligen Bilderordnern, getrennt von den Programmeinstellungen.
+Beim Start werden Sprache, letzter Eingabe-Dialogordner, eigener Ausgabeordner und Ausgabemodus wiederhergestellt. Die übrigen Einstellungen verwenden die Standardwerte, bis ein Preset ausgewählt wird. Individuelle Ausschnittdateien liegen in den jeweiligen Bilderordnern, getrennt von den Programmeinstellungen.
 
 ## Quellcode und langfristige Nutzung
 

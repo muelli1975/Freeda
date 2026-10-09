@@ -69,7 +69,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert len(app.last_batch_result.written) == 2
         for path in paths:
             assert app.image_crops["Web"][path.resolve()] == first_crop
-        assert all(p.parent == root / "program/output/pictures" for p in app.last_batch_result.written)
+        assert all(p.parent == root / "program/output" for p in app.last_batch_result.written)
         app.save_preset("Web square")
         assert "image_crops" not in app.presets["Web square"]
         app.reset_crop()

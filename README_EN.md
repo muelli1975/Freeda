@@ -16,7 +16,7 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
 
-No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Copy this file and your `logos` folder, if present, to the new application folder when updating. The executable is not Authenticode-signed.
+No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Keep this file and your `logos` folder, if present, when updating the application. The executable is not Authenticode-signed.
 
 ## macOS and Linux builds
 
@@ -112,7 +112,7 @@ Selecting several files or a folder creates a batch. Navigation changes the prev
 
 The default output folder is `output` in the **program folder**. A folder batch saves directly in this destination and preserves relative subfolders: `Holiday/Day1/image.jpg` becomes `<program folder>/output/Day1/image_freeda_web.jpg`, or `image_freeda_print.jpg` in Print mode. Individually selected files are saved directly in the output folder.
 
-**Use subfolder in program folder** is checked at startup. The **Custom output folder** label and path are greyed out while it is checked. **Choose** remains available: selecting a custom shared destination automatically unchecks the box; the structure underneath stays the same. Check it again to return to the program folder's `output`, retaining the custom folder for later. The actual destination is shown separately. Input and output dialogs remember separate starting folders during the session.
+**Use subfolder in program folder** is the initial default; the last output mode and custom destination are restored at later launches. The **Custom output folder** label and path are greyed out while it is checked. **Choose** remains available: selecting a custom shared destination automatically unchecks the box; the structure underneath stays the same. Check it again to return to the program folder's `output`, retaining the custom folder for later. The actual destination is shown separately. Input and output dialogs remember separate starting folders, also after restarting the application.
 
 **Include subfolders** is off at startup. Enabling it reloads the selected input folder recursively; changing the output destination also refreshes the list. An output destination inside the input tree and folders named `output`, `tmp` and `_temp` are excluded before traversal. Existing Freeda exports are skipped during folder discovery. Crop records are not image files; linked subfolders are not followed. Exports deliberately selected through **Files …** can still be opened. The input list is frozen before export.
 
@@ -134,7 +134,7 @@ ExifTool 13.59 is supplied separately under `tools` with its original support fi
 
 German and English are available. Language and named presets are stored locally in `settings.json` beside the application, keeping the complete program portable. Saved presets contain export and appearance settings; input-image paths, output paths, image-specific caption text and individual crops are not part of a preset.
 
-The last language is restored at startup. Other controls use the standard values until a preset is selected. Individual crop files stay in the respective image folders rather than in the application settings.
+The last language, input dialog folder, custom output folder and output mode are restored at startup. Other controls use the standard values until a preset is selected. Individual crop files stay in the respective image folders rather than in the application settings.
 
 ## Source code and long-term use
 

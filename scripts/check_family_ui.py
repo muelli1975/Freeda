@@ -135,12 +135,63 @@ with tempfile.TemporaryDirectory() as directory:
                         primary._canvas.event_generate("<Leave>")
                         app.update()
                         colors(primary, palette["start"], palette["start_text"], palette["border"])
+            app._language_changed("English")
+            with patch.object(gui.filedialog, "askdirectory", return_value=str(base / "custom-output")):
+                app.choose_output()
+            app.size_var.set("1080p" if app_name == "AnaChroma" else "Original")
+            if app_name == "AnaChroma":
+                app.recursive.set(True)
+                app._persist_settings()
+            else:
+                app.include_subfolders_var.set(True)
+                app._save_preferences()
             print(app_name, "real Enter/Leave rendering, busy recovery, German/English shortcuts, small/large windows and 100/150% scaling passed")
         finally:
             if app_name == "AnaChroma":
                 app.close()
-                wait(app, lambda: not app.winfo_exists())
+                end = time.monotonic() + 5
+                while time.monotonic() < end:
+                    try:
+                        app.update()
+                        if not app.winfo_exists():
+                            break
+                    except gui.tk.TclError:
+                        break
+                    time.sleep(.01)
             else:
                 app.destroy()
             ctk.set_widget_scaling(1.)
             ctk.set_window_scaling(1.)
+
+        if app_name == "AnaChroma":
+            with patch.object(gui, "user_dir", return_value=base):
+                reopened = gui.AnaChromaApp()
+        else:
+            reopened = gui.FreedaApp(settings_path=base / "settings.json", program_dir=base)
+        try:
+            reopened.update()
+            assert reopened.language == "en"
+            assert not reopened.use_program_output.get()
+            assert reopened._effective_output() == base / "custom-output"
+            assert reopened.size_var.get() == ("2048 lange Seite" if app_name == "AnaChroma" else "2048")
+            if app_name == "AnaChroma":
+                assert not reopened.recursive.get() and reopened.inputs is None
+                assert reopened.settings.last_input == str(base)
+            else:
+                assert not reopened.include_subfolders_var.get() and not reopened.items
+                assert reopened.last_input_dir == base
+            print(app_name, "restart restores language and separate dialog/output preferences, resets processing to 2048, and does not reopen old inputs")
+        finally:
+            if app_name == "AnaChroma":
+                reopened.close()
+                end = time.monotonic()+5
+                while time.monotonic()<end:
+                    try:
+                        reopened.update()
+                        if not reopened.winfo_exists():
+                            break
+                    except gui.tk.TclError:
+                        break
+                    time.sleep(.01)
+            else:
+                reopened.destroy()

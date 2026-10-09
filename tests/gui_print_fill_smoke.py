@@ -74,7 +74,7 @@ with tempfile.TemporaryDirectory() as tmp:
         app.start_batch()
         wait_for_job(app)
         assert not app._busy and len(dialogs)==1
-        outputs=list((root/'output'/root.name).glob('*.jpg'))
+        outputs=list((root/'output').glob('*.jpg'))
         assert len(outputs)==2
         for output in outputs:
             with Image.open(output) as image:
