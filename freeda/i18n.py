@@ -5,7 +5,7 @@ EN = {
     "Unterordner im Programmordner\nverwenden": "Use subfolder in\nprogram folder",
     "Tastenkürzel…": "Keyboard shortcuts…",
     "Tastenkürzel": "Keyboard shortcuts",
-    "Links / Rechts oder Bild auf / Bild ab: vorheriges / nächstes Bild\n\nIm Ausschnittdialog:\nP: Parallelblick\nX: Kreuzblick\nA: Anaglyphenkontrolle\n\nIn Eingabefeldern und an Reglern bleibt die normale Bedienung erhalten.": "Left / Right or Page Up / Page Down: previous / next image\n\nIn the crop dialog:\nP: parallel view\nX: cross view\nA: anaglyph check\n\nText fields and sliders keep their normal controls.",
+    "Links / Rechts oder Bild auf / Bild ab: vorheriges / nächstes Bild\n\nIm Ausschnittdialog:\nP: Parallelblick\nX: Kreuzblick\nA: Anaglyphenkontrolle": "Left / Right or Page Up / Page Down: previous / next image\n\nIn the crop dialog:\nP: parallel view\nX: cross view\nA: anaglyph check",
     "Parallelblick (P)": "Parallel view (P)",
     "Kreuzblick (X)": "Cross view (X)",
     "Anaglyph (A)": "Anaglyph (A)",

@@ -2236,7 +2236,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
     def show_shortcuts(self):
         if self._busy:
             return
-        messagebox.showinfo(self.tr("Tastenkürzel"), self.tr("Links / Rechts oder Bild auf / Bild ab: vorheriges / nächstes Bild\n\nIm Ausschnittdialog:\nP: Parallelblick\nX: Kreuzblick\nA: Anaglyphenkontrolle\n\nIn Eingabefeldern und an Reglern bleibt die normale Bedienung erhalten."), parent=self)
+        messagebox.showinfo(self.tr("Tastenkürzel"), self.tr("Links / Rechts oder Bild auf / Bild ab: vorheriges / nächstes Bild\n\nIm Ausschnittdialog:\nP: Parallelblick\nX: Kreuzblick\nA: Anaglyphenkontrolle"), parent=self)
 
     def _key(self, event):
         if self._busy or not shortcut_allowed(self, event):
