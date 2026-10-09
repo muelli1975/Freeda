@@ -1,4 +1,4 @@
-# Freeda 1.1 – Kurzstart
+# Freeda 1.2 – Kurzstart
 
 1. ZIP vollständig in einen frei beschreibbaren Ordner entpacken. `Freeda.exe`, `_internal` und `tools` zusammen lassen.
 2. `Freeda.exe` starten. Freeda beginnt mit der zuletzt gewählten Sprache, im Webmodus, mit 2048 Pixeln an der langen Seite und den Standardwerten. Beim ersten Start ist Deutsch voreingestellt.

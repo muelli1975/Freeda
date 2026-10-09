@@ -41,6 +41,8 @@ with tempfile.TemporaryDirectory() as tmp:
         assert pending.caption=='' and pending.logo_path is None
         with patch.object(app.preview_label,'winfo_width',return_value=1000), patch.object(app.preview_label,'winfo_height',return_value=700):
             app.update_preview()
+        from gui_helpers import wait_for_preview
+        wait_for_preview(app)
         assert app.preview_photo is not None and app.preview_label.cget('text')==''
         assert app.preview_note.cget('text')=='Bitte ein Logo wählen.'
         with patch('freeda.gui.messagebox.showinfo') as info, patch('freeda.gui.messagebox.showerror') as error:

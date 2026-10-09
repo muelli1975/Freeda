@@ -40,3 +40,14 @@ def assert_family_palette(root):
         for child in widget.winfo_children():
             visit(child)
     visit(root)
+
+
+def wait_for_preview(app, owner=None, timeout=20):
+    owner = owner or app
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        app.update()
+        if owner.preview_photo is not None:
+            return
+        time.sleep(.01)
+    raise AssertionError("Preview did not finish: " + str(owner.preview_label.cget("text")))

@@ -27,6 +27,52 @@ def fit_preview(image: Image.Image, width: int, height: int) -> Image.Image:
     return image.resize(size, Image.Resampling.LANCZOS)
 
 
+def render_preview(source, request):
+    """Render a frozen GUI snapshot without reading widgets or changing options."""
+    from .models import LayoutMode
+    from .render import render_web, split_full_sbs, crop_eye
+    from .crop_grid import crop_grid
+    options, width, height = request.options, request.width, request.height
+    if request.view == "anaglyph":
+        import numpy as np
+        from PIL import ImageDraw
+        from .anaglyph import make_anaglyph
+        left, right = split_full_sbs(source)
+        left, right = crop_eye(left, options.crop), crop_eye(right, options.crop)
+        factor = min(1., 1600/max(left.size), width/left.width, height/left.height)
+        size = (max(1, round(left.width*factor)), max(1, round(left.height*factor)))
+        left = left.resize(size, Image.Resampling.LANCZOS)
+        right = right.resize(size, Image.Resampling.LANCZOS)
+        image = Image.fromarray(make_anaglyph(np.asarray(left), np.asarray(right)))
+        if request.grid:
+            draw = ImageDraw.Draw(image)
+            for fraction in (1/3, 2/3):
+                x, y = round(image.width*fraction), round(image.height*fraction)
+                for line in ((x, 0, x, image.height-1), (0, y, image.width-1, y)):
+                    draw.line(line, fill="black", width=3)
+                    draw.line(line, fill="white", width=1)
+        return fit_preview(image, width, height)
+    if request.view is not None:
+        options = replace(options, layout=LayoutMode.CROSS if request.view == "cross" else LayoutMode.PARALLEL)
+    if isinstance(options, PrintRenderOptions):
+        options = print_preview_options(options, width, height)
+        from .print_render import render_print
+        rendered = render_print(source, options)
+        if request.grid:
+            rendered = crop_grid(rendered, source, options)
+        if not request.show_bleed:
+            bleed = mm_to_px(options.bleed_mm, options.dpi)
+            w, h = mm_to_px(options.width_mm, options.dpi), mm_to_px(options.height_mm, options.dpi)
+            rendered = rendered.crop((bleed, bleed, bleed+w, bleed+h))
+    else:
+        options = replace(options, target_long_edge=max(16, min(max(width, height),
+                          options.target_long_edge or max(source.size))))
+        rendered = render_web(source, options)
+        if request.grid:
+            rendered = crop_grid(rendered, source, options)
+    return fit_preview(preview_export_image(rendered, options), width, height)
+
+
 def preview_export_image(image, options):
     """Match JPEG's opaque outer corners without flattening PNG previews."""
     if options.output_format == OutputFormat.PNG:

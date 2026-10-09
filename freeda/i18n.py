@@ -2,6 +2,9 @@
 import re
 
 EN = {
+    "Parallelblick (P)": "Parallel view (P)",
+    "Kreuzblick (X)": "Cross view (X)",
+    "Anaglyph (A)": "Anaglyph (A)",
     "Unterordner mitverarbeiten": "Include subfolders",
     "Ausgabeordner wählen …": "Choose output folder …",
     "output im Programmordner": "output in program folder",

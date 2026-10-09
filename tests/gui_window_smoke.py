@@ -5,6 +5,10 @@ from ctypes import wintypes
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+if sys.platform != "win32":
+    print("Windows taskbar check: not applicable on this platform")
+    raise SystemExit(0)
+
 from freeda.gui import FreedaApp
 
 

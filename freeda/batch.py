@@ -10,6 +10,7 @@ from typing import Iterable
 from PIL import Image
 
 from .jobs import Cancelled, check_cancel
+from .inputs import load_image
 from .models import BatchItem, Crop, PrintRenderOptions, WebRenderOptions
 from .print_render import render_print
 from .render import render_web, save_render
@@ -88,24 +89,23 @@ def render_web_batch(
     crops: dict[Path, object] | None = None,
     metadata_warnings: list[str] | None = None,
 ) -> list[Path]:
-    written: list[Path] = []
+    # Compatibility entry point: use the same loader, renderer and writer as the GUI.
+    written = []
     item_list = list(items)
-    for index, item in enumerate(item_list, start=1):
-        caption = item.source.stem if caption_from_filename else options.caption
-        current = WebRenderOptions(**{**options.__dict__, "caption": caption,
-            "crop": crops.get(item.source.resolve(), options.crop) if crops is not None else options.crop})
+    if targets is not None and len(targets) != len(item_list):
+        raise ValueError("Für jedes Eingabebild wird genau ein Ausgabeziel benötigt.")
+    for index, item in enumerate(item_list, 1):
+        current = replace(options, caption=item.source.stem if caption_from_filename else options.caption)
         suffix = ".png" if current.output_format.value == "png" else ".jpg"
-        target = targets[index - 1] if targets is not None else Path(output_root) / item.relative_path.with_suffix(suffix)
+        target = targets[index-1] if targets is not None else Path(output_root)/item.relative_path.with_suffix(suffix)
         if target.exists() and not overwrite:
             continue
-        with Image.open(item.source) as source:
-            source.load()
-            rendered = render_web(source.convert("RGB"), current)
-        metadata = save_render(rendered, target, current.output_format,
-            background_color="#000000", metadata_source=item.source)
-        if not metadata.success and metadata_warnings is not None:
-            metadata_warnings.append(f"{item.source.name}: {metadata.message}")
-        written.append(target)
+        result = run_batch([item], [target], current, cancel=Event(), crops=crops)
+        if result.errors:
+            raise RuntimeError(result.errors[0])
+        written.extend(result.written)
+        if metadata_warnings is not None:
+            metadata_warnings.extend(warning.replace(str(item.source)+":", item.source.name+":", 1) for warning in result.warnings)
         if progress:
             progress(index, len(item_list), item)
     return written
@@ -137,9 +137,7 @@ def run_batch(items, targets, options, *, cancel: Event, crops=None,
             check_cancel(cancel)
             if progress:
                 progress(index - 1, len(items), item)
-            with Image.open(item.source) as source:
-                source.load()
-                image = source.convert("RGB")
+            image = load_image(item.source)
             check_cancel(cancel)
             key = item.source.resolve()
             crop = crops.get(key, options.crop)

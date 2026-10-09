@@ -43,12 +43,19 @@ if sys.platform == 'darwin':
     subprocess.run(['ditto', str(bundle), str(package / 'Freeda.app')], check=True)
     for signed_bundle in (bundle, package / 'Freeda.app'):
         subprocess.run(['codesign', '--verify', '--deep', '--strict', str(signed_bundle)], check=True)
-for filename in ('README.md', 'README_DE.md', 'README_EN.md', 'QUICKSTART.md', 'RELEASE_NOTES_1.1.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
+for filename in ('README.md', 'README_DE.md', 'README_EN.md', 'QUICKSTART.md', 'RELEASE_NOTES_1.2.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
     shutil.copy2(root / filename, package / filename)
 shutil.copytree(root / 'licenses', package / 'licenses', dirs_exist_ok=True)
 shutil.copytree(root / 'docs/screenshots', package / 'docs/screenshots', dirs_exist_ok=True)
+from release_support import prepare
+commit = prepare(root, package, {"freeda", "scripts", "assets", "tests", "docs", "licenses",
+    "Freeda.py", "Freeda.spec", "build_windows.ps1", "requirements-lock.txt", "requirements-build.txt",
+    "README.md", "README_DE.md", "README_EN.md", "QUICKSTART.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
+    "RELEASE_NOTES_1.2.md", "DESIGN_STANDARD_STEREOTOOLS.txt", "AGENTS.md"})
+(package / "BUILD_INFO.json").write_text(__import__("json").dumps({"commit": commit,
+    "version": __version__, "python": sys.version, "platform": sys.platform}, indent=2)+"\n")
 if sys.platform == 'darwin':
-    subprocess.run(['ditto', '-c', '-k', '--sequesterRsrc', '--keepParent', str(package), str(release / (name + '.zip'))], check=True)
+    subprocess.run(['ditto', '-c' , '-k', '--sequesterRsrc', '--keepParent', str(package), str(release / (name + '.zip'))], check=True)
 else:
     with tarfile.open(release / (name + '.tar.gz'), 'w:gz') as archive:
         archive.add(package, arcname=name)

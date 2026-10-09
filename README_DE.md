@@ -1,4 +1,4 @@
-# Freeda 1.1
+# Freeda 1.2
 
 [English](README_EN.md)
 
@@ -6,13 +6,13 @@ Freeda ist ein lokales Desktop-Werkzeug zum Einrahmen und Exportieren von Full-S
 
 Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und keine automatischen Downloads während der Nutzung.
 
-![Freeda 1.1](docs/screenshots/Freeda.png)
+![Freeda 1.2](docs/screenshots/Freeda.png)
 
 ## Portable Windows-Version
 
-[Freeda 1.1 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
+[Freeda 1.2 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.2)
 
-1. `Freeda_1.1_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
+1. `Freeda_1.2_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
 2. `Freeda.exe` starten.
 3. Den Programmordner zusammenhalten; `_internal`, `tools` und die anderen mitgelieferten Dateien gehören zur Anwendung.
 
@@ -141,6 +141,13 @@ Beim Start wird die zuletzt gewählte Sprache wiederhergestellt. Die übrigen Ei
 Das [GitHub-Repository](https://github.com/muelli1975/Freeda) enthält Quellcode und Build-Skripte. Für die Entwicklung werden Python 3.12 und die Abhängigkeiten aus `requirements-lock.txt` benötigt. `build_windows.ps1` bereitet die geprüfte ExifTool-Distribution vor und erstellt das Windows-Paket; für Linux und macOS zuerst `python scripts/prepare_exiftool.py` und anschließend `scripts/build_unix.py` auf dem jeweiligen System ausführen. Build-Downloads werden gegen die festgelegten Archivprüfsummen des Herausgebers geprüft. Der Release-Ablauf prüft die Programme vor der Veröffentlichung.
 
 Freeda soll unabhängig von Konten und Onlinediensten nutzbar bleiben. Aktive Wartung, Support, Bearbeitung von Issues oder Prüfung von Pull Requests können nicht garantiert werden.
+
+
+## Bildnavigation und Ausschnittkontrolle
+
+**Links/Rechts** und **Bild auf/Bild ab** wechseln das Bild. Im Ausschnittdialog zeigen **Parallelblick (P)**, **Kreuzblick (X)** und **Anaglyph (A)** denselben Ausschnitt, ohne die Exportansicht zu verändern. Die Anaglyphenkontrolle verwendet Dubois LCD mit linearer sRGB-Verarbeitung und Rotpotenz 0,75. Vorschauen werden im Hintergrund berechnet. EXIF-Orientation wird für Vorschau und Export genau einmal angewendet.
+
+Ausgabeziel und eigene Ordner bleiben getrennt sichtbar. Ergebnisse tragen `_freeda_web` bzw. `_freeda_print`; zusätzliche web-/print-Ordner werden nicht angelegt. Ordnerexport erhält Quellordnernamen und Unterordnerstruktur. Gespeicherte Ausschnitte liegen als `freeda-crops.json` im jeweiligen konkreten Quellordner. Das Release enthält den passenden Quellstand unter `source`.
 
 ## Lizenz
 

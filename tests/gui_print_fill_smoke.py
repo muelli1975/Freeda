@@ -3,6 +3,7 @@ import json, sys, tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image
+from freeda import __version__
 from gui_helpers import wait_for_job
 import freeda.gui as gui
 from freeda.batch import discover_files
@@ -21,7 +22,7 @@ with tempfile.TemporaryDirectory() as tmp:
     app.use_program_output.set(False)
     real_dialog=gui.CropDialog
     try:
-        assert app.title()=='Freeda 1.1'
+        assert app.title()==f'Freeda {__version__.removesuffix(".0")}'
         assert app.frame_var.get()==4 and app.show_symbols_var.get()
         assert not hasattr(app,'print_aspect_var')
         app.apply_preset('Old Print')

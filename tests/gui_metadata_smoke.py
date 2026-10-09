@@ -54,7 +54,10 @@ with tempfile.TemporaryDirectory() as folder:
             web=next((root/'output').glob('*.jpg'))
             meta=read(web)
             assert meta['IFD0:Make']=='Test Camera' and 'IFD0:Orientation' not in meta
-            assert meta['ExifIFD:ExifImageWidth']==2048
+            with Image.open(web) as actual:
+                assert meta['ExifIFD:ExifImageWidth']==actual.width
+                assert meta['ExifIFD:ExifImageHeight']==actual.height
+                assert max(actual.size)==2048
             class Accept(real_dialog):
                 def __init__(self,*args,**kwargs):
                     super().__init__(*args,**kwargs)

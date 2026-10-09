@@ -53,10 +53,13 @@ Copy-Item -Force (Join-Path $Root "README_EN.md") (Join-Path $Package "README_EN
 Copy-Item -Force (Join-Path $Root "README_DE.md") (Join-Path $Package "README_DE.md")
 Copy-Item -Recurse -Force (Join-Path $Root "docs") $Package
 Copy-Item -Force (Join-Path $Root "QUICKSTART.md") (Join-Path $Package "QUICKSTART.md")
-Copy-Item -Force (Join-Path $Root "RELEASE_NOTES_1.1.md") (Join-Path $Package "RELEASE_NOTES_1.1.md")
+Copy-Item -Force (Join-Path $Root "RELEASE_NOTES_1.2.md") (Join-Path $Package "RELEASE_NOTES_1.2.md")
 Copy-Item -Force (Join-Path $Root "THIRD_PARTY_NOTICES.md") (Join-Path $Package "THIRD_PARTY_NOTICES.md")
 Copy-Item -Recurse -Force (Join-Path $Root "licenses") $Package
 Copy-Item -Force (Join-Path $Root "LICENSE") (Join-Path $Package "LICENSE")
+
+& $Python scripts/prepare_release.py $Package
+if ($LASTEXITCODE -ne 0) { throw "Source/license snapshot failed." }
 
 Compress-Archive -Path $Package -DestinationPath $Zip -CompressionLevel Optimal -Force
 $Hash = (Get-FileHash -Algorithm SHA256 $Zip).Hash.ToLowerInvariant()

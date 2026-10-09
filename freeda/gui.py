@@ -15,6 +15,8 @@ from PIL import Image, ImageTk, ImageDraw
 from . import __version__
 from .batch import discover_files, run_batch
 from .jobs import Cancelled, check_cancel
+from .inputs import load_image, image_size
+from .preview_worker import PreviewRequest, PreviewWorker
 from .print_flow import CropBatchMode
 from .cropping import parse_aspect, fit_linked_crop
 from .crop_storage import load_crops, save_crop
@@ -156,6 +158,19 @@ class LocalisedUI:
             display.set(self.tr(variable.get()))
 
 
+def shortcut_allowed(window, event):
+    if event.state & (0x0004 | 0x0008 | 0x20000):
+        return False
+    widget = window.focus_get()
+    if widget is not None and widget.winfo_toplevel() != window:
+        return False
+    while widget is not None:
+        if isinstance(widget, (tk.Entry, tk.Text, tk.Spinbox, ctk.CTkSlider)):
+            return False
+        widget = getattr(widget, "master", None)
+    return True
+
+
 class CropDialog(LocalisedUI, ctk.CTkToplevel):
     def __init__(
         self,
@@ -183,14 +198,22 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
         self.action = "cancel"
         self.preview_photo = None
         self._preview_job = None
+        self._preview_id = 0
+        self._preview_events = Queue()
+        self._preview_closed = False
+        self._preview_ready = False
+        self._preview_poll = None
+        self._preview_worker = PreviewWorker(lambda identifier, image, error:
+            self._preview_events.put((identifier, image, error)))
+        self.view = "cross" if options.layout == LayoutMode.CROSS else "parallel"
+        self.eye_size = (source.width // 2, source.height)
 
         self.grid_var = tk.BooleanVar(value=True)
         self.zoom_var = tk.DoubleVar(value=1.0)
         self.x_var = tk.DoubleVar(value=0.5)
         self.y_var = tk.DoubleVar(value=0.5)
         if options.crop != Crop():
-            left, _ = split_full_sbs(source)
-            base = crop_for_aspect(left.size, self._target_aspect())
+            base = crop_for_aspect(self.eye_size, self._target_aspect())
             crop = options.crop.clamped()
             self.zoom_var.set(max(1.0, min(3.0, min(base.width/crop.width, base.height/crop.height))))
             self.x_var.set(crop.x / max(1e-9, 1-crop.width))
@@ -258,14 +281,31 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
             font=ctk.CTkFont(family=FONT_FAMILY, size=15, weight="bold"),
         ).grid(row=0, column=0, sticky="ew", padx=18, pady=(18, 14))
 
+        views = ctk.CTkFrame(controls, fg_color="transparent")
+        views.grid(row=1, column=0, sticky="ew", padx=18, pady=(0, 14))
+        views.grid_columnconfigure((0, 1), weight=1)
+        self.view_buttons = {}
+        for key, text, row, column, span in (
+            ("parallel", "Parallelblick (P)", 0, 0, 1),
+            ("cross", "Kreuzblick (X)", 0, 1, 1),
+            ("anaglyph", "Anaglyph (A)", 1, 0, 2),
+        ):
+            button = ctk.CTkButton(views, text=text, width=110, height=28,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=12),
+                command=lambda value=key: self._set_view(value),
+                fg_color=BUTTON_BG, hover_color=BUTTON_HOVER,
+                border_width=BORDER_WIDTH, border_color=BORDER, text_color=TEXT)
+            button.grid(row=row, column=column, columnspan=span, sticky="ew", padx=2, pady=2)
+            self.view_buttons[key] = button
+
         self.zoom_label = self._slider_block(
-            controls, 1, "Zoom", self.zoom_var, 1.0, 3.0, self._controls_changed
+            controls, 2, "Zoom", self.zoom_var, 1.0, 3.0, self._controls_changed
         )
         self.x_label = self._slider_block(
-            controls, 2, "Horizontal", self.x_var, 0.0, 1.0, self._controls_changed
+            controls, 3, "Horizontal", self.x_var, 0.0, 1.0, self._controls_changed
         )
         self.y_label = self._slider_block(
-            controls, 3, "Vertikal", self.y_var, 0.0, 1.0, self._controls_changed
+            controls, 4, "Vertikal", self.y_var, 0.0, 1.0, self._controls_changed
         )
 
         ctk.CTkButton(
@@ -278,10 +318,10 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
             border_color=BORDER,
             text_color=TEXT,
             corner_radius=RADIUS_CONTROL,
-        ).grid(row=4, column=0, sticky="ew", padx=18, pady=(12, 8))
+        ).grid(row=5, column=0, sticky="ew", padx=18, pady=(12, 8))
 
         buttons = ctk.CTkFrame(controls, fg_color="transparent")
-        buttons.grid(row=5, column=0, sticky="sew", padx=18, pady=(18, 18))
+        buttons.grid(row=6, column=0, sticky="sew", padx=18, pady=(18, 18))
         buttons.grid_columnconfigure(0, weight=1)
 
         accept = ctk.CTkButton(
@@ -334,13 +374,17 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
         ctk.CTkCheckBox(controls, text="Drittelraster", variable=self.grid_var,
             command=self.schedule_preview, fg_color=GOLD, hover_color=GOLD_LIGHT,
             border_color=BORDER, checkmark_color=TEXT, text_color=TEXT).grid(
-                row=6,column=0,sticky="ew",padx=18,pady=(0,18))
+                row=7,column=0,sticky="ew",padx=18,pady=(0,18))
 
         self.protocol("WM_DELETE_WINDOW", self._cancel)
         self._refresh_labels()
         self._remember_texts(self)
         self._apply_language()
-        self.after(50, self.schedule_preview)
+        self._preview_ready = True
+        self._refresh_view_buttons()
+        self.bind("<KeyPress>", self._key)
+        self._preview_poll = self.after(30, self._poll_preview)
+        self.schedule_preview()
 
     def _slider_block(self, parent, row, text, variable, from_, to, command):
         frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -385,56 +429,80 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
 
     def _target_aspect(self):
         if isinstance(self.options, WebRenderOptions):
-            left, _ = split_full_sbs(self.source)
             if self.options.eye_aspect is not None:
                 return self.options.eye_aspect
             crop = self.options.crop.clamped()
-            return left.width * crop.width / (left.height * crop.height)
+            return self.eye_size[0] * crop.width / (self.eye_size[1] * crop.height)
         return print_eye_aspect(self.options)
 
     def current_crop(self) -> Crop:
-        left, _ = split_full_sbs(self.source)
         return crop_for_aspect(
-            left.size,
+            self.eye_size,
             self._target_aspect(),
             zoom=self.zoom_var.get(),
             position_x=self.x_var.get(),
             position_y=self.y_var.get(),
         )
 
+    def _refresh_view_buttons(self):
+        for key, button in self.view_buttons.items():
+            button.configure(border_color=GOLD if key == self.view else BORDER,
+                             text_color=GOLD_LIGHT if key == self.view else TEXT)
+
+    def _set_view(self, view):
+        self.view = view
+        self._refresh_view_buttons()
+        self.schedule_preview()
+
+    def _key(self, event):
+        if not shortcut_allowed(self, event):
+            return
+        view = {"p": "parallel", "x": "cross", "a": "anaglyph"}.get(event.keysym.lower())
+        if view:
+            self._set_view(view)
+            return "break"
+
     def schedule_preview(self) -> None:
+        if not self._preview_ready or self._preview_closed:
+            return
+        self._preview_id += 1
         if self._preview_job is not None:
-            try:
-                self.after_cancel(self._preview_job)
-            except Exception:
-                pass
+            self.after_cancel(self._preview_job)
         self._preview_job = self.after(80, self.update_preview)
 
     def update_preview(self) -> None:
         self._preview_job = None
-        try:
-            max_w = max(1, self.preview_label.winfo_width() - 10)
-            max_h = max(1, self.preview_label.winfo_height() - 10)
-            if isinstance(self.options, WebRenderOptions):
-                preview_options = replace(self.options, crop=self.current_crop(), target_long_edge=max(16,
-                    min(max(max_w, max_h), self.options.target_long_edge or max(self.source.size))))
-                rendered = render_web(self.source, preview_options)
-                if self.grid_var.get():
-                    rendered = crop_grid(rendered, self.source, preview_options)
-                rendered = fit_preview(preview_export_image(rendered, preview_options), max_w, max_h)
+        self._preview_id += 1
+        request = PreviewRequest(self.source, replace(self.options, crop=self.current_crop()),
+            max(1, self.preview_label.winfo_width()-10),
+            max(1, self.preview_label.winfo_height()-10), view=self.view, grid=self.grid_var.get())
+        self._preview_worker.request(self._preview_id, request)
+
+    def _poll_preview(self):
+        if self._preview_closed:
+            return
+        self._preview_poll = self.after(30, self._poll_preview)
+        while True:
+            try:
+                identifier, image, error = self._preview_events.get_nowait()
+            except Empty:
+                break
+            if identifier != self._preview_id:
+                continue
+            if error:
+                self.preview_photo = None
+                self.preview_label.configure(image="", text=self.tr(f"Vorschaufehler:\n{error}"))
             else:
-                preview_options = print_preview_options(replace(self.options, crop=self.current_crop()), max_w, max_h)
-                rendered = render_print(self.source, preview_options)
-                if self.grid_var.get():
-                    rendered = crop_grid(rendered, self.source, preview_options)
-                bleed = round(preview_options.bleed_mm * preview_options.dpi / 25.4)
-                trim_w = round(preview_options.width_mm * preview_options.dpi / 25.4)
-                trim_h = round(preview_options.height_mm * preview_options.dpi / 25.4)
-                rendered = fit_preview(preview_export_image(rendered.crop((bleed,bleed,bleed+trim_w,bleed+trim_h)), preview_options), max_w, max_h)
-            self.preview_photo = ImageTk.PhotoImage(rendered)
-            self.preview_label.configure(image=self.preview_photo, text="")
-        except Exception as exc:
-            self.preview_label.configure(image="", text=self.tr(f"Vorschaufehler:\n{exc}"))
+                self.preview_photo = ImageTk.PhotoImage(image)
+                self.preview_label.configure(image=self.preview_photo, text="")
+
+    def destroy(self):
+        self._preview_closed = True
+        self._preview_worker.close()
+        for job in (self._preview_job, self._preview_poll):
+            if job is not None:
+                self.after_cancel(job)
+        super().destroy()
 
     def _accept(self) -> None:
         self.result = self.current_crop()
@@ -486,6 +554,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.program_dir = Path(program_dir) if program_dir is not None else portable_settings_path().parent
         self.output_dir: Path | None = None
         self._events = Queue()
+        self._preview_id = 0
+        self._preview_worker = PreviewWorker(lambda identifier, image, error:
+            self._events.put((identifier, "preview", (image, error))))
         self._cancel_event = threading.Event()
         self._job_id = 0
         self._active_crop_dialog = None
@@ -542,8 +613,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self._preset_extension_defaults = {key: getattr(self, key).get() for key in _NEW_PRESET_VARIABLES}
         self._refresh_layout_controls()
         self._refresh_print_summary()
-        self.bind("<Prior>", lambda e: self.navigate(-1))
-        self.bind("<Next>", lambda e: self.navigate(1))
+        self.bind("<KeyPress>", self._key)
         self._remember_texts(self)
         self._apply_language()
         self.protocol("WM_DELETE_WINDOW", self.destroy)
@@ -1681,6 +1751,16 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 identifier, kind, data = self._events.get_nowait()
             except Empty:
                 break
+            if kind == "preview":
+                if identifier == self._preview_id and not self._busy:
+                    image, error = data
+                    if error:
+                        self.preview_photo = None
+                        self.preview_label.configure(image="", text=self.tr(f"Vorschaufehler:\n{error}"))
+                    else:
+                        self.preview_photo = ImageTk.PhotoImage(image)
+                        self.preview_label.configure(image=self.preview_photo, text="")
+                continue
             if identifier != self._job_id:
                 continue
             if kind == "scan_done":
@@ -1751,6 +1831,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
     def destroy(self):
         self._closing = True
+        self._preview_worker.close()
         if hasattr(self, "_cancel_event"):
             self._cancel_event.set()
         if self._preview_job is not None:
@@ -1777,8 +1858,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             try:
                 aspect = None
                 if crop is not None:
-                    with Image.open(item.source) as image:
-                        aspect = (image.width // 2) * crop.width / (image.height * crop.height)
+                    width, height = image_size(item.source)
+                    aspect = (width // 2) * crop.width / (height * crop.height)
                 save_crop(item.source, mode, crop, aspect)
             except (OSError, ValueError) as error:
                 self._report_crop_storage_error(error)
@@ -1838,9 +1919,9 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         item = self._current_item()
         try:
             options = self._web_options(allow_pending_logo=True) if mode == "Web" else self._print_options(allow_pending_logo=True)
-            with Image.open(item.source) as source:
-                dialog = CropDialog(self, source.convert("RGB"), options, index=self.source_index+1,
-                    total=len(self.sources) or 1, filename=item.source.name, editing=True)
+            source = load_image(item.source)
+            dialog = CropDialog(self, source, options, index=self.source_index+1,
+                total=len(self.sources) or 1, filename=item.source.name, editing=True)
             self.wait_window(dialog)
             if dialog.action == "accept":
                 self._store_crop(item, mode, dialog.result)
@@ -2004,8 +2085,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 item = self._current_item()
                 size = (300, 200)
                 if item:
-                    with Image.open(item.source) as source:
-                        size = (source.width // 2, source.height)
+                    width, height = image_size(item.source)
+                    size = (width // 2, height)
                 crop = fit_linked_crop(size, options.crop, options.eye_aspect).clamped()
                 eye_size = (max(1, round((crop.x + crop.width) * size[0]) - round(crop.x * size[0])),
                             max(1, round((crop.y + crop.height) * size[1]) - round(crop.y * size[1])))
@@ -2130,47 +2211,56 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             print_layout(options)
         return options
 
+    def _key(self, event):
+        if self._busy or not shortcut_allowed(self, event):
+            return
+        direction = {"Left": -1, "Prior": -1, "Right": 1, "Next": 1}.get(event.keysym)
+        if direction is not None:
+            self.navigate(direction)
+            return "break"
+
     def schedule_preview(self) -> None:
+        if not self._ui_ready or self._closing or self._busy:
+            return
         self._refresh_layout_controls()
         self._refresh_print_summary()
         self._refresh_start()
+        self._preview_id += 1
         if self._preview_job is not None:
-            try:
-                self.after_cancel(self._preview_job)
-            except Exception:
-                pass
+            self.after_cancel(self._preview_job)
         self._preview_job = self.after(120, self.update_preview)
 
     def update_preview(self) -> None:
         self._preview_job = None
+        if self._closing or self._busy:
+            return
         self._refresh_preview_note()
+        self._preview_id += 1
         if not self.items:
+            self.preview_photo = None
             self.preview_label.configure(image="", text=self.tr("Bild wählen"))
             return
-        item = self.sources[self.source_index] if self.sources else self.items[0]
+        item = self._current_item()
         try:
-            panel_w = max(1, self.preview_label.winfo_width() - 10)
-            panel_h = max(1, self.preview_label.winfo_height() - 10)
-            with Image.open(item.source) as image:
-                image.load()
-                source = image.convert("RGB")
-                if self.mode_var.get() == "Web":
-                    options = self._web_options(allow_pending_logo=True)
-                    preview_width = max(16, min(max(panel_w, panel_h), options.target_long_edge or max(source.size)))
-                    rendered = render_web(source, replace(options, target_long_edge=preview_width))
-                else:
-                    options = print_preview_options(self._print_options(allow_pending_logo=True), panel_w, panel_h)
-                    rendered = print_preview_image(source, options, show_bleed=self.show_bleed_var.get())
-            rendered = fit_preview(preview_export_image(rendered, options), panel_w, panel_h)
-            self.preview_photo = ImageTk.PhotoImage(rendered)
-            self.preview_label.configure(image=self.preview_photo, text="")
+            options = (self._web_options(allow_pending_logo=True) if self.mode_var.get() == "Web"
+                       else self._print_options(allow_pending_logo=True))
+            request = PreviewRequest(item.source, options,
+                max(1, self.preview_label.winfo_width()-10),
+                max(1, self.preview_label.winfo_height()-10), self.show_bleed_var.get())
+            self._preview_worker.request(self._preview_id, request)
         except Exception as exc:
+            self.preview_photo = None
             self.preview_label.configure(image="", text=self.tr(f"Vorschaufehler:\n{exc}"))
 
     def _set_busy(self, busy: bool) -> None:
         if busy == self._busy:
             return
         self._busy = busy
+        if busy:
+            self._preview_id += 1
+            if self._preview_job is not None:
+                self.after_cancel(self._preview_job)
+                self._preview_job = None
         if busy:
             def lock_controls(parent):
                 for widget in parent.winfo_children():

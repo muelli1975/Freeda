@@ -20,7 +20,8 @@ def split_full_sbs(image: Image.Image) -> tuple[Image.Image, Image.Image]:
     if half < 1:
         raise ValueError("Das Side-by-Side-Bild ist zu schmal.")
     left = image.crop((0, 0, half, height))
-    right = image.crop((half, 0, half * 2, height))
+    # Match StereoFine's tolerant split: a lone centre pixel is excluded.
+    right = image.crop((width - half, 0, width, height))
     return left, right
 
 

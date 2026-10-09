@@ -1,4 +1,4 @@
-# Freeda 1.1
+# Freeda 1.2
 
 [Deutsch](README_DE.md)
 
@@ -6,13 +6,13 @@ Freeda is a local desktop tool for framing and exporting full side-by-side stere
 
 Freeda works completely locally: no account, no cloud, no tracking and no automatic downloads during use.
 
-![Freeda 1.1](docs/screenshots/Freeda.png)
+![Freeda 1.2](docs/screenshots/Freeda.png)
 
 ## Portable Windows release
 
-[Download Freeda 1.1](https://github.com/muelli1975/Freeda/releases/tag/v1.1)
+[Download Freeda 1.2](https://github.com/muelli1975/Freeda/releases/tag/v1.2)
 
-1. Extract the complete `Freeda_1.1_Windows_x64.zip` into a writable folder.
+1. Extract the complete `Freeda_1.2_Windows_x64.zip` into a writable folder.
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
 
@@ -37,7 +37,7 @@ The first launch uses German. Select English in the language control; Freeda rem
 
 ## Supported inputs
 
-Freeda opens JPEG, PNG, TIFF, BMP and WebP images containing two equal-sized views side by side: left eye on the left, right eye on the right (`L|R`). It expects full-SBS images, not horizontally compressed half-SBS images. It does not generate stereo depth or align the two views.
+Freeda opens JPEG, PNG, TIFF, BMP and WebP images containing two equal-sized views side by side: left eye on the left, right eye on the right (`L|R`). It expects full-SBS images, not horizontally compressed half-SBS images.
 
 ## Viewing layouts
 
@@ -141,6 +141,13 @@ The last language is restored at startup. Other controls use the standard values
 The [GitHub repository](https://github.com/muelli1975/Freeda) contains the source and build scripts. Development requires Python 3.12 and the dependencies in `requirements-lock.txt`. `build_windows.ps1` prepares the verified ExifTool distribution and packages Windows; For Linux and macOS, run `python scripts/prepare_exiftool.py` followed by `scripts/build_unix.py` on the respective system. Build downloads use the publisher’s pinned archive checksums. The release workflow runs tests before publishing the platform packages.
 
 Freeda is intended to remain usable independently of accounts or online services. Active maintenance, support, issue handling or pull-request review cannot be guaranteed.
+
+
+## Navigation and crop control
+
+**Left/Right** and **Page Up/Page Down** browse images. In the crop dialog, **Parallel view (P)**, **Cross view (X)** and **Anaglyph (A)** show the same crop without changing the export layout. Anaglyph control uses LCD Dubois with linear sRGB and red power 0.75. Previews render in the background. EXIF orientation is applied exactly once for preview and export.
+
+The active output destination and saved custom folder remain separately visible. Filenames use `_freeda_web` or `_freeda_print`; no additional web/print directories are created. Folder exports retain the source root and relative subfolders. Saved crops use `freeda-crops.json` in each concrete source folder. Releases include the matching source in `source`.
 
 ## License
 

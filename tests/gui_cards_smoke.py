@@ -223,6 +223,8 @@ with tempfile.TemporaryDirectory() as tmp:
             dialog.withdraw()
             dialog.grid_var.set(True)
             dialog.update_preview()
+            from gui_helpers import wait_for_preview
+            wait_for_preview(app, dialog)
             assert dialog.preview_photo is not None
             dialog.destroy()
     finally:
