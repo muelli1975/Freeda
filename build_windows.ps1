@@ -21,7 +21,7 @@ $Version = (& $Python -c "from freeda import __version__; print(__version__)").T
 $DisplayVersion = $Version -replace '\.0$', ''
 $PackageName = "Freeda_${DisplayVersion}_Windows_x64"
 if ($TestBuild) { $PackageName += "_Testbuild" }
-$Package = Join-Path $Release $PackageName
+$Package = Join-Path $Release "Freeda"
 $Zip = Join-Path $Release "$PackageName.zip"
 
 & $Python -m pip install -r requirements-build.txt

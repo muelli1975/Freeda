@@ -27,7 +27,7 @@ release.mkdir(exist_ok=True)
 version = __version__.removesuffix('.0')
 name = 'Freeda_' + version + '_' + args.label
 if sys.platform == 'darwin':
-    package = release / name
+    package = release / 'Freeda'
     package.mkdir(exist_ok=True)
     tool_destination = root / 'dist/Freeda.app/Contents/MacOS/tools'
 else:
@@ -58,5 +58,5 @@ if sys.platform == 'darwin':
     subprocess.run(['ditto', '-c' , '-k', '--sequesterRsrc', '--keepParent', str(package), str(release / (name + '.zip'))], check=True)
 else:
     with tarfile.open(release / (name + '.tar.gz'), 'w:gz') as archive:
-        archive.add(package, arcname=name)
+        archive.add(package, arcname='Freeda')
 print('Created native package:', name)
