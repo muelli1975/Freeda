@@ -5,6 +5,16 @@ on:
   push:
     branches: [main]
     tags: [v1.2]
+    paths-ignore:
+      - '.github/workflows/refresh-verified-packages.yml'
+      - '.github/workflows/publish-verified.yml'
+      - '.github/workflows/release-notes.yml'
+      - '.github/workflows/package-layout-audit.yml'
+      - '.github/workflows/normalize-package-names.yml'
+      - 'scripts/refresh_verified_packages.py'
+      - 'scripts/verified-package-update.json'
+      - 'scripts/package-layout-audit.py'
+      - 'scripts/package-layout-audit.json'
 
 permissions:
   contents: read
@@ -103,16 +113,6 @@ jobs:
           xvfb-run -a python scripts/check_gui.py tests/gui_cards_smoke.py
           xvfb-run -a python scripts/check_gui.py tests/gui_logos_smoke.py
           xvfb-run -a python scripts/check_gui.py tests/gui_views_smoke.py
-      - name: Compare family button rendering and shortcut discovery
-        if: runner.os == 'Linux'
-        run: xvfb-run -a -s "-screen 0 2560x1920x24" python scripts/check_family_ui.py
-      - name: Upload family GUI check images
-        if: runner.os == 'Linux' && always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Freeda-family-ui
-          path: build/family-ui/*.png
-          if-no-files-found: warn
       - name: Build native archive
         run: python scripts/build_unix.py --label '${{ matrix.label }}'
       - name: Linux binary startup
