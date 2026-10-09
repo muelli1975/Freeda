@@ -139,7 +139,7 @@ try:
                 texts = [widget.cget("text") for widget in self._texts]
                 assert "Apply and export" in texts
                 assert "Cancel export" in texts
-                assert "Crop" in texts
+                assert "View for crop selection" in texts
                 self.after(100, self._accept)
         gui.CropDialog = EnglishAcceptDialog
         app.start_batch()
