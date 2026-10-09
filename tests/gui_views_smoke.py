@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory() as folder:
         crop=dialog.current_crop();original_options=dialog.options
         for enabled in (False,True,False):
             before=dialog.preview_photo
-            dialog.grid_checkbox.invoke()
+            dialog.grid_checkbox.toggle()
             wait(app,lambda:dialog.preview_photo is not None and dialog.preview_photo is not before)
             assert dialog.grid_var.get() is enabled and app.crop_grid is enabled
             assert dialog.current_crop()==crop and dialog.options==original_options
@@ -136,7 +136,7 @@ with tempfile.TemporaryDirectory() as folder:
         assert json.loads(settings_path.read_text(encoding='utf-8'))['unrelated_preference']=='keep me'
         dialog=CropDialog(restarted,image,restarted._web_options(),index=1,total=1,filename='one.png')
         restarted.update()
-        dialog.grid_checkbox.invoke()
+        dialog.grid_checkbox.toggle()
         assert dialog.grid_var.get() is True and restarted.crop_grid is True
         dialog._cancel();restarted.update()
     finally:restarted.destroy()
