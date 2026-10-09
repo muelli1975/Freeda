@@ -1,6 +1,7 @@
 """Rename only old portable roots, verify all payloads, preserve rollback copies."""
 import copy
 import hashlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -126,7 +127,7 @@ def normalize(source, target, root):
                 assert info.name not in expected, "Duplicate normalized path"
                 data = before.extractfile(original).read() if original.isfile() else b""
                 expected[info.name] = tar_signature(info, data)
-                after.addfile(info, before.extractfile(original) if original.isfile() else None)
+                after.addfile(info, io.BytesIO(data) if original.isfile() else None)
         with tarfile.open(target, "r:gz") as after:
             actual = {info.name:tar_signature(info, after.extractfile(info).read() if info.isfile() else b"")
                       for info in after.getmembers()}

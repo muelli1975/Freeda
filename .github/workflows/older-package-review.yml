@@ -5,8 +5,9 @@ on:
     paths: ['.github/workflows/older-package-review.yml']
 permissions:
   contents: write
+  actions: write
 concurrency:
-  group: normalize-freeda-older-portable-roots
+  group: normalize-freeda-older-portable-roots-v2
   cancel-in-progress: false
 jobs:
   normalize:
@@ -14,6 +15,33 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Stop superseded rewrite before any replacement
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import ast, json, subprocess, time
+          from pathlib import Path
+          repo="muelli1975/Freeda"
+          def api(path):
+              return json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/{path}"],text=True))
+          run=api("actions/runs/37957562809")
+          assert run["head_sha"]=="32d63557f8c8f351ea8bc701685d22da34114480" and run["head_branch"]=="codex/older-package-review-20261009"
+          tree=ast.parse(Path("scripts/normalize_older_release_roots.py").read_text())
+          plan=next(ast.literal_eval(node.value) for node in tree.body if isinstance(node,ast.Assign) and any(isinstance(target,ast.Name) and target.id=="PLAN" for target in node.targets))
+          for item in plan:
+              current=api("releases/tags/"+item["tag"])
+              assert {a["name"]:a["digest"] for a in current["assets"]}==item["previous"], "Original releases no longer match"
+          if run["status"]!="completed":
+              subprocess.run(["gh","api","--method","POST",f"repos/{repo}/actions/runs/37957562809/cancel"],check=True)
+              for attempt in range(12):
+                  if api("actions/runs/37957562809")["status"]=="completed":
+                      break
+                  time.sleep(2)
+              else:
+                  raise RuntimeError("Superseded process has not stopped")
+          print("Superseded rewrite stopped; original releases still verified.",flush=True)
+          PY
       - name: Validate unchanged payloads and replace older release archives
         env:
           GH_TOKEN: ${{ github.token }}
