@@ -209,7 +209,7 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
         self.view = parent.crop_view or ("cross" if options.layout == LayoutMode.CROSS else "parallel")
         self.eye_size = (source.width // 2, source.height)
 
-        self.grid_var = tk.BooleanVar(value=True)
+        self.grid_var = tk.BooleanVar(value=parent.crop_grid)
         self.zoom_var = tk.DoubleVar(value=1.0)
         self.x_var = tk.DoubleVar(value=0.5)
         self.y_var = tk.DoubleVar(value=0.5)
@@ -378,10 +378,10 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
                 corner_radius=RADIUS_CONTROL,
             ).grid(row=row, column=0, sticky="ew", pady=(0, 8) if row == 1 else 0)
 
-        ctk.CTkCheckBox(controls, text="Drittelraster", variable=self.grid_var,
-            command=self.schedule_preview, fg_color=GOLD, hover_color=GOLD_LIGHT,
-            border_color=BORDER, checkmark_color=TEXT, text_color=TEXT).grid(
-                row=7,column=0,sticky="ew",padx=18,pady=(0,18))
+        self.grid_checkbox = ctk.CTkCheckBox(controls, text="Drittelraster", variable=self.grid_var,
+            command=self._grid_changed, fg_color=GOLD, hover_color=GOLD_LIGHT,
+            border_color=BORDER, checkmark_color=TEXT, text_color=TEXT)
+        self.grid_checkbox.grid(row=7,column=0,sticky="ew",padx=18,pady=(0,18))
 
         self.protocol("WM_DELETE_WINDOW", self._cancel)
         self._refresh_labels()
@@ -465,6 +465,14 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
         self._refresh_view_buttons()
         self.schedule_preview()
 
+    def _grid_changed(self):
+        enabled = self.grid_var.get()
+        if self.app.crop_grid != enabled:
+            self.app.crop_grid = enabled
+            self.app._settings["crop_grid"] = enabled
+            self.app._save_preferences()
+        self.schedule_preview()
+
     def _key(self, event):
         if not shortcut_allowed(self, event):
             return
@@ -541,6 +549,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 self._settings = {}
         except (OSError, ValueError, AttributeError):
             self._settings = {}
+        saved_crop_grid = self._settings.get("crop_grid", True)
+        self.crop_grid = saved_crop_grid if isinstance(saved_crop_grid, bool) else True
         saved_crop_view = self._settings.get("crop_view")
         self.crop_view = saved_crop_view if saved_crop_view in ("parallel", "cross", "anaglyph") else None
         raw_presets = self._settings.get("presets", {})

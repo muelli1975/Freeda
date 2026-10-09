@@ -10,4 +10,4 @@
 - Language and input/output folders are remembered after restart; processing settings start with their defaults and a 2048-pixel long edge.
 - Framed anaglyph view for crop selection, with the selected image outline and without viewing symbols.
 - Clear labelling of the views as previews for crop selection.
-- The last view used for crop selection is remembered between images and after restarting Freeda.
+- The last view used for crop selection and the rule-of-thirds grid setting are remembered between images and after restarting Freeda.
