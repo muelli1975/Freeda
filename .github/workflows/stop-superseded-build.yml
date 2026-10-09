@@ -1,0 +1,33 @@
+name: Stop superseded blocked Freeda build
+on:
+  push:
+    branches: [codex/stop-superseded-build-20261009]
+    paths: ['.github/workflows/stop-superseded-build.yml']
+permissions:
+  contents: read
+  actions: write
+jobs:
+  stop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Cancel only the replaced build at the old source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          repo = "muelli1975/Freeda"
+          old = 37951336272
+          run = json.loads(subprocess.check_output(["gh", "api", f"repos/{repo}/actions/runs/{old}"], text=True))
+          assert run["head_sha"] == "3cb22bc76957962b034b4f056a5aa46ad0eaeb51"
+          assert run["event"] == "push" and run["head_branch"] == "main"
+          assert run["path"] == ".github/workflows/build-release.yml"
+          replacement = json.loads(subprocess.check_output(["gh", "api", f"repos/{repo}/actions/runs/37952932492"], text=True))
+          assert replacement["head_sha"] == "57001248d40af4e68707d5805636f5e322a1e8ef" and replacement["conclusion"] == "success"
+          if run["status"] != "completed":
+              subprocess.run(["gh", "api", "--method", "POST", f"repos/{repo}/actions/runs/{old}/cancel"], check=True)
+              print("Cancelled superseded blocked build", old)
+          else:
+              print("Superseded build already completed", old, run["conclusion"])
+          PY
