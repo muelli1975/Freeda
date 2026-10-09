@@ -74,19 +74,26 @@ jobs:
           done
           sha256sum "${packages[@]}" > SHA256SUMS.txt
           cd ..
-          gh release create "$RELEASE_TAG" 'artifacts/Freeda_1.2_Windows_x64.zip' 'artifacts/Freeda_1.2_Linux_x64.tar.gz' 'artifacts/Freeda_1.2_macOS_AppleSilicon.zip' 'artifacts/Freeda_1.2_macOS_Intel.zip' artifacts/SHA256SUMS.txt --draft --target "$VERIFIED_COMMIT" --title 'Freeda 1.2' --notes-file 'RELEASE_NOTES_1.2.md'
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Using the existing draft; source and assets are checked in the next step."
+          else
+            gh release create "$RELEASE_TAG" 'artifacts/Freeda_1.2_Windows_x64.zip' 'artifacts/Freeda_1.2_Linux_x64.tar.gz' 'artifacts/Freeda_1.2_macOS_AppleSilicon.zip' 'artifacts/Freeda_1.2_macOS_Intel.zip' artifacts/SHA256SUMS.txt --draft --target "$VERIFIED_COMMIT" --title 'Freeda 1.2' --notes-file 'RELEASE_NOTES_1.2.md'
+          fi
       - name: Verify release source and every uploaded asset before publishing
         shell: bash
         run: |
           set -euo pipefail
-          test "$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = "$VERIFIED_COMMIT"
-          gh release view "$RELEASE_TAG" --json assets,isDraft > release-verification.json
+          gh api "repos/$GH_REPO/releases" > release-verification.json
           python3 - <<'PY'
-          import hashlib, json, pathlib
+          import hashlib, json, os, pathlib
           with open("release-verification.json", encoding="utf-8") as stream:
-              release = json.load(stream)
+              releases = json.load(stream)
+          matches = [item for item in releases if item["tag_name"] == os.environ["RELEASE_TAG"]]
+          assert len(matches) == 1, "Expected one matching draft release"
+          release = matches[0]
+          assert release["target_commitish"] == os.environ["VERIFIED_COMMIT"], "Release source differs"
           expected = ["Freeda_1.2_Windows_x64.zip","Freeda_1.2_Linux_x64.tar.gz","Freeda_1.2_macOS_AppleSilicon.zip","Freeda_1.2_macOS_Intel.zip","SHA256SUMS.txt"]
-          assert release["isDraft"], "Release must stay draft until verification"
+          assert release["draft"], "Release must stay draft until verification"
           assets = {asset["name"]: asset for asset in release["assets"]}
           assert set(assets) == set(expected), "Release asset set differs"
           for name in expected:
@@ -98,3 +105,4 @@ jobs:
                   assert digest == "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(), "Asset digest differs: " + name
           PY
           gh release edit "$RELEASE_TAG" --draft=false --latest
+          test "$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = "$VERIFIED_COMMIT"
