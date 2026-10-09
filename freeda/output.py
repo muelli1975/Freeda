@@ -14,8 +14,6 @@ def export_targets(items: list[BatchItem], custom_root: Path | None,
         source_root = item.input_root or input_root
         root = Path(custom_root) if custom_root else (source_root or item.source.parent) / "output"
         relative = item.relative_path if source_root or custom_root else Path(item.source.name)
-        if custom_root and source_root:
-            relative = Path(source_root.name) / relative
         target = root / relative.with_name(relative.stem + "_freeda_" + mode + suffix)
         original = target
         number = 2

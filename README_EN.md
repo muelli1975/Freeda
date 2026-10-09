@@ -110,7 +110,7 @@ Selecting several files or a folder creates a batch. Navigation changes the prev
 
 ## Output and folders
 
-The default output folder is `output` in the **program folder**. A folder batch preserves the input folder's name and relative tree underneath: `Holiday/Day1/image.jpg` becomes `<program folder>/output/Holiday/Day1/image_freeda_web.jpg`, or `image_freeda_print.jpg` in Print mode. Individually selected files are saved directly in the output folder.
+The default output folder is `output` in the **program folder**. A folder batch saves directly in this destination and preserves relative subfolders: `Holiday/Day1/image.jpg` becomes `<program folder>/output/Day1/image_freeda_web.jpg`, or `image_freeda_print.jpg` in Print mode. Individually selected files are saved directly in the output folder.
 
 **Use subfolder in program folder** is checked at startup. The **Custom output folder** label and path are greyed out while it is checked. **Choose** remains available: selecting a custom shared destination automatically unchecks the box; the structure underneath stays the same. Check it again to return to the program folder's `output`, retaining the custom folder for later. The actual destination is shown separately. Input and output dialogs remember separate starting folders during the session.
 
@@ -145,10 +145,12 @@ Freeda is intended to remain usable independently of accounts or online services
 
 ## Navigation and crop control
 
-**Left/Right** and **Page Up/Page Down** browse images. In the crop dialog, **Parallel view (P)**, **Cross view (X)** and **Anaglyph (A)** show the same crop without changing the export layout. Anaglyph control uses LCD Dubois with linear sRGB and red power 0.75. Previews render in the background. EXIF orientation is applied exactly once for preview and export.
+**Keyboard shortcuts…** below the preview opens a short overview. **Left/Right** and **Page Up/Page Down** browse images. In the crop dialog, **Parallel view (P)**, **Cross view (X)** and **Anaglyph (A)** show the same crop without changing the export layout. Anaglyph control uses LCD Dubois with linear sRGB and red power 0.75. Previews render in the background. EXIF orientation is applied exactly once for preview and export.
 
-The active output destination and saved custom folder remain separately visible. Filenames use `_freeda_web` or `_freeda_print`; no additional web/print directories are created. Folder exports retain the source root and relative subfolders. Saved crops use `freeda-crops.json` in each concrete source folder. Releases include the matching source in `source`.
+The active output destination and saved custom folder remain separately visible. Filenames use `_freeda_web` or `_freeda_print`; no additional web/print directories are created. Folder exports retain relative subfolders without an extra folder named after the input root. Saved crops use `freeda-crops.json` in each concrete source folder. Releases include the matching source in `source`.
 
 ## License
 
 Freeda is licensed under the [MIT License](LICENSE), copyright Christoph Müller. Third-party components retain their own licences. The packages include [third-party notices](THIRD_PARTY_NOTICES.md) and licence copies in `licenses`.
+
+The package contains a stable `Freeda` application folder; the download archive name identifies version and platform.

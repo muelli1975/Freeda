@@ -607,6 +607,10 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         self.preview_label.bind("<Configure>", lambda _e: self.schedule_preview())
         self.preview_note = ctk.CTkLabel(self.preview_panel, text="", text_color=TEXT_MUTED)
         self.preview_note.grid(row=1, column=0, sticky="ew", padx=18, pady=(0, 10))
+        self.shortcuts_button = self._button(self.preview_panel, "Tastenkürzel…", self.show_shortcuts)
+        self.shortcuts_button.configure(width=140, height=26, fg_color="transparent", border_width=0,
+                                        text_color=TEXT_MUTED, hover_color=PANEL_HOVER)
+        self.shortcuts_button.grid(row=2, column=0, sticky="e", padx=18, pady=(0, 10))
 
         self._build_sidebar()
         self._ui_ready = True
@@ -642,8 +646,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             text_color_disabled=TEXT_DISABLED,
         )
         if primary:
-            button.bind("<Enter>", lambda _e: self._set_start_button_hover(), add="+")
-            button.bind("<Leave>", lambda _e: self._set_start_button_normal(), add="+")
+            button.bind("<Enter>", lambda _e: self.after_idle(self._set_start_button_hover), add="+")
+            button.bind("<Leave>", lambda _e: self.after_idle(self._set_start_button_normal), add="+")
         return button
 
     def _entry(self, parent, variable, placeholder=""):
@@ -2001,8 +2005,6 @@ class FreedaApp(LocalisedUI, ctk.CTk):
 
     def _refresh_output(self) -> None:
         target = self._effective_output()
-        if target is not None and self.input_root:
-            target = target / self.input_root.name
         text = str(target) if target is not None else "Kein eigener Ausgabeordner gewählt"
         self._set_text(self.output_status, text)
         self._set_text(self.custom_output_status, str(self.output_dir) if self.output_dir else "–")
@@ -2211,6 +2213,11 @@ class FreedaApp(LocalisedUI, ctk.CTk):
             print_layout(options)
         return options
 
+    def show_shortcuts(self):
+        if self._busy:
+            return
+        messagebox.showinfo(self.tr("Tastenkürzel"), self.tr("Links / Rechts oder Bild auf / Bild ab: vorheriges / nächstes Bild\n\nIm Ausschnittdialog:\nP: Parallelblick\nX: Kreuzblick\nA: Anaglyphenkontrolle\n\nIn Eingabefeldern und an Reglern bleibt die normale Bedienung erhalten."), parent=self)
+
     def _key(self, event):
         if self._busy or not shortcut_allowed(self, event):
             return
@@ -2256,6 +2263,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         if busy == self._busy:
             return
         self._busy = busy
+        self.shortcuts_button.configure(state="disabled" if busy else "normal")
         if busy:
             self._preview_id += 1
             if self._preview_job is not None:

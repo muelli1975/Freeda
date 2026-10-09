@@ -49,10 +49,10 @@ class RecursiveBatchTests(unittest.TestCase):
         targets = export_targets(items, output or self.output, self.input, mode, options.output_format)
         return items, targets
 
-    def test_program_output_contains_input_name_and_relative_tree(self):
+    def test_program_output_preserves_relative_tree_without_input_name(self):
         items, targets = self.items_targets()
-        self.assertEqual(targets, [self.output / "Urlaub/Tag1/bild_freeda_web.jpg",
-                                  self.output / "Urlaub/Tag2/tief/bild_freeda_web.jpg"])
+        self.assertEqual(targets, [self.output / "Tag1/bild_freeda_web.jpg",
+                                  self.output / "Tag2/tief/bild_freeda_web.jpg"])
         self.assertEqual([i.relative_path for i in items], [Path("Tag1/bild.jpg"), Path("Tag2/tief/bild.jpg")])
 
     def test_input_output_option_is_explicit_and_has_no_extra_mode_folder(self):

@@ -39,7 +39,7 @@ with tempfile.TemporaryDirectory() as tmp:
         with patch("freeda.gui.filedialog.askdirectory", return_value=str(folder)):
             app.choose_folder(); wait_for_job(app)
         assert len(app.items) == 2 and app.batch_mode
-        assert app.output_status.cget("text") == str(base / "program/output/Urlaub")
+        assert app.output_status.cget("text") == str(base / "program/output")
         assert app.image_crops["Web"][paths[0].resolve()] == crops[0]
         assert app.image_crops["Web"][paths[1].resolve()] == crops[1]
         app.size_var.set("640")
@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 app.start_batch(); wait_for_job(app)
             assert not app.last_batch_result.errors and len(app.last_batch_result.written) == 2
             assert [p.parent for p in app.last_batch_result.written] == [
-                base / "program/output/Urlaub/Tag1", base / "program/output/Urlaub/Tag2/tief"]
+                base / "program/output/Tag1", base / "program/output/Tag2/tief"]
             # Changing output to a source subfolder must rescan and exclude that entire tree.
             output = folder / "fertige Karten"
             output.mkdir()

@@ -110,7 +110,7 @@ Die Auswahl mehrerer Dateien oder eines Ordners erzeugt einen Batch. Die Navigat
 
 ## Ausgabe und Ordner
 
-Standardmäßig ist `output` im **Programmordner** als Ausgabeordner gewählt. Ein Ordner-Batch übernimmt darunter den Namen des Eingabeordners und dessen relative Unterordnerstruktur: `Urlaub/Tag1/bild.jpg` wird zu `<Programmordner>/output/Urlaub/Tag1/bild_freeda_web.jpg`; bei Print entsprechend zu `bild_freeda_print.jpg`. Einzeln gewählte Dateien landen direkt im Ausgabeordner.
+Standardmäßig ist `output` im **Programmordner** als Ausgabeordner gewählt. Ein Ordner-Batch speichert direkt in diesem Ziel und erhält die relative Unterordnerstruktur: `Urlaub/Tag1/bild.jpg` wird zu `<Programmordner>/output/Tag1/bild_freeda_web.jpg`; bei Print entsprechend zu `bild_freeda_print.jpg`. Einzeln gewählte Dateien landen direkt im Ausgabeordner.
 
 **Unterordner im Programmordner verwenden** ist beim Start aktiviert. Beschriftung und Pfad unter **Eigener Ausgabeordner** sind dann ausgegraut. **Auswählen** bleibt bedienbar: Ein eigenes gemeinsames Ziel wählen, wodurch der Haken automatisch entfernt wird; die Struktur darunter bleibt erhalten. Erneutes Aktivieren stellt `output` im Programmordner wieder her und behält den eigenen Ordner für später. Das tatsächliche Ziel wird separat angezeigt. Input- und Outputdialoge merken sich getrennte Startordner während der Sitzung.
 
@@ -145,10 +145,12 @@ Freeda soll unabhängig von Konten und Onlinediensten nutzbar bleiben. Aktive Wa
 
 ## Bildnavigation und Ausschnittkontrolle
 
-**Links/Rechts** und **Bild auf/Bild ab** wechseln das Bild. Im Ausschnittdialog zeigen **Parallelblick (P)**, **Kreuzblick (X)** und **Anaglyph (A)** denselben Ausschnitt, ohne die Exportansicht zu verändern. Die Anaglyphenkontrolle verwendet Dubois LCD mit linearer sRGB-Verarbeitung und Rotpotenz 0,75. Vorschauen werden im Hintergrund berechnet. EXIF-Orientation wird für Vorschau und Export genau einmal angewendet.
+**Tastenkürzel…** unter der Vorschau öffnet eine kurze Übersicht. **Links/Rechts** und **Bild auf/Bild ab** wechseln das Bild. Im Ausschnittdialog zeigen **Parallelblick (P)**, **Kreuzblick (X)** und **Anaglyph (A)** denselben Ausschnitt, ohne die Exportansicht zu verändern. Die Anaglyphenkontrolle verwendet Dubois LCD mit linearer sRGB-Verarbeitung und Rotpotenz 0,75. Vorschauen werden im Hintergrund berechnet. EXIF-Orientation wird für Vorschau und Export genau einmal angewendet.
 
-Ausgabeziel und eigene Ordner bleiben getrennt sichtbar. Ergebnisse tragen `_freeda_web` bzw. `_freeda_print`; zusätzliche web-/print-Ordner werden nicht angelegt. Ordnerexport erhält Quellordnernamen und Unterordnerstruktur. Gespeicherte Ausschnitte liegen als `freeda-crops.json` im jeweiligen konkreten Quellordner. Das Release enthält den passenden Quellstand unter `source`.
+Ausgabeziel und eigene Ordner bleiben getrennt sichtbar. Ergebnisse tragen `_freeda_web` bzw. `_freeda_print`; zusätzliche web-/print-Ordner werden nicht angelegt. Ordnerexport erhält die relative Unterordnerstruktur ohne zusätzliche Ebene mit dem Eingabeordnernamen. Gespeicherte Ausschnitte liegen als `freeda-crops.json` im jeweiligen konkreten Quellordner. Das Release enthält den passenden Quellstand unter `source`.
 
 ## Lizenz
 
 Freeda steht unter der [MIT-Lizenz](LICENSE), Copyright Christoph Müller. Fremdkomponenten behalten ihre eigenen Lizenzen. Die Pakete enthalten [Hinweise zu Fremdkomponenten](THIRD_PARTY_NOTICES.md) und Lizenzkopien im Ordner `licenses`.
+
+Das Paket enthält den festen Programmordner `Freeda`; Versions- und Plattformangaben stehen im Namen des Downloadarchivs.
