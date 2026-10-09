@@ -109,6 +109,9 @@ def normalize(source, target, root):
                 data = before.read(original)
                 expected[info.filename] = zip_signature(info, data)
                 after.writestr(info, data)
+                # zipfile assigns Unix defaults to zero DOS attributes; restore originals
+                # before the central directory is written when the archive closes.
+                info.external_attr = original.external_attr
         with zipfile.ZipFile(target) as after:
             assert after.testzip() is None
             actual = {info.filename:zip_signature(info, after.read(info)) for info in after.infolist()}

@@ -1,4 +1,4 @@
-name: Normalize older Freeda portable roots
+name: Normalize older Freeda portable roots preserving ZIP attributes
 on:
   push:
     branches: [codex/older-package-review-20261009]
