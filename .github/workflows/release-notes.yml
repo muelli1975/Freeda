@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - RELEASE_NOTES_1.0.md
+      - RELEASE_NOTES_1.1.md
       - RELEASE_NOTES_1.2.md
       - .github/workflows/release-notes.yml
   workflow_dispatch:
@@ -29,4 +31,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release edit v1.2 --notes-file RELEASE_NOTES_1.2.md
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          repo = os.environ["GH_REPO"]
+          def api(path):
+              return json.loads(subprocess.check_output(["gh", "api", f"repos/{repo}/{path}"], text=True))
+          for version, identifier in (("1.0", 403063646), ("1.1", 404592654), ("1.2", 407917242)):
+              tag = "v" + version
+              before = api("releases/tags/" + tag)
+              assert before["id"] == identifier and not before["draft"]
+              assets = {a["name"]: a["digest"] for a in before["assets"]}
+              source = api("git/ref/tags/" + tag)["object"]["sha"]
+              path = Path("RELEASE_NOTES_" + version + ".md")
+              expected = path.read_text()
+              subprocess.run(["gh", "release", "edit", tag, "--notes-file", str(path)], check=True)
+              after = api("releases/tags/" + tag)
+              assert after["body"].strip() == expected.strip()
+              assert {a["name"]: a["digest"] for a in after["assets"]} == assets
+              assert api("git/ref/tags/" + tag)["object"]["sha"] == source
+              print(tag, "German description published; packages and tag unchanged.", flush=True)
+          PY
