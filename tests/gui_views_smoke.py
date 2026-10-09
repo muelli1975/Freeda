@@ -68,10 +68,10 @@ with tempfile.TemporaryDirectory() as folder:
                 expected_hint='Die Ansicht beeinflusst nur die Vorschau.' if language=='de' else 'This view only affects the preview.'
                 assert dialog.view_heading.cget('text')==expected_heading
                 assert dialog.view_hint.cget('text')==expected_hint
-                assert dialog.view_heading._text_label.winfo_reqwidth() <= dialog.view_heading.winfo_width()
-                assert dialog.view_hint._text_label.winfo_reqwidth() <= dialog.view_hint.winfo_width()
+                assert next(child for child in dialog.view_heading.winfo_children() if isinstance(child, tk.Label)).winfo_reqwidth() <= dialog.view_heading.winfo_width()
+                assert next(child for child in dialog.view_hint.winfo_children() if isinstance(child, tk.Label)).winfo_reqwidth() <= dialog.view_hint.winfo_width()
                 app.update_idletasks()
-                if language=='de':
+                if language in ('de', 'en'):
                     bbox=(dialog.winfo_rootx(),dialog.winfo_rooty(),
                           dialog.winfo_rootx()+dialog.winfo_width(),dialog.winfo_rooty()+dialog.winfo_height())
                     buffer=io.BytesIO()
