@@ -1,36 +1,28 @@
-name: Inspect older Freeda archive roots
+name: Normalize older Freeda portable roots
 on:
   push:
     branches: [codex/older-package-review-20261009]
     paths: ['.github/workflows/older-package-review.yml']
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: normalize-freeda-older-portable-roots
+  cancel-in-progress: false
 jobs:
-  inspect:
+  normalize:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - name: Download verified older releases and inspect roots
+      - uses: actions/checkout@v4
+      - name: Validate unchanged payloads and replace older release archives
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          python - <<'PY'
-          import hashlib, json, pathlib, subprocess, tarfile, zipfile
-          repo = "muelli1975/Freeda"
-          for tag, rid in (("v1.0",403063646),("v1.1",404592654)):
-              release = json.loads(subprocess.check_output(["gh","api",f"repos/{repo}/releases/tags/{tag}"], text=True))
-              assert release["id"] == rid and not release["draft"]
-              folder=pathlib.Path(tag);folder.mkdir()
-              for asset in release["assets"]:
-                  if asset["name"] == "SHA256SUMS.txt": continue
-                  subprocess.run(["gh","release","download",tag,"--repo",repo,"--pattern",asset["name"],"--dir",str(folder)],check=True)
-                  path=folder/asset["name"]
-                  assert "sha256:"+hashlib.file_digest(path.open("rb"),"sha256").hexdigest() == asset["digest"]
-                  if path.name.endswith(".zip"):
-                      with zipfile.ZipFile(path) as archive:
-                          members=archive.namelist()
-                  else:
-                      with tarfile.open(path,"r:gz") as archive:
-                          members=archive.getnames()
-                  print("ARCHIVE_LAYOUT_JSON "+json.dumps({"tag":tag,"name":path.name,"digest":asset["digest"],"roots":sorted({n.replace("\\","/").split("/")[0] for n in members}),"top":members[:18],"app_bundles":sorted({"/".join(n.split("/")[:2]) for n in members if ".app/" in n}),"members":len(members)}),flush=True)
-          PY
+        run: python scripts/normalize_older_release_roots.py
+      - name: Preserve previous release downloads
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: previous-freeda-1.0-and-1.1-packages
+          path: previous-packages/**/*
+          retention-days: 14
+          if-no-files-found: warn
