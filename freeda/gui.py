@@ -1304,7 +1304,7 @@ class FreedaApp(LocalisedUI, ctk.CTk):
         row += 1
 
         self.use_program_output = tk.BooleanVar(value=self._settings.get("use_program_output", True) is not False)
-        self.output_checkbox = self._checkbox(self.sidebar, "Unterordner im Programmordner verwenden",
+        self.output_checkbox = self._checkbox(self.sidebar, "Unterordner im Programmordner\nverwenden",
                                               self.use_program_output, self._output_changed)
         self.output_checkbox.grid(
             row=row, column=0, sticky="ew", padx=20, pady=(0, 8))

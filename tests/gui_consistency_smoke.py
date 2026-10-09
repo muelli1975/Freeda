@@ -49,7 +49,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert app.choose_output_button.cget("text") == "Auswählen"
         assert app.custom_output_label.cget("text_color") == TEXT_DISABLED
         assert app.subfolders_checkbox.cget("text") == "Unterordner mitverarbeiten"
-        assert app.output_checkbox.cget("text") == "Unterordner im Programmordner verwenden"
+        assert app.output_checkbox.cget("text") == "Unterordner im Programmordner\nverwenden"
         with patch("freeda.gui.filedialog.askdirectory", return_value="") as dialog:
             app.choose_output_button.invoke()
             dialog.assert_called_once()
@@ -108,7 +108,7 @@ with tempfile.TemporaryDirectory() as tmp:
              if isinstance(child, ctk.CTkButton) and child.cget("text") == "Web").invoke()
         assert app.mode_var.get() == "Web"
         app._language_changed("English")
-        assert app.output_checkbox.cget("text") == "Use subfolder in program folder"
+        assert app.output_checkbox.cget("text") == "Use subfolder in\nprogram folder"
         assert app.custom_output_label.cget("text") == "Custom output folder"
         assert app.choose_output_button.cget("text") == "Choose"
         assert app.tr("Horizontal: 50 %") == "Horizontal position: 50 %"

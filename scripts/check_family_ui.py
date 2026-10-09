@@ -111,6 +111,8 @@ with tempfile.TemporaryDirectory() as directory:
                         assert hint.winfo_rootx()+hint.winfo_width() <= app.winfo_rootx()+app.winfo_width()
                         assert hint.winfo_rooty()+hint.winfo_height() <= app.winfo_rooty()+app.winfo_height()
                         assert hint._text_label.winfo_reqwidth() <= hint.winfo_width()-10
+                        checkbox = app.output_checkbox
+                        assert checkbox._text_label.winfo_reqwidth() + 28 * scale <= checkbox.winfo_width(), "Output option text clipped"
                         with patch.object(gui.messagebox, "showinfo") as info:
                             hint.invoke()
                             title, body = info.call_args.args
