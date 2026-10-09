@@ -205,7 +205,8 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
         self._preview_poll = None
         self._preview_worker = PreviewWorker(lambda identifier, image, error:
             self._preview_events.put((identifier, image, error)))
-        self.view = "cross" if options.layout == LayoutMode.CROSS else "parallel"
+        self.app = parent
+        self.view = parent.crop_view or ("cross" if options.layout == LayoutMode.CROSS else "parallel")
         self.eye_size = (source.width // 2, source.height)
 
         self.grid_var = tk.BooleanVar(value=True)
@@ -457,6 +458,10 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
 
     def _set_view(self, view):
         self.view = view
+        if self.app.crop_view != view:
+            self.app.crop_view = view
+            self.app._settings["crop_view"] = view
+            self.app._save_preferences()
         self._refresh_view_buttons()
         self.schedule_preview()
 
@@ -536,6 +541,8 @@ class FreedaApp(LocalisedUI, ctk.CTk):
                 self._settings = {}
         except (OSError, ValueError, AttributeError):
             self._settings = {}
+        saved_crop_view = self._settings.get("crop_view")
+        self.crop_view = saved_crop_view if saved_crop_view in ("parallel", "cross", "anaglyph") else None
         raw_presets = self._settings.get("presets", {})
         self.presets = {name: values for name, values in raw_presets.items()
                         if isinstance(name, str) and isinstance(values, dict)} if isinstance(raw_presets, dict) else {}

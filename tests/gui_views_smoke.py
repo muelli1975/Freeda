@@ -1,12 +1,14 @@
 """Crop viewing shortcuts, stable crop and asynchronous main/dialog previews."""
 import sys, time, tempfile, base64, io, json
 from pathlib import Path
+from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import numpy as np
 from PIL import Image, ImageGrab
 from freeda.gui import FreedaApp, CropDialog
+from freeda.models import LayoutMode
 import customtkinter as ctk
 from gui_helpers import assert_family_palette
 
@@ -24,7 +26,9 @@ with tempfile.TemporaryDirectory() as folder:
     image=Image.fromarray(np.random.default_rng(3).integers(0,256,(200,600,3),dtype=np.uint8))
     paths=[root/'one.png',root/'two.png']
     for path in paths:image.save(path)
-    app=FreedaApp(settings_path=root/'settings.json',language='en')
+    settings_path=root/'settings.json'
+    settings_path.write_text(json.dumps({'unrelated_preference': 'keep me'}),encoding='utf-8')
+    app=FreedaApp(settings_path=settings_path,language='en')
     app.update()
     try:
         with patch('freeda.gui.filedialog.askopenfilenames',return_value=[str(paths[0])]):app.choose_files()
@@ -39,6 +43,14 @@ with tempfile.TemporaryDirectory() as folder:
         app.update();app._key(SimpleNamespace(keysym='Next',state=0));assert app.source_index==0
         app.preview_label.focus_force();app.update()
         app._key(SimpleNamespace(keysym='Next',state=0));assert app.source_index==1
+        assert app.crop_view is None
+        for layout,expected in ((LayoutMode.PARALLEL,'parallel'),(LayoutMode.CROSS,'cross')):
+            initial=CropDialog(app,image,replace(app._web_options(),layout=layout),
+                index=1,total=1,filename='one.png',editing=True)
+            app.update()
+            assert initial.view==expected
+            initial._cancel();app.update()
+        assert 'crop_view' not in json.loads(settings_path.read_text(encoding='utf-8'))
         dialog=CropDialog(app,image,app._web_options(),index=1,total=1,filename='two.png',editing=True)
         app.update()
         dialog.zoom_var.set(1.4);dialog._controls_changed()
@@ -50,9 +62,27 @@ with tempfile.TemporaryDirectory() as folder:
             wait(app,lambda:dialog.preview_photo is not None and dialog.preview_photo is not before)
             assert dialog.view==view and dialog.current_crop()==crop and dialog.options==original_options
             assert dialog.preview_photo.width() <= dialog.preview_label.winfo_width()
+            saved=json.loads(settings_path.read_text(encoding='utf-8'))
+            assert saved['crop_view']==view and saved['unrelated_preference']=='keep me'
+            assert app.image_crops=={'Web':{},'Print':{}}
         assert dialog.view_buttons['cross'].cget('text')=='Cross view (X)'
         assert_family_palette(dialog)
         dialog._cancel();app.update()
+        for view in ('parallel','cross','anaglyph'):
+            next_options=replace(app._web_options(),layout=LayoutMode.CROSS)
+            next_dialog=CropDialog(app,image,next_options,index=2,total=2,filename='two.png')
+            app.update()
+            assert next_dialog.view==app.crop_view
+            before_crop=next_dialog.current_crop()
+            next_dialog.view_buttons[view].invoke()
+            assert next_dialog.view==view and next_dialog.options==next_options
+            assert next_dialog.current_crop()==before_crop
+            next_dialog._cancel();app.update()
+            reopened=CropDialog(app,image,replace(next_options,layout=LayoutMode.PARALLEL),
+                index=1,total=2,filename='one.png',editing=True)
+            app.update()
+            assert reopened.view==view
+            reopened._cancel();app.update()
         for language in ('de','en'):
             app.language=language
             for scale in (1.,1.5):
@@ -83,4 +113,29 @@ with tempfile.TemporaryDirectory() as folder:
         ctk.set_widget_scaling(1.)
         ctk.set_window_scaling(1.)
     finally:app.destroy()
-print('View buttons/P-X-A, stable crop, threaded previews and navigation focus guards passed')
+    restarted=FreedaApp(settings_path=settings_path,language='en')
+    restarted.update()
+    try:
+        assert restarted.crop_view=='anaglyph'
+        for options in (restarted._web_options(),restarted._print_options()):
+            options=replace(options,layout=LayoutMode.CROSS)
+            dialog=CropDialog(restarted,image,options,index=1,total=1,filename='one.png',editing=True)
+            restarted.update()
+            assert dialog.view=='anaglyph' and dialog.options==options
+            dialog._cancel();restarted.update()
+        assert restarted.image_crops=={'Web':{},'Print':{}}
+        assert json.loads(settings_path.read_text(encoding='utf-8'))['unrelated_preference']=='keep me'
+    finally:restarted.destroy()
+    for invalid in ('unknown', ['anaglyph']):
+        settings_path.write_text(json.dumps({'crop_view':invalid}),encoding='utf-8')
+        app=FreedaApp(settings_path=settings_path,language='en')
+        app.update()
+        try:
+            assert app.crop_view is None
+            dialog=CropDialog(app,image,replace(app._web_options(),layout=LayoutMode.CROSS),
+                index=1,total=1,filename='one.png',editing=True)
+            app.update()
+            assert dialog.view=='cross'
+            dialog._cancel();app.update()
+        finally:app.destroy()
+print('Remembered crop views across images/restarts, stable crop/export, P-X-A and navigation focus guards passed')
