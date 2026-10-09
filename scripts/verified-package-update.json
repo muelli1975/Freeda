@@ -3,8 +3,8 @@
   "app": "Freeda",
   "tag": "v1.2",
   "release_id": 407917242,
-  "run": 37944104483,
-  "commit": "3420612060bf826d46985423298ae0a73b16ec97",
+  "run": 37952932492,
+  "commit": "57001248d40af4e68707d5805636f5e322a1e8ef",
   "packages": [
     "Freeda_1.2_Linux_x64.tar.gz",
     "Freeda_1.2_macOS_AppleSilicon.zip",
@@ -12,11 +12,11 @@
     "Freeda_1.2_Windows_x64.zip"
   ],
   "previous": {
-    "Freeda_1.2_Linux_x64.tar.gz": "sha256:48359cd7e8f1411fd6253afe3ad51fdd8c6ed1e11178356d6737fde107eacb08",
-    "Freeda_1.2_macOS_AppleSilicon.zip": "sha256:e4fc4834f683fdf4510f02a08aca09c14b925ad6559ec198a67b1cbfdeda9a67",
-    "Freeda_1.2_macOS_Intel.zip": "sha256:8cc1fabd6c6d72af4192c22890ea2c21ef417ae016e5d23687c6f65ec7bc1acd",
-    "Freeda_1.2_Windows_x64.zip": "sha256:ce2c52e695cc3429625ce76eebea0b1f8bb2d00c502a17f59d0617810ef4aa7a",
-    "SHA256SUMS.txt": "sha256:598bb259e29588bb41fec98d092516bd6c9ed8a612f754100b77463453ec031b"
+    "Freeda_1.2_Linux_x64.tar.gz": "sha256:777bf33ff35095679ade245c088b1abc08401a938151c85d7368d76db8eedd71",
+    "Freeda_1.2_macOS_AppleSilicon.zip": "sha256:3695e34b5b6cafc560b05f3425478983e91b9320cb87b19fc2da6fd12bf284be",
+    "Freeda_1.2_macOS_Intel.zip": "sha256:04db6076e078711f4fd657926befa3fa43f4deeb6dde76af6346dc3361183662",
+    "Freeda_1.2_Windows_x64.zip": "sha256:32d9a36c0ee97067fe65e6d7ce5b99815b4efc1bce7be18d212ca28ab410cd67",
+    "SHA256SUMS.txt": "sha256:0eb56f720705c37f3ee15445eb5dca2b17b4e07ff0a140696a0d7c6cb02fc662"
   },
   "gui": "freeda/gui.py",
   "notes": "RELEASE_NOTES_1.2.md"
