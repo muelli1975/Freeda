@@ -1,6 +1,6 @@
 # Freeda 1.2
 
-[English](README_EN.md)
+[Downloads und SHA-256](https://github.com/muelli1975/Freeda/releases/tag/v1.2) · [English](README.md)
 
 Freeda ist ein lokales Desktop-Werkzeug zum Einrahmen und Exportieren von Full-SBS-Stereobildern als Freeview-Grafiken für Web und Druck. Parallelblick, Kreuzblick und kombinierte Ansichten nutzen dieselben Einstellungen für Rahmen, Untertitel und Ausschnitte.
 
@@ -12,7 +12,7 @@ Freeda arbeitet vollständig lokal: kein Konto, keine Cloud, kein Tracking und k
 
 [Freeda 1.2 herunterladen](https://github.com/muelli1975/Freeda/releases/tag/v1.2)
 
-1. `Freeda_1.2_Windows_x64.zip` vollständig in einen beschreibbaren Ordner entpacken.
+1. [Freeda_1.2_Windows_x64.zip](https://github.com/muelli1975/Freeda/releases/download/v1.2/Freeda_1.2_Windows_x64.zip) vollständig in einen beschreibbaren Ordner entpacken.
 2. `Freeda.exe` starten.
 3. Den Programmordner zusammenhalten; `_internal`, `tools` und die anderen mitgelieferten Dateien gehören zur Anwendung.
 

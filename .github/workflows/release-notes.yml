@@ -4,17 +4,15 @@ on:
   push:
     branches: [main]
     paths:
-      - RELEASE_NOTES_1.0.md
-      - RELEASE_NOTES_1.1.md
-      - RELEASE_NOTES_1.2.md
-      - .github/workflows/release-notes.yml
+      - 'RELEASE_NOTES_*.md'
+      - '.github/workflows/release-notes.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-notes-v1.2
+  group: release-notes
   cancel-in-progress: false
 
 jobs:
@@ -27,7 +25,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Update the release description
+      - name: Update descriptions and verify unchanged downloads
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -35,21 +33,31 @@ jobs:
           python - <<'PY'
           import json, os, subprocess
           from pathlib import Path
-          repo = os.environ["GH_REPO"]
+          repo = os.environ['GH_REPO']
           def api(path):
-              return json.loads(subprocess.check_output(["gh", "api", f"repos/{repo}/{path}"], text=True))
-          for version, identifier in (("1.0", 403063646), ("1.1", 404592654), ("1.2", 407917242)):
-              tag = "v" + version
-              before = api("releases/tags/" + tag)
-              assert before["id"] == identifier and not before["draft"]
-              assets = {a["name"]: a["digest"] for a in before["assets"]}
-              source = api("git/ref/tags/" + tag)["object"]["sha"]
-              path = Path("RELEASE_NOTES_" + version + ".md")
-              expected = path.read_text()
-              subprocess.run(["gh", "release", "edit", tag, "--notes-file", str(path)], check=True)
-              after = api("releases/tags/" + tag)
-              assert after["body"].strip() == expected.strip()
-              assert {a["name"]: a["digest"] for a in after["assets"]} == assets
-              assert api("git/ref/tags/" + tag)["object"]["sha"] == source
-              print(tag, "English description published; packages and tag unchanged.", flush=True)
+              return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/{path}'], text=True))
+          def snapshot(release):
+              return [(a['id'], a['name'], a['size'], a['digest']) for a in release['assets']]
+          for tag, identifier, filename in [('v1.2', 407917242, 'RELEASE_NOTES_1.2.md'), ('v1.1', 404592654, 'RELEASE_NOTES_1.1.md'), ('v1.0', 403063646, 'RELEASE_NOTES_1.0.md')]:
+              before = api('releases/tags/' + tag)
+              assert before['id'] == identifier and not before['draft']
+              source = api('git/ref/tags/' + tag)['object']
+              body = Path(filename).read_text().rstrip() + '\n\n## Downloads and SHA-256\n\n| File | SHA-256 |\n| --- | --- |\n'
+              def order(a):
+                  n = a['name']
+                  return (0 if 'Windows' in n else 1 if 'Linux' in n else 2 if 'AppleSilicon' in n else 3 if 'Intel' in n else 4, n)
+              for asset in sorted(before['assets'], key=order):
+                  if asset['name'].endswith(('.zip', '.tar.gz')):
+                      assert asset['digest'].startswith('sha256:') and len(asset['digest']) == 71
+                      body += f"| [{asset['name']}]({asset['browser_download_url']}) | `{asset['digest'][7:]}` |\n"
+              for asset in before['assets']:
+                  if 'SHA256SUMS' in asset['name']:
+                      body += f"\n[Download checksum file]({asset['browser_download_url']}).\n"
+              subprocess.run(['gh', 'api', '--method', 'PATCH', f"repos/{repo}/releases/{identifier}", '--input', '-'], input=json.dumps({'body': body}), text=True, check=True, stdout=subprocess.DEVNULL)
+              after = api('releases/tags/' + tag)
+              assert after['body'] == body
+              assert snapshot(after) == snapshot(before)
+              assert api('git/ref/tags/' + tag)['object'] == source
+              assert (after['draft'], after['prerelease'], after['name'], after['tag_name']) == (before['draft'], before['prerelease'], before['name'], before['tag_name'])
+              print(tag, 'description updated; files, tag and release status unchanged.')
           PY

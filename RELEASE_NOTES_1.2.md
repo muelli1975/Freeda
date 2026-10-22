@@ -1,13 +1,15 @@
 # Freeda 1.2
 
-- Parallel, cross-eyed and anaglyph views in the crop dialog. P/X/A switch the view while preserving the crop and export layout.
-- Image navigation with Left/Right and Page Up/Page Down.
-- Smoother preview and a fix for an error at program startup.
-- Correct orientation of portrait images in the preview, crop dialog and export.
-- Clickable keyboard-shortcut overview below the preview.
-- Folder exports are saved directly in the output folder; relative subfolders are preserved.
-- Consistent button hover behaviour following the shared design standard.
-- Language and input/output folders are remembered after restart; processing settings start with their defaults and a 2048-pixel long edge.
-- Framed anaglyph view for crop selection, with the selected image outline and without viewing symbols.
-- Clear labelling of the views as previews for crop selection.
-- The last view used for crop selection and the rule-of-thirds grid setting are remembered between images and after restarting Freeda.
+- Add parallel, cross-eyed and anaglyph views to the crop dialog, with keyboard switching and image navigation.
+- Remember the crop-preview view and rule-of-thirds grid setting.
+- Add a clickable keyboard-shortcut overview.
+- Improve preview responsiveness and fix a startup error.
+- Correct portrait-image orientation in preview, crop editing and export.
+- Save folder exports directly in the output folder while preserving relative subfolders.
+- Remember language and input/output folders between sessions.
+
+## Installation
+
+Extract the complete package into a writable folder. Start `Freeda.exe` on Windows, `Freeda` on Linux or `Freeda.app` on macOS. Keep the supplied tools and application files together.
+
+Linux requires glibc 2.35 or newer. Linux/macOS metadata transfer requires Perl. The macOS apps are ad-hoc signed and not Apple-notarized. Keep `settings.json` and your `logos` folder when updating.

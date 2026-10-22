@@ -1,6 +1,6 @@
 # Freeda 1.2
 
-[Deutsch](README_DE.md)
+[Downloads and SHA-256](https://github.com/muelli1975/Freeda/releases/tag/v1.2) · [Deutsch](README_DE.md)
 
 Freeda is a local desktop tool for framing and exporting full side-by-side stereo images as Freeview graphics for web and print. Parallel viewing, cross-eyed viewing and combined layouts share the same controls for framing, captions and cropping.
 
@@ -12,7 +12,7 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 
 [Download Freeda 1.2](https://github.com/muelli1975/Freeda/releases/tag/v1.2)
 
-1. Extract the complete `Freeda_1.2_Windows_x64.zip` into a writable folder.
+1. Extract the complete [Freeda_1.2_Windows_x64.zip](https://github.com/muelli1975/Freeda/releases/download/v1.2/Freeda_1.2_Windows_x64.zip) into a writable folder.
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
 
