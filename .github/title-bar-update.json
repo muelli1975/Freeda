@@ -1,0 +1,22 @@
+{
+  "repository": "muelli1975/Freeda",
+  "tag": "v1.2",
+  "branch": "main",
+  "previous_tag": "3935dce5455690c91d7e16eee2f4f6ace0672452",
+  "release_id": 407917242,
+  "assets": {
+    "Freeda_1.2_Linux_x64.tar.gz": "sha256:786310f9bb7d917d613a741f27b1a6b8ac76d9c92704ddf5bb518ed4af92bb44",
+    "Freeda_1.2_macOS_AppleSilicon.zip": "sha256:98e2122f84a070326571da8a8e6d69a2ebe0cfcf697c59052e962777df37e118",
+    "Freeda_1.2_macOS_Intel.zip": "sha256:437d3ea8f841c3c6b0a9a06f5c27110c6b3299110880437a99735e7bb31634ed",
+    "Freeda_1.2_Windows_x64.zip": "sha256:7950d10e81e48e56fa07fa5cd60047323963ab8a85c49abb01cb3e912b0998c5",
+    "SHA256SUMS.txt": "sha256:247422313aa2b860d3af244a5c6aa0633b6cf385a7dfb683bb578b0b334e8c11"
+  },
+  "replace": [
+    "Freeda_1.2_macOS_AppleSilicon.zip",
+    "Freeda_1.2_macOS_Intel.zip",
+    "Freeda_1.2_Windows_x64.zip",
+    "SHA256SUMS.txt"
+  ],
+  "release_note": "### Title bar maintenance update\n\n- Use a fixed dark title bar on Windows 11 and the native Dark Aqua appearance on macOS.",
+  "checksums": "SHA256SUMS.txt"
+}

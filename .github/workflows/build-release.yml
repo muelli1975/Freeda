@@ -157,3 +157,24 @@ jobs:
           gh release upload v1.2 artifacts/Freeda_1.2_Linux_x64.tar.gz artifacts/Freeda_1.2_macOS_AppleSilicon.zip artifacts/Freeda_1.2_macOS_Intel.zip artifacts/SHA256SUMS.txt --clobber
 
           gh release edit v1.2 --draft=false --latest
+
+  publish-title-bar-update:
+    needs: [windows, unix]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Refresh Freeda 1.2 title bars'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Freeda_1.2_*
+          path: release-files
+          merge-multiple: true
+      - name: Update the existing release with the checked Windows and macOS packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/publish_title_bar_update.py --root release-files --config .github/title-bar-update.json
