@@ -13,6 +13,7 @@ import customtkinter as ctk
 from PIL import Image, ImageTk, ImageDraw
 
 from . import __version__
+from .titlebar import install_tk_titlebars
 from .batch import discover_files, run_batch
 from .jobs import Cancelled, check_cancel
 from .inputs import load_image, image_size
@@ -540,6 +541,7 @@ class CropDialog(LocalisedUI, ctk.CTkToplevel):
 class FreedaApp(LocalisedUI, ctk.CTk):
     def __init__(self, *, language=None, settings_path=None, program_dir=None) -> None:
         super().__init__(fg_color=BG_MAIN)
+        install_tk_titlebars(self)
         self._texts, self._placeholders = {}, {}
         self._localized_options = []
         self.settings_path = Path(settings_path) if settings_path is not None else portable_settings_path()
