@@ -16,11 +16,11 @@ Freeda works completely locally: no account, no cloud, no tracking and no automa
 2. Start `Freeda.exe`.
 3. Keep the application folder together; `_internal`, `tools` and the other supplied files belong to the application.
 
-No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Keep this file and your `logos` folder, if present, when updating the application. The executable is not Authenticode-signed.
+No separate Python installation is required. Language and saved presets are stored in `settings.json` beside `Freeda.exe`. Keep this file and the `logos` folder, if present, when updating the application. The executable is not Authenticode-signed.
 
 ## macOS and Linux builds
 
-The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package for your processor. Settings are stored beside the app bundle. ExifTool is included in `tools` beside the Linux executable and in `Freeda.app/Contents/MacOS/tools` on macOS. Linux and macOS need a working Perl interpreter for metadata transfer; the Windows package includes its own runtime.
+The same release page provides Linux x64, macOS Apple Silicon and macOS Intel packages. Extract the complete package into a writable folder. On Linux, start `Freeda` in a graphical desktop session; glibc 2.35 or newer is required. On macOS, start `Freeda.app` from the package matching the processor architecture. Settings are stored beside the app bundle. ExifTool is included in `tools` beside the Linux executable and in `Freeda.app/Contents/MacOS/tools` on macOS. Linux and macOS need a working Perl interpreter for metadata transfer; the Windows package includes its own runtime.
 
 All four variants are built from the same verified source snapshot, included in each package. Automated tests and packaged startup checks run on every platform; GUI export checks also run on Windows and Linux. Manual desktop testing on macOS and Linux is still pending. The macOS applications are ad-hoc signed and are not Apple-notarized.
 
@@ -29,7 +29,7 @@ All four variants are built from the same verified source snapshot, included in 
 1. Open one full-SBS image, several files or an image folder.
 2. Choose **Web** or **Print** and the viewing layout.
 3. Set the Web long edge or print dimensions, frame colours and captions.
-4. Use **Adjust crop** to position the crop. In Web mode you can also choose a per-eye aspect ratio.
+4. Use **Adjust crop** to position the crop. Web mode also offers a per-eye aspect ratio.
 5. Check the preview. Use Previous/Next to inspect other images. The preview area has square corners and uses the available space in both Web and Print.
 6. Start the export. Single-image export processes the displayed image; batch export processes the entire selection.
 
@@ -66,7 +66,7 @@ The 16 colour presets are arranged dark first, then light, with **Night gold** f
 
 ## Card templates and precise print margins
 
-Choose a **Card template** for a ready-made layout, or keep **Free layout** for proportional frames. Templates change the paper size, margins, image shape and viewing layout; they retain your colours, caption font and caption text.
+Choose a **Card template** for a ready-made layout, or keep **Free layout** for proportional frames. Templates change the paper size, margins, image shape and viewing layout; they retain the chosen colours, caption font and caption text.
 
 | Template | Finished card | Image windows | Gap between windows |
 | --- | --- | --- | --- |
@@ -74,7 +74,7 @@ Choose a **Card template** for a ready-made layout, or keep **Free layout** for 
 | Stereo card 18 × 9 cm | 180 × 90 mm | 76.2 × 76.2 mm | 2.6 mm |
 | Raumbild card 13 × 6 cm | 130 × 60 mm | 59 × 52 mm | 2 mm |
 
-These are editable layout suggestions, not universal standards for historical viewers. Holmes and 18 × 9 cm start with an arch; Raumbild starts rectangular. All use parallel viewing without II/X symbols. Check suitability for your viewer and the stereo content: image-centre distance alone does not determine viewing comfort.
+These are editable layout suggestions, not universal standards for historical viewers. Holmes and 18 × 9 cm start with an arch; Raumbild starts rectangular. All use parallel viewing without II/X symbols. Check suitability for the intended viewer and stereo content. Image-centre distance alone does not determine viewing comfort.
 
 **Adjust margins and image windows** opens the precise settings. Choose **Exact margins in mm** to set the left/right outer margin, top margin, centre gap and bottom area independently. For two image rows, an additional row-gap field appears. The bottom area includes the caption and applies to each row. It does not change automatically when captions grow: Freeda reports insufficient space instead of shrinking the image windows. The displayed window dimensions and image-centre distance update immediately. Changed templates are marked as adjusted; **Reset template** restores their layout.
 
